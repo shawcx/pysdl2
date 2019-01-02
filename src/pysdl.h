@@ -9,20 +9,12 @@
 
 #define  DOC_MOD  "Python wrapper for SDL."
 
-
-#if PY_MAJOR_VERSION >= 3
-    #define IS_PY3K
-    #define RETURNNULL return NULL
-    #define PY_TOSTR   PyUnicode_AsUTF8
-    #define PY_FROMSTR PyUnicode_FromString
-#else
-    #define RETURNNULL return
-    #define PY_TOSTR   PyString_AsString
-    #define PY_FROMSTR PyString_FromString
-#endif
-
-
 extern PyObject *pysdl_Error;
+
+
+//=========================================================
+// Types
+//=========================================================
 
 
 typedef struct {

@@ -159,7 +159,7 @@ static PyObject * PySDL_Renderer_LoadTexture(PySDL_Renderer *self, PyObject *arg
         return NULL;
     }
 
-    pysdl_Texture->texture = IMG_LoadTexture(self->renderer, PY_TOSTR(args));
+    pysdl_Texture->texture = IMG_LoadTexture(self->renderer, PyUnicode_AsUTF8(args));
     if(NULL == pysdl_Texture->texture) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;

@@ -181,6 +181,6 @@ static PyObject * PySDL_Window_SetWindowIcon(PySDL_Window *self, PyObject *args)
 
 
 static PyObject * PySDL_Window_SetWindowTitle(PySDL_Window *self, PyObject *args) {
-    SDL_SetWindowTitle(self->window, PY_TOSTR(args));
+    SDL_SetWindowTitle(self->window, PyUnicode_AsUTF8(args));
     Py_RETURN_NONE;
 }

@@ -145,7 +145,7 @@ static PyObject * PySDL_Surface_LockSurface(PySDL_Surface *self, PyObject *args)
 
 static PyObject * PySDL_Surface_SaveBMP(PySDL_Surface *self, PyObject *args) {
     int ok;
-    ok = SDL_SaveBMP(self->surface, PY_TOSTR(args));
+    ok = SDL_SaveBMP(self->surface, PyUnicode_AsUTF8(args));
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;

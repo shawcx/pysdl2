@@ -36,29 +36,22 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { NULL }
 };
 
-#ifdef IS_PY3K
-    static PyModuleDef pysdl_module = {
-        PyModuleDef_HEAD_INIT,
-        "SDL2",
-        NULL,
-        -1,
-        pysdl_PyMethodDefs
-    };
+static PyModuleDef pysdl_module = {
+    PyModuleDef_HEAD_INIT,
+    "SDL2",
+    NULL,
+    -1,
+    pysdl_PyMethodDefs
+};
+
 
 PyMODINIT_FUNC PyInit_SDL2(void) {
-#else
-void initsdl2(void) {
-#endif
     PyObject *module;
     int ok;
 
-#ifdef IS_PY3K
     module = PyModule_Create(&pysdl_module);
-#else
-    module = Py_InitModule3("SDL2", pysdl_PyMethodDefs, DOC_MOD);
-#endif
     if(NULL == module) {
-        RETURNNULL;
+        return NULL;
     }
 
     pysdl_Error = PyErr_NewException("SDL2.error", NULL, NULL);
@@ -67,26 +60,26 @@ void initsdl2(void) {
 
     ok = PyType_Ready(&PySDL_Window_Type);
     if(0 > ok) {
-        RETURNNULL;
+        return NULL;
     }
     Py_INCREF(&PySDL_Window_Type);
     PyModule_AddObject(module, "Window", (PyObject *)&PySDL_Window_Type);
 
     ok = PyType_Ready(&PySDL_Renderer_Type);
     if(0 > ok) {
-        RETURNNULL;
+        return NULL;
     }
     Py_INCREF(&PySDL_Renderer_Type);
 
     ok = PyType_Ready(&PySDL_Surface_Type);
     if(0 > ok) {
-        RETURNNULL;
+        return NULL;
     }
     Py_INCREF(&PySDL_Surface_Type);
 
     ok = PyType_Ready(&PySDL_Texture_Type);
     if(0 > ok) {
-        RETURNNULL;
+        return NULL;
     }
     Py_INCREF(&PySDL_Texture_Type);
 
@@ -454,14 +447,12 @@ void initsdl2(void) {
     PyModule_AddIntConstant( module, "KMOD_ALT",     KMOD_ALT     );
 //    PyModule_AddIntConstant( module, "KMOD_META",    KMOD_META    );
 
-#ifdef IS_PY3K
     return module;
-#endif
 }
 
 
 static PyObject * PySDL_GetCurrentVideoDriver(PyObject *self, PyObject *args) {
-    return PY_FROMSTR(SDL_GetCurrentVideoDriver());
+    return PyUnicode_FromString(SDL_GetCurrentVideoDriver());
 }
 
 
@@ -473,7 +464,7 @@ static PyObject * PySDL_GetVideoDrivers(PyObject *self, PyObject *args) {
     count = SDL_GetNumVideoDrivers();
     list = PyList_New(count);
     for(idx = 0; idx < count; ++idx) {
-        PyList_SetItem(list, idx, PY_FROMSTR(SDL_GetVideoDriver(idx)));
+        PyList_SetItem(list, idx, PyUnicode_FromString(SDL_GetVideoDriver(idx)));
     }
 
     return list;
@@ -509,7 +500,7 @@ static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    pysdl_Surface->surface = SDL_LoadBMP(PY_TOSTR(args));
+    pysdl_Surface->surface = SDL_LoadBMP(PyUnicode_AsUTF8(args));
     if(NULL == pysdl_Surface->surface) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
