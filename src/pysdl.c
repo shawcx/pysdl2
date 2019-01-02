@@ -17,6 +17,17 @@ static PyObject * PySDL_WaitEvent        (PyObject*, PyObject*);
 static PyObject * PySDL_GetKeyboardState (PyObject*, PyObject*);
 static PyObject * PySDL_GetModState      (PyObject*, PyObject*);
 
+static PyObject * PySDL_Has3DNow   (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX     (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX2    (PyObject*, PyObject*);
+static PyObject * PySDL_HasAltiVec (PyObject*, PyObject*);
+static PyObject * PySDL_HasMMX     (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE     (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE2    (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE3    (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE41   (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE42   (PyObject*, PyObject*);
+
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
     { "GetTicks",              PySDL_GetTicks,              METH_NOARGS  },
@@ -32,6 +43,17 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "WaitEvent",        PySDL_WaitEvent,        METH_NOARGS },
     { "GetKeyboardState", PySDL_GetKeyboardState, METH_NOARGS },
     { "GetModState",      PySDL_GetModState,      METH_NOARGS },
+
+    { "Has3DNow",   PySDL_Has3DNow,   METH_NOARGS },
+    { "HasAVX",     PySDL_HasAVX,     METH_NOARGS },
+    { "HasAVX2",    PySDL_HasAVX2,    METH_NOARGS },
+    { "HasAltiVec", PySDL_HasAltiVec, METH_NOARGS },
+    { "HasMMX",     PySDL_HasMMX,     METH_NOARGS },
+    { "HasSSE",     PySDL_HasSSE,     METH_NOARGS },
+    { "HasSSE2",    PySDL_HasSSE2,    METH_NOARGS },
+    { "HasSSE3",    PySDL_HasSSE3,    METH_NOARGS },
+    { "HasSSE41",   PySDL_HasSSE41,   METH_NOARGS },
+    { "HasSSE42",   PySDL_HasSSE42,   METH_NOARGS },
 
     { NULL }
 };
@@ -695,3 +717,62 @@ static PyObject * PySDL_GetModState(PyObject *self, PyObject *args) {
     return PyLong_FromLong(SDL_GetModState());
 }
 
+static PyObject * PySDL_Has3DNow(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_Has3DNow() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasAVX(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasAVX() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasAVX2(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasAVX2() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasAltiVec(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasAltiVec() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasMMX(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasMMX() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasSSE(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasSSE() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasSSE2(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasSSE2() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasSSE3(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasSSE3() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasSSE41(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasSSE41() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
+
+static PyObject * PySDL_HasSSE42(PyObject *self, PyObject *args) {
+    PyObject *hasFeature = SDL_HasSSE42() ? Py_True : Py_False;
+    Py_INCREF(hasFeature);
+    return hasFeature;
+}
