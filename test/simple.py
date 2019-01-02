@@ -44,22 +44,21 @@ while not quit:
             break
 
         event,data = result
-        #print(event, data)
 
         if SDL2.QUIT == event:
             quit = True
             break
 
-        if SDL2.KEYDOWN == event[0]:
+        if SDL2.KEYDOWN == event:
             # quit on escape
-            if SDL.K_ESCAPE == event[3]:
+            if SDL2.K_ESCAPE == data[2]:
                 quit = True
                 break
 #            # take a screenshot on c
-#            if SDL.K_c == event[3]:
+#            if SDL2.K_c == data[2]:
 #                self.Capture()
 #            # display info on i
-#            if SDL.K_i == event[3]:
+#            if SDL2.K_i == data[2]:
 #                self.fnInfo()
 
 del texture
