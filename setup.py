@@ -18,7 +18,7 @@ setuptools.setup(
     author_email     = 'moertle@gmail.com',
     version          = '0.2',
     license          = 'MIT',
-    url              = 'https://github.com/moertle/SDL2',
+    url              = 'https://github.com/moertle/pysdl2',
     description      = 'Python3 bindings for SDL2',
     long_description = open('README.rst').read(),
     ext_modules = [
