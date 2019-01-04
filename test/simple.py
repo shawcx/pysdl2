@@ -4,34 +4,13 @@ import sys
 import time
 import SDL2
 
+imagePath = sys.argv[1]
+
 SDL2.Init()
+surface = SDL2.LoadBMP(imagePath)
+window = SDL2.Window(imagePath, (surface.w,surface.h))
 
-print('Version: %d.%d.%d' % SDL2.Version())
-
-
-print("Has3DNow",   SDL2.Has3DNow())
-print("HasAVX",     SDL2.HasAVX())
-print("HasAVX2",    SDL2.HasAVX2())
-print("HasAltiVec", SDL2.HasAltiVec())
-print("HasMMX",     SDL2.HasMMX())
-print("HasSSE",     SDL2.HasSSE())
-print("HasSSE2",    SDL2.HasSSE2())
-print("HasSSE3",    SDL2.HasSSE3())
-print("HasSSE41",   SDL2.HasSSE41())
-print("HasSSE42",   SDL2.HasSSE42())
-
-
-surface = SDL2.LoadBMP(sys.argv[1])
-
-print('%s: %dx%d @ %d' % (sys.argv[1], surface.w, surface.h, surface.bpp))
-
-window = SDL2.Window(sys.argv[1], (640,480))
-#window = SDL2.Window(sys.argv[1], flags=SDL2.WINDOW_FULLSCREEN_DESKTOP)
-
-print(window.GetWindowSize())
-print(SDL2.GetVideoDrivers())
-
-print(SDL2.GetCurrentVideoDriver())
+print('%s: %dx%d @ %dbpp' % (imagePath, surface.w, surface.h, surface.bpp))
 
 renderer = window.CreateRenderer()
 
@@ -66,6 +45,12 @@ while not quit:
             # quit on escape
             if SDL2.K_ESCAPE == data[2]:
                 quit = True
+                break
+            if SDL2.K_h == data[2]:
+                window.HideWindow()
+                break
+            if SDL2.K_m == data[2]:
+                window.MinimizeWindow()
                 break
 #            # take a screenshot on c
 #            if SDL2.K_c == data[2]:
