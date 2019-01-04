@@ -10,6 +10,13 @@ static PyObject * PySDL_Window_GL_SwapWindow       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowFullscreen (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowIcon       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowTitle      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_ShowWindow          (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_HideWindow          (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_RaiseWindow         (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_MaximizeWindow      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_MinimizeWindow      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_RestoreWindow       (PySDL_Window*, PyObject*);
+
 
 static PyMethodDef PySDL_Window_methods[] = {
     { "CreateRenderer",      (PyCFunction)PySDL_Window_CreateRenderer,      METH_NOARGS  },
@@ -19,6 +26,12 @@ static PyMethodDef PySDL_Window_methods[] = {
     { "SetWindowFullscreen", (PyCFunction)PySDL_Window_SetWindowFullscreen, METH_NOARGS  },
     { "SetWindowIcon",       (PyCFunction)PySDL_Window_SetWindowIcon,       METH_O       },
     { "SetWindowTitle",      (PyCFunction)PySDL_Window_SetWindowTitle,      METH_O       },
+    { "ShowWindow",          (PyCFunction)PySDL_Window_ShowWindow,          METH_NOARGS  },
+    { "HideWindow",          (PyCFunction)PySDL_Window_HideWindow,          METH_NOARGS  },
+    { "RaiseWindow",         (PyCFunction)PySDL_Window_RaiseWindow,         METH_NOARGS  },
+    { "MaximizeWindow",      (PyCFunction)PySDL_Window_MaximizeWindow,      METH_NOARGS  },
+    { "MinimizeWindow",      (PyCFunction)PySDL_Window_MinimizeWindow,      METH_NOARGS  },
+    { "RestoreWindow",       (PyCFunction)PySDL_Window_RestoreWindow,       METH_NOARGS  },
     { NULL }
 };
 
@@ -182,5 +195,41 @@ static PyObject * PySDL_Window_SetWindowIcon(PySDL_Window *self, PyObject *args)
 
 static PyObject * PySDL_Window_SetWindowTitle(PySDL_Window *self, PyObject *args) {
     SDL_SetWindowTitle(self->window, PyUnicode_AsUTF8(args));
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_ShowWindow(PySDL_Window *self, PyObject *args) {
+    SDL_ShowWindow(self->window);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_HideWindow(PySDL_Window *self, PyObject *args) {
+    SDL_HideWindow(self->window);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_RaiseWindow(PySDL_Window *self, PyObject *args) {
+    SDL_RaiseWindow(self->window);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_MaximizeWindow(PySDL_Window *self, PyObject *args) {
+    SDL_MaximizeWindow(self->window);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_MinimizeWindow(PySDL_Window *self, PyObject *args) {
+    SDL_MinimizeWindow(self->window);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_RestoreWindow(PySDL_Window *self, PyObject *args) {
+    SDL_RestoreWindow(self->window);
     Py_RETURN_NONE;
 }

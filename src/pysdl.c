@@ -10,6 +10,7 @@ static PyObject * PySDL_LoadBMP               (PyObject*, PyObject*);
 static PyObject * PySDL_Quit                  (PyObject*, PyObject*);
 static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 static PyObject * PySDL_Version               (PyObject*, PyObject*);
+static PyObject * PySDL_GetPlatform           (PyObject*, PyObject*);
 static PyObject * PySDL_WasInit               (PyObject*, PyObject*);
 
 static PyObject * PySDL_PollEvent        (PyObject*, PyObject*);
@@ -17,16 +18,19 @@ static PyObject * PySDL_WaitEvent        (PyObject*, PyObject*);
 static PyObject * PySDL_GetKeyboardState (PyObject*, PyObject*);
 static PyObject * PySDL_GetModState      (PyObject*, PyObject*);
 
-static PyObject * PySDL_Has3DNow   (PyObject*, PyObject*);
-static PyObject * PySDL_HasAVX     (PyObject*, PyObject*);
-static PyObject * PySDL_HasAVX2    (PyObject*, PyObject*);
-static PyObject * PySDL_HasAltiVec (PyObject*, PyObject*);
-static PyObject * PySDL_HasMMX     (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE     (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE2    (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE3    (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE41   (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE42   (PyObject*, PyObject*);
+static PyObject * PySDL_GetCPUCount         (PyObject*, PyObject*);
+static PyObject * PySDL_GetCPUCacheLineSize (PyObject*, PyObject*);
+static PyObject * PySDL_Has3DNow            (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX              (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX2             (PyObject*, PyObject*);
+static PyObject * PySDL_HasAltiVec          (PyObject*, PyObject*);
+static PyObject * PySDL_HasMMX              (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE              (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE2             (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE3             (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE41            (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE42            (PyObject*, PyObject*);
+
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
@@ -37,6 +41,7 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Quit",                  PySDL_Quit,                  METH_NOARGS  },
     { "ShowCursor",            PySDL_ShowCursor,            METH_O       },
     { "Version",               PySDL_Version,               METH_NOARGS  },
+    { "GetPlatform",           PySDL_GetPlatform,           METH_NOARGS  },
     { "WasInit",               PySDL_WasInit,               METH_VARARGS },
 
     { "PollEvent",        PySDL_PollEvent,        METH_NOARGS },
@@ -44,17 +49,18 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetKeyboardState", PySDL_GetKeyboardState, METH_NOARGS },
     { "GetModState",      PySDL_GetModState,      METH_NOARGS },
 
-    { "Has3DNow",   PySDL_Has3DNow,   METH_NOARGS },
-    { "HasAVX",     PySDL_HasAVX,     METH_NOARGS },
-    { "HasAVX2",    PySDL_HasAVX2,    METH_NOARGS },
-    { "HasAltiVec", PySDL_HasAltiVec, METH_NOARGS },
-    { "HasMMX",     PySDL_HasMMX,     METH_NOARGS },
-    { "HasSSE",     PySDL_HasSSE,     METH_NOARGS },
-    { "HasSSE2",    PySDL_HasSSE2,    METH_NOARGS },
-    { "HasSSE3",    PySDL_HasSSE3,    METH_NOARGS },
-    { "HasSSE41",   PySDL_HasSSE41,   METH_NOARGS },
-    { "HasSSE42",   PySDL_HasSSE42,   METH_NOARGS },
-
+    { "GetCPUCount",         PySDL_GetCPUCount,         METH_NOARGS },
+    { "GetCPUCacheLineSize", PySDL_GetCPUCacheLineSize, METH_NOARGS },
+    { "Has3DNow",            PySDL_Has3DNow,            METH_NOARGS },
+    { "HasAVX",              PySDL_HasAVX,              METH_NOARGS },
+    { "HasAVX2",             PySDL_HasAVX2,             METH_NOARGS },
+    { "HasAltiVec",          PySDL_HasAltiVec,          METH_NOARGS },
+    { "HasMMX",              PySDL_HasMMX,              METH_NOARGS },
+    { "HasSSE",              PySDL_HasSSE,              METH_NOARGS },
+    { "HasSSE2",             PySDL_HasSSE2,             METH_NOARGS },
+    { "HasSSE3",             PySDL_HasSSE3,             METH_NOARGS },
+    { "HasSSE41",            PySDL_HasSSE41,            METH_NOARGS },
+    { "HasSSE42",            PySDL_HasSSE42,            METH_NOARGS },
     { NULL }
 };
 
@@ -549,7 +555,6 @@ static PyObject * PySDL_Version(PyObject *self, PyObject *args) {
     SDL_version compiled;
 
     SDL_VERSION(&compiled);
-    //SDL_GetVersion(&linked);
 
     version = PyTuple_New(3);
     PyTuple_SetItem(version, 0, PyLong_FromLong(compiled.major));
@@ -557,6 +562,11 @@ static PyObject * PySDL_Version(PyObject *self, PyObject *args) {
     PyTuple_SetItem(version, 2, PyLong_FromLong(compiled.patch));
 
     return version;
+}
+
+
+static PyObject * PySDL_GetPlatform(PyObject *self, PyObject *args) {
+    return PyUnicode_FromString(SDL_GetPlatform());
 }
 
 
@@ -715,6 +725,14 @@ static PyObject * PySDL_GetKeyboardState(PyObject *self, PyObject *args) {
 
 static PyObject * PySDL_GetModState(PyObject *self, PyObject *args) {
     return PyLong_FromLong(SDL_GetModState());
+}
+
+static PyObject * PySDL_GetCPUCount(PyObject *self, PyObject *args) {
+    return PyLong_FromLong(SDL_GetCPUCount());
+}
+
+static PyObject * PySDL_GetCPUCacheLineSize(PyObject *self, PyObject *args) {
+    return PyLong_FromLong(SDL_GetCPUCacheLineSize());
 }
 
 static PyObject * PySDL_Has3DNow(PyObject *self, PyObject *args) {
