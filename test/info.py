@@ -23,9 +23,11 @@ print('HasSSE41:   ', SDL2.HasSSE41())
 print('HasSSE42:   ', SDL2.HasSSE42())
 print()
 
+print('Number of displays:', SDL2.GetNumVideoDisplays())
 print('Current Driver:', SDL2.GetCurrentVideoDriver())
 print('Available Drivers:')
 for driver in SDL2.GetVideoDrivers():
     print('  ', driver)
+
 
 SDL2.Quit()

@@ -31,6 +31,8 @@ static PyObject * PySDL_HasSSE3             (PyObject*, PyObject*);
 static PyObject * PySDL_HasSSE41            (PyObject*, PyObject*);
 static PyObject * PySDL_HasSSE42            (PyObject*, PyObject*);
 
+static PyObject * PySDL_GetNumVideoDisplays (PyObject*, PyObject*);
+
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
@@ -61,6 +63,9 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "HasSSE3",             PySDL_HasSSE3,             METH_NOARGS },
     { "HasSSE41",            PySDL_HasSSE41,            METH_NOARGS },
     { "HasSSE42",            PySDL_HasSSE42,            METH_NOARGS },
+
+    { "GetNumVideoDisplays", PySDL_GetNumVideoDisplays, METH_NOARGS },
+
     { NULL }
 };
 
@@ -793,4 +798,13 @@ static PyObject * PySDL_HasSSE42(PyObject *self, PyObject *args) {
     PyObject *hasFeature = SDL_HasSSE42() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
+}
+
+static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *args) {
+    int displays = SDL_GetNumVideoDisplays();
+    if(0 > displays) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return PyLong_FromLong(displays);
 }
