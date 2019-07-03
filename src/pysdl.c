@@ -32,6 +32,8 @@ static PyObject * PySDL_HasSSE41            (PyObject*, PyObject*);
 static PyObject * PySDL_HasSSE42            (PyObject*, PyObject*);
 
 static PyObject * PySDL_GetNumVideoDisplays (PyObject*, PyObject*);
+static PyObject * PySDL_GetDisplayMode      (PyObject*, PyObject*);
+static PyObject * PySDL_GetDisplayBounds    (PyObject*, PyObject*);
 
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
@@ -65,6 +67,8 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "HasSSE42",            PySDL_HasSSE42,            METH_NOARGS },
 
     { "GetNumVideoDisplays", PySDL_GetNumVideoDisplays, METH_NOARGS },
+    { "GetDisplayMode",      PySDL_GetDisplayMode,      METH_O      },
+    { "GetDisplayBounds",    PySDL_GetDisplayBounds,    METH_O      },
 
     { NULL }
 };
@@ -807,4 +811,40 @@ static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *args) {
         return NULL;
     }
     return PyLong_FromLong(displays);
+}
+
+static PyObject * PySDL_GetDisplayMode(PyObject *self, PyObject *args) {
+    SDL_DisplayMode displayMode;
+    int ok;
+
+    ok = SDL_GetDisplayMode(PyLong_AsLong(args), 0, &displayMode);
+    if(0 > ok) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    PyObject *mode = PyTuple_New(4);
+    PyTuple_SetItem(mode, 0, PyLong_FromLong(displayMode.format));
+    PyTuple_SetItem(mode, 1, PyLong_FromLong(displayMode.w));
+    PyTuple_SetItem(mode, 2, PyLong_FromLong(displayMode.h));
+    PyTuple_SetItem(mode, 3, PyLong_FromLong(displayMode.refresh_rate));
+    return mode;
+}
+
+static PyObject * PySDL_GetDisplayBounds(PyObject *self, PyObject *args) {
+    SDL_Rect rect;
+    int ok;
+
+    ok = SDL_GetDisplayBounds(PyLong_AsLong(args), &rect);
+    if(0 > ok) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    PyObject *bounds = PyTuple_New(4);
+    PyTuple_SetItem(bounds, 0, PyLong_FromLong(rect.x));
+    PyTuple_SetItem(bounds, 1, PyLong_FromLong(rect.y));
+    PyTuple_SetItem(bounds, 2, PyLong_FromLong(rect.w));
+    PyTuple_SetItem(bounds, 3, PyLong_FromLong(rect.h));
+    return bounds;
 }

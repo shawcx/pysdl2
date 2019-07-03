@@ -89,10 +89,10 @@ static void PySDL_Surface_Type_dealloc(PySDL_Surface *self) {
 
 PyObject * PySDL_Surface_getter(PyObject *self, void *param) {
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)self;
-    int field;
+    long field;
     int size;
 
-    field = (int)param;
+    field = (long)param;
 
     switch(field)
     {
@@ -116,10 +116,10 @@ int PySDL_Surface_setter(PyObject *self, PyObject *value, void *param) {
 
     char *buff;
     Py_ssize_t len;
+    long field;
     int size;
-    int field;
 
-    field = (int)param;
+    field = (long)param;
 
     switch(field) {
     case PySDL__SURFACE_PIXELS:
