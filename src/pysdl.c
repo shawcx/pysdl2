@@ -35,6 +35,8 @@ static PyObject * PySDL_GetNumVideoDisplays (PyObject*, PyObject*);
 static PyObject * PySDL_GetDisplayMode      (PyObject*, PyObject*);
 static PyObject * PySDL_GetDisplayBounds    (PyObject*, PyObject*);
 
+static PyObject * PySDL_GL_SetAttribute (PyObject*, PyObject*);
+
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
@@ -69,6 +71,9 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetNumVideoDisplays", PySDL_GetNumVideoDisplays, METH_NOARGS },
     { "GetDisplayMode",      PySDL_GetDisplayMode,      METH_O      },
     { "GetDisplayBounds",    PySDL_GetDisplayBounds,    METH_O      },
+
+    { "GL_SetAttribute", PySDL_GL_SetAttribute, METH_VARARGS },
+    //{ "GL_GetAttribute", (PyCFunction)PySDL_GL_GetAttribute, METH_VARARGS },
 
     { NULL }
 };
@@ -752,6 +757,30 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     PyModule_AddIntConstant( module, "SCANCODE_AUDIOREWIND", SDL_SCANCODE_AUDIOREWIND );
     PyModule_AddIntConstant( module, "SCANCODE_AUDIOFASTFORWARD", SDL_SCANCODE_AUDIOFASTFORWARD );
 
+    PyModule_AddIntConstant( module, "GL_RED_SIZE",                   SDL_GL_RED_SIZE );
+    PyModule_AddIntConstant( module, "GL_GREEN_SIZE",                 SDL_GL_GREEN_SIZE );
+    PyModule_AddIntConstant( module, "GL_BLUE_SIZE",                  SDL_GL_BLUE_SIZE );
+    PyModule_AddIntConstant( module, "GL_ALPHA_SIZE",                 SDL_GL_ALPHA_SIZE );
+    PyModule_AddIntConstant( module, "GL_BUFFER_SIZE",                SDL_GL_BUFFER_SIZE );
+    PyModule_AddIntConstant( module, "GL_DOUBLEBUFFER",               SDL_GL_DOUBLEBUFFER );
+    PyModule_AddIntConstant( module, "GL_DEPTH_SIZE",                 SDL_GL_DEPTH_SIZE );
+    PyModule_AddIntConstant( module, "GL_STENCIL_SIZE",               SDL_GL_STENCIL_SIZE );
+    PyModule_AddIntConstant( module, "GL_ACCUM_RED_SIZE",             SDL_GL_ACCUM_RED_SIZE );
+    PyModule_AddIntConstant( module, "GL_ACCUM_GREEN_SIZE",           SDL_GL_ACCUM_GREEN_SIZE );
+    PyModule_AddIntConstant( module, "GL_ACCUM_BLUE_SIZE",            SDL_GL_ACCUM_BLUE_SIZE );
+    PyModule_AddIntConstant( module, "GL_ACCUM_ALPHA_SIZE",           SDL_GL_ACCUM_ALPHA_SIZE );
+    PyModule_AddIntConstant( module, "GL_STEREO",                     SDL_GL_STEREO );
+    PyModule_AddIntConstant( module, "GL_MULTISAMPLEBUFFERS",         SDL_GL_MULTISAMPLEBUFFERS );
+    PyModule_AddIntConstant( module, "GL_MULTISAMPLESAMPLES",         SDL_GL_MULTISAMPLESAMPLES );
+    PyModule_AddIntConstant( module, "GL_ACCELERATED_VISUAL",         SDL_GL_ACCELERATED_VISUAL );
+    PyModule_AddIntConstant( module, "GL_CONTEXT_MAJOR_VERSION",      SDL_GL_CONTEXT_MAJOR_VERSION );
+    PyModule_AddIntConstant( module, "GL_CONTEXT_MINOR_VERSION",      SDL_GL_CONTEXT_MINOR_VERSION );
+    PyModule_AddIntConstant( module, "GL_CONTEXT_FLAGS",              SDL_GL_CONTEXT_FLAGS );
+    PyModule_AddIntConstant( module, "GL_CONTEXT_PROFILE_MASK",       SDL_GL_CONTEXT_PROFILE_MASK );
+    PyModule_AddIntConstant( module, "GL_SHARE_WITH_CURRENT_CONTEXT", SDL_GL_SHARE_WITH_CURRENT_CONTEXT );
+    PyModule_AddIntConstant( module, "GL_FRAMEBUFFER_SRGB_CAPABLE",   SDL_GL_FRAMEBUFFER_SRGB_CAPABLE );
+    PyModule_AddIntConstant( module, "GL_CONTEXT_RELEASE_BEHAVIOR",   SDL_GL_CONTEXT_RELEASE_BEHAVIOR );
+
     return module;
 }
 
@@ -1114,4 +1143,23 @@ static PyObject * PySDL_GetDisplayBounds(PyObject *self, PyObject *args) {
     PyTuple_SetItem(bounds, 2, PyLong_FromLong(rect.w));
     PyTuple_SetItem(bounds, 3, PyLong_FromLong(rect.h));
     return bounds;
+}
+
+static PyObject * PySDL_GL_SetAttribute(PyObject *self, PyObject *args) {
+    int attrib;
+    int value;
+    int ok;
+
+    ok = PyArg_ParseTuple(args, "ii", &attrib, &value);
+    if(!ok) {
+        return NULL;
+    }
+
+    ok = SDL_GL_SetAttribute(attrib, value);
+    if(0 > ok) {
+        PyErr_SetString(pysdl_Error, "Error setting attribute");
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
 }
