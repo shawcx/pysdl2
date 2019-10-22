@@ -17,6 +17,8 @@ static PyObject * PySDL_Window_RaiseWindow         (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_MaximizeWindow      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_MinimizeWindow      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_RestoreWindow       (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowSurface    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_UpdateWindowSurface (PySDL_Window*, PyObject*);
 
 
 static PyMethodDef PySDL_Window_methods[] = {
@@ -34,13 +36,15 @@ static PyMethodDef PySDL_Window_methods[] = {
     { "MaximizeWindow",      (PyCFunction)PySDL_Window_MaximizeWindow,      METH_NOARGS  },
     { "MinimizeWindow",      (PyCFunction)PySDL_Window_MinimizeWindow,      METH_NOARGS  },
     { "RestoreWindow",       (PyCFunction)PySDL_Window_RestoreWindow,       METH_NOARGS  },
+    { "GetWindowSurface",    (PyCFunction)PySDL_Window_GetWindowSurface,    METH_NOARGS  },
+    { "UpdateWindowSurface", (PyCFunction)PySDL_Window_UpdateWindowSurface, METH_NOARGS  },
     { NULL }
 };
 
 PyTypeObject PySDL_Window_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "pysdl.Window",                       // name
-    sizeof(PySDL_Window),                  // basicsize
+    "SDL2.Window",                     // name
+    sizeof(PySDL_Window),              // basicsize
     0,                                 // itemsize
     (destructor)PySDL_Window_Type_dealloc, // dealloc
     NULL,                              // print
@@ -58,14 +62,14 @@ PyTypeObject PySDL_Window_Type = {
     NULL,                              // setattro
     NULL,                              // as_buffer
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    "pysdl.Window Class",                 // doc
+    "SDL2.Window(title,(width,height),(x,y),flags)",                 // doc
     NULL,                              // traverse
     NULL,                              // clear
     NULL,                              // richcompare
     0,                                 // weaklistoffset
     NULL,                              // iter
     NULL,                              // iternext
-    PySDL_Window_methods,                  // methods
+    PySDL_Window_methods,              // methods
     NULL,                              // members
     NULL,                              // getset
     NULL,                              // base
@@ -73,7 +77,7 @@ PyTypeObject PySDL_Window_Type = {
     NULL,                              // descr_get
     NULL,                              // descr_set
     0,                                 // dictoffset
-    (initproc)PySDL_Window_Type_init,      // init
+    (initproc)PySDL_Window_Type_init,  // init
     NULL,                              // alloc
     PyType_GenericNew
 };
@@ -132,7 +136,7 @@ static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *args
 
     pysdl_Renderer = (PySDL_Renderer *)PyObject_CallObject((PyObject *)&PySDL_Renderer_Type, NULL);
     if(NULL == pysdl_Renderer) {
-        PyErr_SetString(PyExc_TypeError, "Could not create pysdl.Renderer object");
+        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Renderer object");
         return NULL;
     }
 
@@ -239,5 +243,31 @@ static PyObject * PySDL_Window_MinimizeWindow(PySDL_Window *self, PyObject *args
 
 static PyObject * PySDL_Window_RestoreWindow(PySDL_Window *self, PyObject *args) {
     SDL_RestoreWindow(self->window);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *args) {
+    PySDL_Surface *pysdl_Surface;
+
+    pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    if(NULL == pysdl_Surface) {
+        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
+        return NULL;
+    }
+
+    pysdl_Surface->shouldFree = 0;
+
+    pysdl_Surface->surface = SDL_GetWindowSurface(self->window);
+    if(NULL == pysdl_Surface->surface) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    return (PyObject *)pysdl_Surface;
+}
+
+static PyObject * PySDL_Window_UpdateWindowSurface(PySDL_Window *self, PyObject *args) {
+    SDL_UpdateWindowSurface(self->window);
     Py_RETURN_NONE;
 }

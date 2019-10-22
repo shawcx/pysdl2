@@ -7,6 +7,7 @@ static PyObject * PySDL_GetTicks              (PyObject*, PyObject*);
 static PyObject * PySDL_GetVideoDrivers       (PyObject*, PyObject*);
 static PyObject * PySDL_Init                  (PyObject*, PyObject*);
 static PyObject * PySDL_LoadBMP               (PyObject*, PyObject*);
+static PyObject * PySDL_CreateRGBSurface      (PyObject*, PyObject*, PyObject *);
 static PyObject * PySDL_Quit                  (PyObject*, PyObject*);
 static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 static PyObject * PySDL_Version               (PyObject*, PyObject*);
@@ -44,6 +45,7 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetVideoDrivers",       PySDL_GetVideoDrivers,       METH_NOARGS  },
     { "Init",                  PySDL_Init,                  METH_VARARGS },
     { "LoadBMP",               PySDL_LoadBMP,               METH_O       },
+    { "CreateRGBSurface",      PySDL_CreateRGBSurface,      METH_VARARGS | METH_KEYWORDS},
     { "Quit",                  PySDL_Quit,                  METH_NOARGS  },
     { "ShowCursor",            PySDL_ShowCursor,            METH_O       },
     { "Version",               PySDL_Version,               METH_NOARGS  },
@@ -830,11 +832,49 @@ static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *args) {
 
     pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
     if(NULL == pysdl_Surface) {
-        PyErr_SetString(PyExc_TypeError, "Could not create pysdl.Renderer object");
+        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
         return NULL;
     }
 
     pysdl_Surface->surface = SDL_LoadBMP(PyUnicode_AsUTF8(args));
+    if(NULL == pysdl_Surface->surface) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    return (PyObject *)pysdl_Surface;
+}
+
+
+static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObject *kwds) {
+    PySDL_Surface *pysdl_Surface;
+    int w = 0;
+    int h = 0;
+    int d = 32;
+
+    uint32_t rmask = 0xff000000;
+    uint32_t gmask = 0x00ff0000;
+    uint32_t bmask = 0x0000ff00;
+    uint32_t amask = 0x000000ff;
+
+    int ok;
+
+    static char *kwlist[] = {"size", "depth", "rmask", "gmask", "bmask", "amask", NULL};
+
+    ok = PyArg_ParseTupleAndKeywords(args, kwds, "(ii)|iIIII", kwlist,
+        &w, &h, &d, &rmask, &gmask, &bmask, &amask);
+    if(!ok) {
+        PyErr_SetString(PyExc_TypeError, "Something went wrong");
+        return NULL;
+    }
+
+    pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    if(NULL == pysdl_Surface) {
+        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
+        return NULL;
+    }
+
+    pysdl_Surface->surface = SDL_CreateRGBSurface(0, w, h, d, rmask, gmask, bmask, amask);
     if(NULL == pysdl_Surface->surface) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
@@ -904,45 +944,50 @@ PyObject * _event(SDL_Event *event) {
 
     switch(event->type) {
     //case SDL_ACTIVEEVENT: {
-    //    Py_INCREF(Py_None);
-    //    data = Py_None;
-    //    } break;
+    //        Py_INCREF(Py_None);
+    //        data = Py_None;
+    //    }
+    //    break;
     case SDL_KEYDOWN:
     case SDL_KEYUP: {
-        data = PyTuple_New(4);
-        SDL_KeyboardEvent *keyboard = (SDL_KeyboardEvent *)event;
-        PyTuple_SetItem(data, 0, PyLong_FromLong(keyboard->state));
-        PyTuple_SetItem(data, 1, PyLong_FromLong(keyboard->keysym.scancode));
-        PyTuple_SetItem(data, 2, PyLong_FromLong(keyboard->keysym.sym));
-        PyTuple_SetItem(data, 3, PyLong_FromLong(keyboard->keysym.mod));
-        //PyTuple_SetItem(data, 5, PyLong_FromLong(keyboard->keysym.unicode));
-        } break;
+            data = PyTuple_New(4);
+            SDL_KeyboardEvent *keyboard = (SDL_KeyboardEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(keyboard->state));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(keyboard->keysym.scancode));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(keyboard->keysym.sym));
+            PyTuple_SetItem(data, 3, PyLong_FromLong(keyboard->keysym.mod));
+            //PyTuple_SetItem(data, 5, PyLong_FromLong(keyboard->keysym.unicode));
+        }
+        break;
     case SDL_MOUSEMOTION: {
-        data = PyTuple_New(5);
-        SDL_MouseMotionEvent *mousemotion = (SDL_MouseMotionEvent *)event;
-        PyTuple_SetItem(data, 0, PyLong_FromLong(mousemotion->state));
-        PyTuple_SetItem(data, 1, PyLong_FromLong(mousemotion->x));
-        PyTuple_SetItem(data, 2, PyLong_FromLong(mousemotion->y));
-        PyTuple_SetItem(data, 3, PyLong_FromLong(mousemotion->xrel));
-        PyTuple_SetItem(data, 4, PyLong_FromLong(mousemotion->yrel));
-        } break;
+            data = PyTuple_New(5);
+            SDL_MouseMotionEvent *mousemotion = (SDL_MouseMotionEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(mousemotion->state));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(mousemotion->x));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(mousemotion->y));
+            PyTuple_SetItem(data, 3, PyLong_FromLong(mousemotion->xrel));
+            PyTuple_SetItem(data, 4, PyLong_FromLong(mousemotion->yrel));
+        }
+        break;
     case SDL_MOUSEBUTTONDOWN:
     case SDL_MOUSEBUTTONUP: {
-        data = PyTuple_New(5);
-        SDL_MouseButtonEvent *mousebutton = (SDL_MouseButtonEvent *)event;
-        PyTuple_SetItem(data, 0, PyLong_FromLong(mousebutton->which));
-        PyTuple_SetItem(data, 1, PyLong_FromLong(mousebutton->button));
-        PyTuple_SetItem(data, 2, PyLong_FromLong(mousebutton->state));
-        PyTuple_SetItem(data, 3, PyLong_FromLong(mousebutton->x));
-        PyTuple_SetItem(data, 4, PyLong_FromLong(mousebutton->y));
-        } break;
+            data = PyTuple_New(5);
+            SDL_MouseButtonEvent *mousebutton = (SDL_MouseButtonEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(mousebutton->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(mousebutton->button));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(mousebutton->state));
+            PyTuple_SetItem(data, 3, PyLong_FromLong(mousebutton->x));
+            PyTuple_SetItem(data, 4, PyLong_FromLong(mousebutton->y));
+        }
+        break;
     case SDL_JOYAXISMOTION: {
-        SDL_JoyAxisEvent *joyaxis = (SDL_JoyAxisEvent *)event;
-        data = PyTuple_New(3);
-        PyTuple_SetItem(data, 0, PyLong_FromLong(joyaxis->which));
-        PyTuple_SetItem(data, 1, PyLong_FromLong(joyaxis->axis));
-        PyTuple_SetItem(data, 2, PyLong_FromLong(joyaxis->value));
-        } break;
+            SDL_JoyAxisEvent *joyaxis = (SDL_JoyAxisEvent *)event;
+            data = PyTuple_New(3);
+            PyTuple_SetItem(data, 0, PyLong_FromLong(joyaxis->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(joyaxis->axis));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(joyaxis->value));
+        }
+        break;
     //case SDL_JOYBALLMOTION:
     //    data = PyTuple_New(1);
     //    break;
@@ -951,22 +996,26 @@ PyObject * _event(SDL_Event *event) {
     //    break;
     case SDL_JOYBUTTONDOWN:
     case SDL_JOYBUTTONUP: {
-        data = PyTuple_New(3);
-        SDL_JoyButtonEvent *joybutton = (SDL_JoyButtonEvent *)event;
-        PyTuple_SetItem(data, 0, PyLong_FromLong(joybutton->which));
-        PyTuple_SetItem(data, 1, PyLong_FromLong(joybutton->button));
-        PyTuple_SetItem(data, 2, PyLong_FromLong(joybutton->state));
-        } break;
+            data = PyTuple_New(3);
+            SDL_JoyButtonEvent *joybutton = (SDL_JoyButtonEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(joybutton->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(joybutton->button));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(joybutton->state));
+        }
+        break;
     case SDL_WINDOWEVENT: {
-        data = PyTuple_New(3);
-        PyTuple_SetItem(data, 0, PyLong_FromLong(event->window.event));
-        PyTuple_SetItem(data, 1, PyLong_FromLong(event->window.data1));
-        PyTuple_SetItem(data, 2, PyLong_FromLong(event->window.data2));
-        } break;
+            data = PyTuple_New(3);
+            PyTuple_SetItem(data, 0, PyLong_FromLong(event->window.event));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(event->window.data1));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(event->window.data2));
+        }
+        break;
     //case SDL_VIDEOEXPOSE:
     //    data = PyTuple_New(1);
     //    break;
     case SDL_QUIT:
+        data = Py_None;
+        Py_INCREF(data);
         break;
     //case SDL_USEREVENT:
     //    data = PyTuple_New(1);
@@ -975,8 +1024,8 @@ PyObject * _event(SDL_Event *event) {
     //    data = PyTuple_New(1);
     //    break;
     default:
-        Py_INCREF(Py_None);
         data = Py_None;
+        Py_INCREF(data);
     }
 
     PyTuple_SetItem(result, 1, data);

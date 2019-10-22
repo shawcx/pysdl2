@@ -37,6 +37,7 @@ extern PyTypeObject PySDL_Renderer_Type;
 typedef struct {
     PyObject_HEAD
     SDL_Surface *surface;
+    int shouldFree;
 } PySDL_Surface;
 
 extern PyTypeObject PySDL_Surface_Type;
