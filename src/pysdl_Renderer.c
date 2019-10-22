@@ -25,8 +25,8 @@ static PyMethodDef PySDL_Renderer_methods[] = {
 
 PyTypeObject PySDL_Renderer_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "pysdl_.Renderer",                     // name
-    sizeof(PySDL_Renderer),                // basicsize
+    "SDL2.Renderer",                   // name
+    sizeof(PySDL_Renderer),            // basicsize
     0,                                 // itemsize
     (destructor)PySDL_Renderer_Type_dealloc, // dealloc
     NULL,                              // print
@@ -44,14 +44,14 @@ PyTypeObject PySDL_Renderer_Type = {
     NULL,                              // setattro
     NULL,                              // as_buffer
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    "pysdl_.Renderer Class",               // doc
+    "SDL2.Renderer Class",             // doc
     NULL,                              // traverse
     NULL,                              // clear
     NULL,                              // richcompare
     0,                                 // weaklistoffset
     NULL,                              // iter
     NULL,                              // iternext
-    PySDL_Renderer_methods,                // methods
+    PySDL_Renderer_methods,            // methods
     NULL,                              // members
     NULL,                              // getset
     NULL,                              // base
@@ -59,7 +59,7 @@ PyTypeObject PySDL_Renderer_Type = {
     NULL,                              // descr_get
     NULL,                              // descr_set
     0,                                 // dictoffset
-    (initproc)PySDL_Renderer_Type_init,    // init
+    (initproc)PySDL_Renderer_Type_init,// init
     NULL,                              // alloc
     PyType_GenericNew
 };

@@ -20,8 +20,8 @@ static PyMethodDef PySDL_Texture_methods[] = {
 
 PyTypeObject PySDL_Texture_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "pysdl.Texture",                      // name
-    sizeof(PySDL_Texture),                 // basicsize
+    "SDL2.Texture",                    // name
+    sizeof(PySDL_Texture),             // basicsize
     0,                                 // itemsize
     (destructor)PySDL_Texture_Type_dealloc, // dealloc
     NULL,                              // print
@@ -39,14 +39,14 @@ PyTypeObject PySDL_Texture_Type = {
     NULL,                              // setattro
     NULL,                              // as_buffer
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    "pysdl.Texture Class",                // doc
+    "SDL2.Texture Class",              // doc
     NULL,                              // traverse
     NULL,                              // clear
     NULL,                              // richcompare
     0,                                 // weaklistoffset
     NULL,                              // iter
     NULL,                              // iternext
-    PySDL_Texture_methods,                 // methods
+    PySDL_Texture_methods,             // methods
     NULL,                              // members
     NULL, //PySDL_Texture_getset,                  // getset
     NULL,                              // base
@@ -54,7 +54,7 @@ PyTypeObject PySDL_Texture_Type = {
     NULL,                              // descr_get
     NULL,                              // descr_set
     0,                                 // dictoffset
-    (initproc)PySDL_Texture_Type_init,     // init
+    (initproc)PySDL_Texture_Type_init, // init
     NULL,                              // alloc
     PyType_GenericNew
 };
