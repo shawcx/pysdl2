@@ -6,6 +6,8 @@ static void       PySDL_Window_Type_dealloc (PySDL_Window* );
 static PyObject * PySDL_Window_CreateRenderer      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GetWindowSize       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_CreateContext    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GL_DeleteContext    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GL_MakeCurrent      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_SwapWindow       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowFullscreen (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowIcon       (PySDL_Window*, PyObject*);
@@ -25,6 +27,8 @@ static PyMethodDef PySDL_Window_methods[] = {
     { "CreateRenderer",      (PyCFunction)PySDL_Window_CreateRenderer,      METH_NOARGS  },
     { "GetWindowSize",       (PyCFunction)PySDL_Window_GetWindowSize,       METH_NOARGS  },
     { "GL_CreateContext",    (PyCFunction)PySDL_Window_GL_CreateContext,    METH_NOARGS  },
+    { "GL_DeleteContext",    (PyCFunction)PySDL_Window_GL_DeleteContext,    METH_NOARGS  },
+    { "GL_MakeCurrent",      (PyCFunction)PySDL_Window_GL_MakeCurrent,      METH_NOARGS  },
     { "GL_SwapWindow",       (PyCFunction)PySDL_Window_GL_SwapWindow,       METH_NOARGS  },
     { "SetWindowFullscreen", (PyCFunction)PySDL_Window_SetWindowFullscreen, METH_NOARGS  },
     { "SetWindowIcon",       (PyCFunction)PySDL_Window_SetWindowIcon,       METH_O       },
@@ -166,6 +170,27 @@ static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *args)
 
 static PyObject * PySDL_Window_GL_CreateContext(PySDL_Window *self, PyObject *args) {
     self->glContext = SDL_GL_CreateContext(self->window);
+    if(NULL == self->glContext) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_GL_DeleteContext(PySDL_Window *self, PyObject *args) {
+    if(NULL != self->glContext) {
+        SDL_GL_DeleteContext(self->glContext);
+        self->glContext = NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_GL_MakeCurrent(PySDL_Window *self, PyObject *args) {
+    if(NULL != self->glContext) {
+        SDL_GL_MakeCurrent(self->window, self->glContext);
+    }
     Py_RETURN_NONE;
 }
 
