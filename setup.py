@@ -14,7 +14,7 @@ source_files = glob.glob('./src/*.c')
 
 setuptools.setup(
     name             = 'SDL2',
-    version          = '0.2',
+    version          = '0.2.1',
     author           = 'Matthew Oertle',
     author_email     = 'moertle@gmail.com',
     url              = 'https://github.com/moertle/pysdl2',
