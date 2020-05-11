@@ -1004,10 +1004,11 @@ PyObject * _event(SDL_Event *event) {
         }
         break;
     case SDL_WINDOWEVENT: {
-            data = PyTuple_New(3);
+            data = PyTuple_New(4);
             PyTuple_SetItem(data, 0, PyLong_FromLong(event->window.event));
             PyTuple_SetItem(data, 1, PyLong_FromLong(event->window.data1));
             PyTuple_SetItem(data, 2, PyLong_FromLong(event->window.data2));
+            PyTuple_SetItem(data, 3, PyLong_FromUnsignedLong(event->window.windowID));
         }
         break;
     //case SDL_VIDEOEXPOSE:

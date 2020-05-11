@@ -3,6 +3,7 @@
 static int        PySDL_Window_Type_init    (PySDL_Window*, PyObject*, PyObject*);
 static void       PySDL_Window_Type_dealloc (PySDL_Window* );
 
+static PyObject * PySDL_Window_GetWindowID         (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_CreateRenderer      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GetWindowSize       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_CreateContext    (PySDL_Window*, PyObject*);
@@ -24,6 +25,7 @@ static PyObject * PySDL_Window_UpdateWindowSurface (PySDL_Window*, PyObject*);
 
 
 static PyMethodDef PySDL_Window_methods[] = {
+    { "GetWindowID",         (PyCFunction)PySDL_Window_GetWindowID,         METH_NOARGS  },
     { "CreateRenderer",      (PyCFunction)PySDL_Window_CreateRenderer,      METH_NOARGS  },
     { "GetWindowSize",       (PyCFunction)PySDL_Window_GetWindowSize,       METH_NOARGS  },
     { "GL_CreateContext",    (PyCFunction)PySDL_Window_GL_CreateContext,    METH_NOARGS  },
@@ -130,6 +132,16 @@ static void PySDL_Window_Type_dealloc(PySDL_Window *self) {
 }
 
 
+static PyObject * PySDL_Window_GetWindowID(PySDL_Window *self, PyObject *args) {
+    Uint32 id;
+    id = SDL_GetWindowID(self->window);
+    if(0 == id) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return PyLong_FromUnsignedLong(id);
+}
+
 static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *args) {
     PySDL_Renderer *pysdl_Renderer;
 
@@ -196,7 +208,9 @@ static PyObject * PySDL_Window_GL_MakeCurrent(PySDL_Window *self, PyObject *args
 
 
 static PyObject * PySDL_Window_GL_SwapWindow(PySDL_Window *self, PyObject *args) {
-    SDL_GL_SwapWindow(self->window);
+    Py_BEGIN_ALLOW_THREADS
+        SDL_GL_SwapWindow(self->window);
+    Py_END_ALLOW_THREADS
     Py_RETURN_NONE;
 }
 
