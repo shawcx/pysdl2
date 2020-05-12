@@ -14,6 +14,7 @@ static PyObject * PySDL_Window_SetWindowTitle      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowPosition   (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowSize       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_SetWindowResizable  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowBrightness (PySDL_Window*, PyObject*);
 
 static PyObject * PySDL_Window_ShowWindow          (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_HideWindow          (PySDL_Window*, PyObject*);
@@ -43,6 +44,7 @@ static PyMethodDef PySDL_Window_methods[] = {
     { "SetWindowPosition",   (PyCFunction)PySDL_Window_SetWindowPosition,   METH_VARARGS },
     { "SetWindowSize",       (PyCFunction)PySDL_Window_SetWindowSize,       METH_VARARGS },
     { "SetWindowResizable",  (PyCFunction)PySDL_Window_SetWindowResizable,  METH_O       },
+    { "SetWindowBrightness", (PyCFunction)PySDL_Window_SetWindowBrightness, METH_O       },
 
     { "ShowWindow",          (PyCFunction)PySDL_Window_ShowWindow,          METH_NOARGS  },
     { "HideWindow",          (PyCFunction)PySDL_Window_HideWindow,          METH_NOARGS  },
@@ -263,6 +265,12 @@ static PyObject * PySDL_Window_SetWindowSize(PySDL_Window *self, PyObject *args)
 
 static PyObject * PySDL_Window_SetWindowResizable(PySDL_Window *self, PyObject *args) {
     SDL_SetWindowResizable(self->window, args == Py_True);
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_SetWindowBrightness(PySDL_Window *self, PyObject *args) {
+    SDL_SetWindowBrightness(self->window, PyFloat_AsDouble(args));
     Py_RETURN_NONE;
 }
 

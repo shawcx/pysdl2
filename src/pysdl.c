@@ -36,7 +36,8 @@ static PyObject * PySDL_GetNumVideoDisplays (PyObject*, PyObject*);
 static PyObject * PySDL_GetDisplayMode      (PyObject*, PyObject*);
 static PyObject * PySDL_GetDisplayBounds    (PyObject*, PyObject*);
 
-static PyObject * PySDL_GL_SetAttribute (PyObject*, PyObject*);
+static PyObject * PySDL_GL_SetAttribute       (PyObject*, PyObject*);
+static PyObject * PySDL_GL_ExtensionSupported (PyObject*, PyObject*);
 
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
@@ -74,7 +75,8 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetDisplayMode",      PySDL_GetDisplayMode,      METH_O      },
     { "GetDisplayBounds",    PySDL_GetDisplayBounds,    METH_O      },
 
-    { "GL_SetAttribute", PySDL_GL_SetAttribute, METH_VARARGS },
+    { "GL_SetAttribute",       PySDL_GL_SetAttribute,       METH_VARARGS },
+    { "GL_ExtensionSupported", PySDL_GL_ExtensionSupported, METH_O       },
     //{ "GL_GetAttribute", (PyCFunction)PySDL_GL_GetAttribute, METH_VARARGS },
 
     { NULL }
@@ -1212,4 +1214,19 @@ static PyObject * PySDL_GL_SetAttribute(PyObject *self, PyObject *args) {
     }
 
     Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_GL_ExtensionSupported(PyObject *self, PyObject *arg) {
+    char *extension = PyBytes_AsString(arg);
+    if(NULL == extension) {
+        return NULL;
+    }
+
+    SDL_bool isSupported = SDL_GL_ExtensionSupported(extension);
+    if(isSupported == SDL_TRUE) {
+        Py_RETURN_TRUE;
+    }
+    else {
+        Py_RETURN_FALSE;
+    }
 }
