@@ -65,43 +65,14 @@ static PyMethodDef PySDL_Window_methods[] = {
 
 PyTypeObject PySDL_Window_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "SDL2.Window",                     // name
-    sizeof(PySDL_Window),              // basicsize
-    0,                                 // itemsize
-    (destructor)PySDL_Window_Type_dealloc, // dealloc
-    NULL,                              // print
-    NULL,                              // getattr
-    NULL,                              // setattr
-    NULL,                              // reserved
-    NULL,                              // repr
-    NULL,                              // as_number
-    NULL,                              // as_sequence
-    NULL,                              // as_mapping
-    NULL,                              // hash
-    NULL,                              // call
-    NULL,                              // str
-    NULL,                              // getattro
-    NULL,                              // setattro
-    NULL,                              // as_buffer
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    "SDL2.Window(title,(width,height),(x,y),flags)",                 // doc
-    NULL,                              // traverse
-    NULL,                              // clear
-    NULL,                              // richcompare
-    0,                                 // weaklistoffset
-    NULL,                              // iter
-    NULL,                              // iternext
-    PySDL_Window_methods,              // methods
-    NULL,                              // members
-    NULL,                              // getset
-    NULL,                              // base
-    NULL,                              // dict
-    NULL,                              // descr_get
-    NULL,                              // descr_set
-    0,                                 // dictoffset
-    (initproc)PySDL_Window_Type_init,  // init
-    NULL,                              // alloc
-    PyType_GenericNew
+    .tp_name      = "SDL2.Window",
+    .tp_basicsize = sizeof(PySDL_Window),
+    .tp_dealloc   = (destructor)PySDL_Window_Type_dealloc,
+    .tp_lags      = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc       = "SDL2.Window(title,(width,height),(x,y),flags)",
+    .tp_methods   = PySDL_Window_methods,
+    .tp_init      = (initproc)PySDL_Window_Type_init,
+    .tp_alloc     = PyType_GenericNew,
 };
 
 

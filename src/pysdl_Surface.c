@@ -32,43 +32,15 @@ static PyGetSetDef PySDL_Surface_getset[] = {
 
 PyTypeObject PySDL_Surface_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "SDL2.Surface",                    // name
-    sizeof(PySDL_Surface),             // basicsize
-    0,                                 // itemsize
-    (destructor)PySDL_Surface_Type_dealloc, // dealloc
-    NULL,                              // print
-    NULL,                              // getattr
-    NULL,                              // setattr
-    NULL,                              // reserved
-    NULL,                              // repr
-    NULL,                              // as_number
-    NULL,                              // as_sequence
-    NULL,                              // as_mapping
-    NULL,                              // hash
-    NULL,                              // call
-    NULL,                              // str
-    NULL,                              // getattro
-    NULL,                              // setattro
-    NULL,                              // as_buffer
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    "SDL2.Surface Class",              // doc
-    NULL,                              // traverse
-    NULL,                              // clear
-    NULL,                              // richcompare
-    0,                                 // weaklistoffset
-    NULL,                              // iter
-    NULL,                              // iternext
-    PySDL_Surface_methods,             // methods
-    NULL,                              // members
-    PySDL_Surface_getset,              // getset
-    NULL,                              // base
-    NULL,                              // dict
-    NULL,                              // descr_get
-    NULL,                              // descr_set
-    0,                                 // dictoffset
-    (initproc)PySDL_Surface_Type_init, // init
-    NULL,                              // alloc
-    PyType_GenericNew
+    .tp_name      = "SDL2.Surface",
+    .tp_basicsize = sizeof(PySDL_Surface),
+    .tp_dealloc   = (destructor)PySDL_Surface_Type_dealloc,
+    .tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc       = "SDL2.Surface Class",
+    .tp_methods   = PySDL_Surface_methods,
+    .tp_getset    = PySDL_Surface_getset,
+    .tp_init      = (initproc)PySDL_Surface_Type_init,
+    .tp_new       = PyType_GenericNew
 };
 
 

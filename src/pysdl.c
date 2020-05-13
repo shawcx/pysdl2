@@ -38,6 +38,7 @@ static PyObject * PySDL_GetDisplayBounds    (PyObject*, PyObject*);
 
 static PyObject * PySDL_GL_SetAttribute       (PyObject*, PyObject*);
 static PyObject * PySDL_GL_ExtensionSupported (PyObject*, PyObject*);
+static PyObject * PySDL_GL_SetSwapInterval    (PyObject*, PyObject*);
 
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
@@ -53,30 +54,31 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetPlatform",           PySDL_GetPlatform,           METH_NOARGS  },
     { "WasInit",               PySDL_WasInit,               METH_VARARGS },
 
-    { "PollEvent",        PySDL_PollEvent,        METH_NOARGS },
-    { "WaitEvent",        PySDL_WaitEvent,        METH_NOARGS },
-    { "GetKeyboardState", PySDL_GetKeyboardState, METH_NOARGS },
-    { "GetModState",      PySDL_GetModState,      METH_NOARGS },
+    { "PollEvent",             PySDL_PollEvent,             METH_NOARGS  },
+    { "WaitEvent",             PySDL_WaitEvent,             METH_NOARGS  },
+    { "GetKeyboardState",      PySDL_GetKeyboardState,      METH_NOARGS  },
+    { "GetModState",           PySDL_GetModState,           METH_NOARGS  },
 
-    { "GetCPUCount",         PySDL_GetCPUCount,         METH_NOARGS },
-    { "GetCPUCacheLineSize", PySDL_GetCPUCacheLineSize, METH_NOARGS },
-    { "Has3DNow",            PySDL_Has3DNow,            METH_NOARGS },
-    { "HasAVX",              PySDL_HasAVX,              METH_NOARGS },
-    { "HasAVX2",             PySDL_HasAVX2,             METH_NOARGS },
-    { "HasAltiVec",          PySDL_HasAltiVec,          METH_NOARGS },
-    { "HasMMX",              PySDL_HasMMX,              METH_NOARGS },
-    { "HasSSE",              PySDL_HasSSE,              METH_NOARGS },
-    { "HasSSE2",             PySDL_HasSSE2,             METH_NOARGS },
-    { "HasSSE3",             PySDL_HasSSE3,             METH_NOARGS },
-    { "HasSSE41",            PySDL_HasSSE41,            METH_NOARGS },
-    { "HasSSE42",            PySDL_HasSSE42,            METH_NOARGS },
+    { "GetCPUCount",           PySDL_GetCPUCount,           METH_NOARGS  },
+    { "GetCPUCacheLineSize",   PySDL_GetCPUCacheLineSize,   METH_NOARGS  },
+    { "Has3DNow",              PySDL_Has3DNow,              METH_NOARGS  },
+    { "HasAVX",                PySDL_HasAVX,                METH_NOARGS  },
+    { "HasAVX2",               PySDL_HasAVX2,               METH_NOARGS  },
+    { "HasAltiVec",            PySDL_HasAltiVec,            METH_NOARGS  },
+    { "HasMMX",                PySDL_HasMMX,                METH_NOARGS  },
+    { "HasSSE",                PySDL_HasSSE,                METH_NOARGS  },
+    { "HasSSE2",               PySDL_HasSSE2,               METH_NOARGS  },
+    { "HasSSE3",               PySDL_HasSSE3,               METH_NOARGS  },
+    { "HasSSE41",              PySDL_HasSSE41,              METH_NOARGS  },
+    { "HasSSE42",              PySDL_HasSSE42,              METH_NOARGS  },
 
-    { "GetNumVideoDisplays", PySDL_GetNumVideoDisplays, METH_NOARGS },
-    { "GetDisplayMode",      PySDL_GetDisplayMode,      METH_O      },
-    { "GetDisplayBounds",    PySDL_GetDisplayBounds,    METH_O      },
+    { "GetNumVideoDisplays",   PySDL_GetNumVideoDisplays,   METH_NOARGS  },
+    { "GetDisplayMode",        PySDL_GetDisplayMode,        METH_O       },
+    { "GetDisplayBounds",      PySDL_GetDisplayBounds,      METH_O       },
 
     { "GL_SetAttribute",       PySDL_GL_SetAttribute,       METH_VARARGS },
     { "GL_ExtensionSupported", PySDL_GL_ExtensionSupported, METH_O       },
+    { "GL_SetSwapInterval",    PySDL_GL_SetSwapInterval,    METH_O       },
     //{ "GL_GetAttribute", (PyCFunction)PySDL_GL_GetAttribute, METH_VARARGS },
 
     { NULL }
@@ -789,12 +791,12 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
 }
 
 
-static PyObject * PySDL_GetCurrentVideoDriver(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetCurrentVideoDriver(PyObject *self, PyObject *ign) {
     return PyUnicode_FromString(SDL_GetCurrentVideoDriver());
 }
 
 
-static PyObject * PySDL_GetVideoDrivers(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetVideoDrivers(PyObject *self, PyObject *ign) {
     PyObject *list;
     int count;
     int idx;
@@ -886,7 +888,7 @@ static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObjec
 }
 
 
-static PyObject * PySDL_Quit(PyObject *self, PyObject *args) {
+static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
     SDL_Quit();
     Py_RETURN_NONE;
 }
@@ -898,7 +900,7 @@ static PyObject * PySDL_ShowCursor(PyObject *self, PyObject *args) {
 }
 
 
-static PyObject * PySDL_Version(PyObject *self, PyObject *args) {
+static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
     PyObject *version;
     SDL_version compiled;
 
@@ -913,7 +915,7 @@ static PyObject * PySDL_Version(PyObject *self, PyObject *args) {
 }
 
 
-static PyObject * PySDL_GetPlatform(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetPlatform(PyObject *self, PyObject *ign) {
     return PyUnicode_FromString(SDL_GetPlatform());
 }
 
@@ -932,7 +934,7 @@ static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
     return PyLong_FromLong(subsystems);
 }
 
-static PyObject * PySDL_GetTicks(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
     return PyLong_FromUnsignedLong(SDL_GetTicks());
 }
 
@@ -1035,7 +1037,7 @@ PyObject * _event(SDL_Event *event) {
     return result;
 }
 
-static PyObject * PySDL_PollEvent(PyObject *self, PyObject *args) {
+static PyObject * PySDL_PollEvent(PyObject *self, PyObject *ign) {
     SDL_Event event;
     int ok;
 
@@ -1046,7 +1048,7 @@ static PyObject * PySDL_PollEvent(PyObject *self, PyObject *args) {
     return _event(&event);
 }
 
-static PyObject * PySDL_WaitEvent(PyObject *self, PyObject *args) {
+static PyObject * PySDL_WaitEvent(PyObject *self, PyObject *ign) {
     SDL_Event event;
     int ok;
 
@@ -1066,7 +1068,7 @@ static PyObject * PySDL_WaitEvent(PyObject *self, PyObject *args) {
 //    Py_RETURN_NONE;
 //}
 
-static PyObject * PySDL_GetKeyboardState(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetKeyboardState(PyObject *self, PyObject *ign) {
     PyObject *list;
     const uint8_t *keys;
     int len;
@@ -1080,79 +1082,79 @@ static PyObject * PySDL_GetKeyboardState(PyObject *self, PyObject *args) {
     return list;
 }
 
-static PyObject * PySDL_GetModState(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetModState(PyObject *self, PyObject *ign) {
     return PyLong_FromLong(SDL_GetModState());
 }
 
-static PyObject * PySDL_GetCPUCount(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetCPUCount(PyObject *self, PyObject *ign) {
     return PyLong_FromLong(SDL_GetCPUCount());
 }
 
-static PyObject * PySDL_GetCPUCacheLineSize(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetCPUCacheLineSize(PyObject *self, PyObject *ign) {
     return PyLong_FromLong(SDL_GetCPUCacheLineSize());
 }
 
-static PyObject * PySDL_Has3DNow(PyObject *self, PyObject *args) {
+static PyObject * PySDL_Has3DNow(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_Has3DNow() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasAVX(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasAVX(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasAVX() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasAVX2(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasAVX2(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasAVX2() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasAltiVec(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasAltiVec(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasAltiVec() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasMMX(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasMMX(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasMMX() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasSSE(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasSSE(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasSSE() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasSSE2(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasSSE2(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasSSE2() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasSSE3(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasSSE3(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasSSE3() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasSSE41(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasSSE41(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasSSE41() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_HasSSE42(PyObject *self, PyObject *args) {
+static PyObject * PySDL_HasSSE42(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasSSE42() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
 }
 
-static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *args) {
+static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *ign) {
     int displays = SDL_GetNumVideoDisplays();
     if(0 > displays) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
@@ -1230,3 +1232,17 @@ static PyObject * PySDL_GL_ExtensionSupported(PyObject *self, PyObject *arg) {
         Py_RETURN_FALSE;
     }
 }
+
+static PyObject * PySDL_GL_SetSwapInterval(PyObject *self, PyObject *args) {
+    int value = PyLong_AsLong(arg);
+    int ok;
+
+    ok = SDL_GL_SetSwapInterval(attrib, value);
+    if(0 > ok) {
+        PyErr_SetString(pysdl_Error, "Error setting attribute");
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
