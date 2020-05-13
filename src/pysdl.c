@@ -2,20 +2,20 @@
 
 PyObject *pysdl_Error;
 
-static PyObject * PySDL_GetCurrentVideoDriver (PyObject*, PyObject*);
-static PyObject * PySDL_GetTicks              (PyObject*, PyObject*);
-static PyObject * PySDL_GetVideoDrivers       (PyObject*, PyObject*);
 static PyObject * PySDL_Init                  (PyObject*, PyObject*);
-static PyObject * PySDL_LoadBMP               (PyObject*, PyObject*);
-static PyObject * PySDL_LoadImage             (PyObject*, PyObject*);
-static PyObject * PySDL_CreateRGBSurface      (PyObject*, PyObject*, PyObject *);
-static PyObject * PySDL_CreateRGBSurfaceFrom  (PyObject*, PyObject*, PyObject *);
+static PyObject * PySDL_WasInit               (PyObject*, PyObject*);
 static PyObject * PySDL_Quit                  (PyObject*, PyObject*);
-static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 static PyObject * PySDL_Version               (PyObject*, PyObject*);
 static PyObject * PySDL_GetPlatform           (PyObject*, PyObject*);
-static PyObject * PySDL_WasInit               (PyObject*, PyObject*);
+static PyObject * PySDL_GetCurrentVideoDriver (PyObject*, PyObject*);
+static PyObject * PySDL_GetVideoDrivers       (PyObject*, PyObject*);
+static PyObject * PySDL_GetTicks              (PyObject*, PyObject*);
+static PyObject * PySDL_LoadBMP               (PyObject*, PyObject*);
+static PyObject * PySDL_LoadImage             (PyObject*, PyObject*);
+static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 
+static PyObject * PySDL_CreateRGBSurface      (PyObject*, PyObject*, PyObject *);
+static PyObject * PySDL_CreateRGBSurfaceFrom  (PyObject*, PyObject*, PyObject *);
 
 static PyObject * PySDL_PollEvent        (PyObject*, PyObject*);
 static PyObject * PySDL_WaitEvent        (PyObject*, PyObject*);
@@ -48,20 +48,20 @@ static PyObject * PySDL_GL_GetSwapInterval    (PyObject*, PyObject*);
 
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
-    { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
-    { "GetTicks",              PySDL_GetTicks,              METH_NOARGS  },
-    { "GetVideoDrivers",       PySDL_GetVideoDrivers,       METH_NOARGS  },
     { "Init",                  PySDL_Init,                  METH_VARARGS },
-    { "LoadBMP",               PySDL_LoadBMP,               METH_O       },
-    { "LoadImage",             PySDL_LoadImage,             METH_O       },
-    { "CreateRGBSurface",     (PyCFunction)PySDL_CreateRGBSurface,     METH_VARARGS | METH_KEYWORDS },
-    { "CreateRGBSurfaceFrom", (PyCFunction)PySDL_CreateRGBSurfaceFrom, METH_VARARGS | METH_KEYWORDS },
+    { "WasInit",               PySDL_WasInit,               METH_VARARGS },
     { "Quit",                  PySDL_Quit,                  METH_NOARGS  },
-    { "ShowCursor",            PySDL_ShowCursor,            METH_O       },
     { "Version",               PySDL_Version,               METH_NOARGS  },
     { "GetPlatform",           PySDL_GetPlatform,           METH_NOARGS  },
-    { "WasInit",               PySDL_WasInit,               METH_VARARGS },
+    { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
+    { "GetVideoDrivers",       PySDL_GetVideoDrivers,       METH_NOARGS  },
+    { "GetTicks",              PySDL_GetTicks,              METH_NOARGS  },
+    { "LoadBMP",               PySDL_LoadBMP,               METH_O       },
+    { "LoadImage",             PySDL_LoadImage,             METH_O       },
+    { "ShowCursor",            PySDL_ShowCursor,            METH_O       },
 
+    { "CreateRGBSurface",     (PyCFunction)PySDL_CreateRGBSurface,     METH_VARARGS | METH_KEYWORDS },
+    { "CreateRGBSurfaceFrom", (PyCFunction)PySDL_CreateRGBSurfaceFrom, METH_VARARGS | METH_KEYWORDS },
 
     { "PollEvent",             PySDL_PollEvent,             METH_NOARGS  },
     { "WaitEvent",             PySDL_WaitEvent,             METH_NOARGS  },
@@ -148,6 +148,58 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
 }
 
 
+static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
+    int flags = SDL_INIT_EVERYTHING;
+    int ok = PyArg_ParseTuple(args, "|i", &flags);
+    if(!ok) {
+        return NULL;
+    }
+
+    ok = SDL_Init(flags);
+    if(0 > ok) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    return PyLong_FromLong(ok);
+}
+
+
+static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
+    int flags = SDL_INIT_EVERYTHING;
+    int ok = PyArg_ParseTuple(args, "|i", &flags);
+    if(0 > ok) {
+        return NULL;
+    }
+    uint32_t subsystems = SDL_WasInit(flags);
+    return PyLong_FromLong(subsystems);
+}
+
+
+static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
+    SDL_Quit();
+    Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
+    SDL_version compiled;
+
+    SDL_VERSION(&compiled);
+
+    PyObject *version = PyTuple_New(3);
+    PyTuple_SetItem(version, 0, PyLong_FromLong(compiled.major));
+    PyTuple_SetItem(version, 1, PyLong_FromLong(compiled.minor));
+    PyTuple_SetItem(version, 2, PyLong_FromLong(compiled.patch));
+    return version;
+}
+
+
+static PyObject * PySDL_GetPlatform(PyObject *self, PyObject *ign) {
+    return PyUnicode_FromString(SDL_GetPlatform());
+}
+
+
 static PyObject * PySDL_GetCurrentVideoDriver(PyObject *self, PyObject *ign) {
     return PyUnicode_FromString(SDL_GetCurrentVideoDriver());
 }
@@ -168,20 +220,8 @@ static PyObject * PySDL_GetVideoDrivers(PyObject *self, PyObject *ign) {
 }
 
 
-static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
-    int flags = SDL_INIT_EVERYTHING;
-    int ok = PyArg_ParseTuple(args, "|i", &flags);
-    if(!ok) {
-        return NULL;
-    }
-
-    ok = SDL_Init(flags);
-    if(0 > ok) {
-        PyErr_SetString(pysdl_Error, SDL_GetError());
-        return NULL;
-    }
-
-    return PyLong_FromLong(ok);
+static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
+    return PyLong_FromUnsignedLong(SDL_GetTicks());
 }
 
 
@@ -222,6 +262,12 @@ static PyObject * PySDL_LoadImage(PyObject *self, PyObject *arg) {
     }
 
     return (PyObject *)pysdl_Surface;
+}
+
+
+static PyObject * PySDL_ShowCursor(PyObject *self, PyObject *args) {
+    SDL_ShowCursor(PyLong_AsLong(args));
+    Py_RETURN_NONE;
 }
 
 
@@ -294,57 +340,6 @@ static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyO
     return (PyObject *)pysdl_Surface;
 }
 
-
-static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
-    SDL_Quit();
-    Py_RETURN_NONE;
-}
-
-
-static PyObject * PySDL_ShowCursor(PyObject *self, PyObject *args) {
-    SDL_ShowCursor(PyLong_AsLong(args));
-    Py_RETURN_NONE;
-}
-
-
-static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
-    PyObject *version;
-    SDL_version compiled;
-
-    SDL_VERSION(&compiled);
-
-    version = PyTuple_New(3);
-    PyTuple_SetItem(version, 0, PyLong_FromLong(compiled.major));
-    PyTuple_SetItem(version, 1, PyLong_FromLong(compiled.minor));
-    PyTuple_SetItem(version, 2, PyLong_FromLong(compiled.patch));
-
-    return version;
-}
-
-
-static PyObject * PySDL_GetPlatform(PyObject *self, PyObject *ign) {
-    return PyUnicode_FromString(SDL_GetPlatform());
-}
-
-
-static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
-    int flags = SDL_INIT_EVERYTHING;
-    uint32_t subsystems;
-    int ok;
-
-    ok = PyArg_ParseTuple(args, "|i", &flags);
-    if(0 > ok) {
-        return NULL;
-    }
-
-    subsystems = SDL_WasInit(flags);
-    return PyLong_FromLong(subsystems);
-}
-
-
-static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
-    return PyLong_FromUnsignedLong(SDL_GetTicks());
-}
 
 
 PyObject * _event(SDL_Event *event) {

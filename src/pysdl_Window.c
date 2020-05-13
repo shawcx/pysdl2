@@ -4,6 +4,7 @@ static int        PySDL_Window_Type_init    (PySDL_Window*, PyObject*, PyObject*
 static void       PySDL_Window_Type_dealloc (PySDL_Window* );
 
 static PyObject * PySDL_Window_GetWindowID         (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowTitle      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GetWindowPosition   (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GetWindowSize       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GetWindowSurface    (PySDL_Window*, PyObject*);
@@ -35,6 +36,7 @@ static PyObject * PySDL_Window_GL_GetDrawableSize  (PySDL_Window*, PyObject*);
 
 static PyMethodDef PySDL_Window_methods[] = {
     { "GetWindowID",         (PyCFunction)PySDL_Window_GetWindowID,         METH_NOARGS  },
+    { "GetWindowTitle",      (PyCFunction)PySDL_Window_GetWindowTitle,      METH_NOARGS  },
     { "GetWindowPosition",   (PyCFunction)PySDL_Window_GetWindowPosition,   METH_NOARGS  },
     { "GetWindowSize",       (PyCFunction)PySDL_Window_GetWindowSize,       METH_NOARGS  },
     { "GetWindowSurface",    (PyCFunction)PySDL_Window_GetWindowSurface,    METH_NOARGS  },
@@ -122,13 +124,22 @@ static void PySDL_Window_Type_dealloc(PySDL_Window *self) {
 
 
 static PyObject * PySDL_Window_GetWindowID(PySDL_Window *self, PyObject *ign) {
-    Uint32 id;
-    id = SDL_GetWindowID(self->window);
+    Uint32 id = SDL_GetWindowID(self->window);
     if(0 == id) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
     return PyLong_FromUnsignedLong(id);
+}
+
+
+static PyObject * PySDL_Window_GetWindowTitle(PySDL_Window *self, PyObject *ign) {
+    char *title = SDL_GetWindowTitle(self->window);
+    if(0 == id) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return PyUnicode_FromString(title);
 }
 
 
