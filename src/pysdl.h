@@ -1,6 +1,8 @@
 #ifndef __PYSDL_H__
 #define __PYSDL_H__
 
+#define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
 #include <structmember.h>
 
@@ -15,7 +17,6 @@ extern PyObject *pysdl_Error;
 //=========================================================
 // Types
 //=========================================================
-
 
 typedef struct {
     PyObject_HEAD
@@ -50,5 +51,8 @@ typedef struct {
 
 extern PyTypeObject PySDL_Texture_Type;
 
+
+// massive list of SDL2 constants
+void _constants(PyObject *module);
 
 #endif // __PYSDL_H__

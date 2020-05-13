@@ -20,12 +20,14 @@ static PyMethodDef PySDL_Surface_methods[] = {
 #define PySDL_SURFACE_WIDTH  0
 #define PySDL_SURFACE_HEIGHT 1
 #define PySDL_SURFACE_BPP    2
-#define PySDL_SURFACE_PIXELS 3
+#define PySDL_SURFACE_FORMAT 3
+#define PySDL_SURFACE_PIXELS 4
 
 static PyGetSetDef PySDL_Surface_getset[] = {
     { "w",      PySDL_Surface_getter, NULL,                 "", (void*)PySDL_SURFACE_WIDTH  },
     { "h",      PySDL_Surface_getter, NULL,                 "", (void*)PySDL_SURFACE_HEIGHT },
     { "bpp",    PySDL_Surface_getter, NULL,                 "", (void*)PySDL_SURFACE_BPP    },
+    { "format", PySDL_Surface_getter, NULL,                 "", (void*)PySDL_SURFACE_FORMAT },
     { "pixels", PySDL_Surface_getter, PySDL_Surface_setter, "", (void*)PySDL_SURFACE_PIXELS },
     { NULL }
 };
@@ -76,6 +78,8 @@ PyObject * PySDL_Surface_getter(PyObject *self, void *param) {
         return PyLong_FromLong(pysdl_Surface->surface->h);
     case PySDL_SURFACE_BPP:
         return PyLong_FromLong(pysdl_Surface->surface->format->BitsPerPixel);
+    case PySDL_SURFACE_FORMAT:
+        return PyLong_FromLong(pysdl_Surface->surface->format->format);
     case PySDL_SURFACE_PIXELS:
         size = pysdl_Surface->surface->pitch * pysdl_Surface->surface->h;
         return PyBytes_FromStringAndSize(pysdl_Surface->surface->pixels, size);

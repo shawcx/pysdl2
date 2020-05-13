@@ -30,6 +30,7 @@ static PyObject * PySDL_Window_GL_CreateContext    (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_DeleteContext    (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_MakeCurrent      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_SwapWindow       (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GL_GetDrawableSize  (PySDL_Window*, PyObject*);
 
 
 static PyMethodDef PySDL_Window_methods[] = {
@@ -60,6 +61,7 @@ static PyMethodDef PySDL_Window_methods[] = {
     { "GL_DeleteContext",    (PyCFunction)PySDL_Window_GL_DeleteContext,    METH_NOARGS  },
     { "GL_MakeCurrent",      (PyCFunction)PySDL_Window_GL_MakeCurrent,      METH_NOARGS  },
     { "GL_SwapWindow",       (PyCFunction)PySDL_Window_GL_SwapWindow,       METH_NOARGS  },
+    { "GL_GetDrawableSize",  (PyCFunction)PySDL_Window_GL_GetDrawableSize,  METH_NOARGS  },
     { NULL }
 };
 
@@ -68,11 +70,11 @@ PyTypeObject PySDL_Window_Type = {
     .tp_name      = "SDL2.Window",
     .tp_basicsize = sizeof(PySDL_Window),
     .tp_dealloc   = (destructor)PySDL_Window_Type_dealloc,
-    .tp_lags      = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc       = "SDL2.Window(title,(width,height),(x,y),flags)",
     .tp_methods   = PySDL_Window_methods,
     .tp_init      = (initproc)PySDL_Window_Type_init,
-    .tp_alloc     = PyType_GenericNew,
+    .tp_new       = PyType_GenericNew,
 };
 
 
@@ -119,7 +121,7 @@ static void PySDL_Window_Type_dealloc(PySDL_Window *self) {
 }
 
 
-static PyObject * PySDL_Window_GetWindowID(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GetWindowID(PySDL_Window *self, PyObject *ign) {
     Uint32 id;
     id = SDL_GetWindowID(self->window);
     if(0 == id) {
@@ -130,7 +132,7 @@ static PyObject * PySDL_Window_GetWindowID(PySDL_Window *self, PyObject *args) {
 }
 
 
-static PyObject * PySDL_Window_GetWindowPosition(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GetWindowPosition(PySDL_Window *self, PyObject *ign) {
     int x, y;
     SDL_GetWindowPosition(self->window, &x, &y);
 
@@ -141,7 +143,7 @@ static PyObject * PySDL_Window_GetWindowPosition(PySDL_Window *self, PyObject *a
 }
 
 
-static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *ign) {
     int w, h;
     SDL_GetWindowSize(self->window, &w, &h);
 
@@ -152,7 +154,7 @@ static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *args)
 }
 
 
-static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *ign) {
     PySDL_Surface *pysdl_Surface;
 
     pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
@@ -246,49 +248,49 @@ static PyObject * PySDL_Window_SetWindowBrightness(PySDL_Window *self, PyObject 
 }
 
 
-static PyObject * PySDL_Window_ShowWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_ShowWindow(PySDL_Window *self, PyObject *ign) {
     SDL_ShowWindow(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_HideWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_HideWindow(PySDL_Window *self, PyObject *ign) {
     SDL_HideWindow(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_RaiseWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_RaiseWindow(PySDL_Window *self, PyObject *ign) {
     SDL_RaiseWindow(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_MaximizeWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_MaximizeWindow(PySDL_Window *self, PyObject *ign) {
     SDL_MaximizeWindow(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_MinimizeWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_MinimizeWindow(PySDL_Window *self, PyObject *ign) {
     SDL_MinimizeWindow(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_RestoreWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_RestoreWindow(PySDL_Window *self, PyObject *ign) {
     SDL_RestoreWindow(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_UpdateWindowSurface(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_UpdateWindowSurface(PySDL_Window *self, PyObject *ign) {
     SDL_UpdateWindowSurface(self->window);
     Py_RETURN_NONE;
 }
 
 
-static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *ign) {
     PySDL_Renderer *pysdl_Renderer;
 
     int index = -1;
@@ -312,7 +314,7 @@ static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *args
 }
 
 
-static PyObject * PySDL_Window_GL_CreateContext(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GL_CreateContext(PySDL_Window *self, PyObject *ign) {
     self->glContext = SDL_GL_CreateContext(self->window);
     if(NULL == self->glContext) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
@@ -322,7 +324,7 @@ static PyObject * PySDL_Window_GL_CreateContext(PySDL_Window *self, PyObject *ar
 }
 
 
-static PyObject * PySDL_Window_GL_DeleteContext(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GL_DeleteContext(PySDL_Window *self, PyObject *ign) {
     if(NULL != self->glContext) {
         SDL_GL_DeleteContext(self->glContext);
         self->glContext = NULL;
@@ -331,7 +333,7 @@ static PyObject * PySDL_Window_GL_DeleteContext(PySDL_Window *self, PyObject *ar
 }
 
 
-static PyObject * PySDL_Window_GL_MakeCurrent(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GL_MakeCurrent(PySDL_Window *self, PyObject *ign) {
     if(NULL != self->glContext) {
         SDL_GL_MakeCurrent(self->window, self->glContext);
     }
@@ -339,9 +341,19 @@ static PyObject * PySDL_Window_GL_MakeCurrent(PySDL_Window *self, PyObject *args
 }
 
 
-static PyObject * PySDL_Window_GL_SwapWindow(PySDL_Window *self, PyObject *args) {
+static PyObject * PySDL_Window_GL_SwapWindow(PySDL_Window *self, PyObject *ign) {
     Py_BEGIN_ALLOW_THREADS
         SDL_GL_SwapWindow(self->window);
     Py_END_ALLOW_THREADS
     Py_RETURN_NONE;
+}
+
+
+static PyObject * PySDL_Window_GL_GetDrawableSize(PySDL_Window *self, PyObject *ign) {
+    int w, h;
+    SDL_GL_GetDrawableSize(self->window, &w, &h);
+    PyObject *size = PyTuple_New(2);
+    PyTuple_SetItem(size, 0, PyLong_FromLong(w));
+    PyTuple_SetItem(size, 1, PyLong_FromLong(h));
+    return size;
 }

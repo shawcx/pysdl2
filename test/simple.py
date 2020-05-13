@@ -7,8 +7,11 @@ import SDL2
 imagePath = sys.argv[1]
 
 SDL2.Init()
-surface = SDL2.LoadBMP(imagePath)
+
+surface = SDL2.LoadImage(imagePath)
 window = SDL2.Window(imagePath, (surface.w,surface.h))
+
+window.SetWindowIcon(surface)
 
 print('%s: %dx%d @ %dbpp' % (imagePath, surface.w, surface.h, surface.bpp))
 
@@ -22,7 +25,7 @@ renderer = window.CreateRenderer()
 #    time.sleep(0.1)
 
 texture = renderer.CreateTextureFromSurface(surface)
-texture.QueryTexture()
+del surface
 
 renderer.RenderClear()
 renderer.RenderCopy(texture)
@@ -60,7 +63,6 @@ while not quit:
 #                self.fnInfo()
 
 del texture
-del surface
 del renderer
 del window
 
