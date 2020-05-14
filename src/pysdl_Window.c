@@ -134,12 +134,7 @@ static PyObject * PySDL_Window_GetWindowID(PySDL_Window *self, PyObject *ign) {
 
 
 static PyObject * PySDL_Window_GetWindowTitle(PySDL_Window *self, PyObject *ign) {
-    char *title = SDL_GetWindowTitle(self->window);
-    if(0 == id) {
-        PyErr_SetString(pysdl_Error, SDL_GetError());
-        return NULL;
-    }
-    return PyUnicode_FromString(title);
+    return PyUnicode_FromString(SDL_GetWindowTitle(self->window));
 }
 
 

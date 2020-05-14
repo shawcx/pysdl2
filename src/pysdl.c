@@ -90,7 +90,7 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GL_ResetAttributes",    PySDL_GL_ResetAttributes,    METH_NOARGS  },
     { "GL_ExtensionSupported", PySDL_GL_ExtensionSupported, METH_O       },
     { "GL_SetSwapInterval",    PySDL_GL_SetSwapInterval,    METH_O       },
-    { "GL_SetSwapInterval",    PySDL_GL_GetSwapInterval,    METH_NOARGS  },
+    { "GL_GetSwapInterval",    PySDL_GL_GetSwapInterval,    METH_NOARGS  },
 
     { NULL }
 };
