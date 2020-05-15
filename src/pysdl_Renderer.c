@@ -79,20 +79,11 @@ static PyObject * PySDL_Renderer_RenderClear(PySDL_Renderer *self, PyObject *arg
 
 static PyObject * PySDL_Renderer_RenderCopy(PySDL_Renderer *self, PyObject *args) {
     PySDL_Texture *pysdl_Texture = (PySDL_Texture *)args;
-    //SDL_Rect dst;
-    int ok;
-
-    //dst.x = 0;
-    //dst.y = 0;
-    //dst.w = 320;
-    //dst.h = 240;
-
-    ok = SDL_RenderCopy(self->renderer, pysdl_Texture->texture, NULL, NULL);
+    int ok = SDL_RenderCopy(self->renderer, pysdl_Texture->texture, NULL, NULL);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
     Py_RETURN_NONE;
 }
 

@@ -94,7 +94,6 @@ static int PySDL_Window_Type_init(PySDL_Window *self, PyObject *args, PyObject *
     ok = PyArg_ParseTupleAndKeywords(args, kwds, "s|(ii)(ii)I", kwlist,
         &title, &w, &h, &x, &y, &f);
     if(!ok) {
-        PyErr_SetString(PyExc_TypeError, "Something went wrong");
         return -1;
     }
 
@@ -141,22 +140,14 @@ static PyObject * PySDL_Window_GetWindowTitle(PySDL_Window *self, PyObject *ign)
 static PyObject * PySDL_Window_GetWindowPosition(PySDL_Window *self, PyObject *ign) {
     int x, y;
     SDL_GetWindowPosition(self->window, &x, &y);
-
-    PyObject *position = PyTuple_New(2);
-    PyTuple_SetItem(position, 0, PyLong_FromLong(x));
-    PyTuple_SetItem(position, 1, PyLong_FromLong(y));
-    return position;
+    return Py_BuildValue("(ii)", x, y);
 }
 
 
 static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *ign) {
     int w, h;
     SDL_GetWindowSize(self->window, &w, &h);
-
-    PyObject *size = PyTuple_New(2);
-    PyTuple_SetItem(size, 0, PyLong_FromLong(w));
-    PyTuple_SetItem(size, 1, PyLong_FromLong(h));
-    return size;
+    return Py_BuildValue("(ii)", w, h);
 }
 
 
@@ -358,8 +349,5 @@ static PyObject * PySDL_Window_GL_SwapWindow(PySDL_Window *self, PyObject *ign) 
 static PyObject * PySDL_Window_GL_GetDrawableSize(PySDL_Window *self, PyObject *ign) {
     int w, h;
     SDL_GL_GetDrawableSize(self->window, &w, &h);
-    PyObject *size = PyTuple_New(2);
-    PyTuple_SetItem(size, 0, PyLong_FromLong(w));
-    PyTuple_SetItem(size, 1, PyLong_FromLong(h));
-    return size;
+    return Py_BuildValue("(ii)", w, h);
 }

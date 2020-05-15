@@ -64,19 +64,12 @@ static PyObject * PySDL_Texture_QueryTexture(PySDL_Texture *self, PyObject *args
     int access = 0;
     int width  = 0;
     int height = 0;
-
     int ok = SDL_QueryTexture(self->texture, &format, &access, &width, &height);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
-    PyObject *result = PyTuple_New(4);
-    PyTuple_SetItem(result, 0, PyLong_FromLong(format));
-    PyTuple_SetItem(result, 1, PyLong_FromLong(access));
-    PyTuple_SetItem(result, 2, PyLong_FromLong(width));
-    PyTuple_SetItem(result, 3, PyLong_FromLong(height));
-    return result;
+    return Py_BuildValue("(iiii)", format, access, width, height);
 }
 
 

@@ -657,4 +657,25 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "GL_SHARE_WITH_CURRENT_CONTEXT", SDL_GL_SHARE_WITH_CURRENT_CONTEXT );
     PyModule_AddIntConstant( module, "GL_FRAMEBUFFER_SRGB_CAPABLE",   SDL_GL_FRAMEBUFFER_SRGB_CAPABLE );
     PyModule_AddIntConstant( module, "GL_CONTEXT_RELEASE_BEHAVIOR",   SDL_GL_CONTEXT_RELEASE_BEHAVIOR );
+
+
+    PyModule_AddIntConstant( module, "AUDIO_S8",     AUDIO_S8     );
+    PyModule_AddIntConstant( module, "AUDIO_U8",     AUDIO_U8     );
+    PyModule_AddIntConstant( module, "AUDIO_S16LSB", AUDIO_S16LSB );
+    PyModule_AddIntConstant( module, "AUDIO_S16MSB", AUDIO_S16MSB );
+    PyModule_AddIntConstant( module, "AUDIO_S16SYS", AUDIO_S16SYS );
+    PyModule_AddIntConstant( module, "AUDIO_S16",    AUDIO_S16    );
+    PyModule_AddIntConstant( module, "AUDIO_U16LSB", AUDIO_U16LSB );
+    PyModule_AddIntConstant( module, "AUDIO_U16MSB", AUDIO_U16MSB );
+    PyModule_AddIntConstant( module, "AUDIO_U16SYS", AUDIO_U16SYS );
+    PyModule_AddIntConstant( module, "AUDIO_U16",    AUDIO_U16    );
+    PyModule_AddIntConstant( module, "AUDIO_S32LSB", AUDIO_S32LSB );
+    PyModule_AddIntConstant( module, "AUDIO_S32MSB", AUDIO_S32MSB );
+    PyModule_AddIntConstant( module, "AUDIO_S32SYS", AUDIO_S32SYS );
+    PyModule_AddIntConstant( module, "AUDIO_S32",    AUDIO_S32    );
+    PyModule_AddIntConstant( module, "AUDIO_F32LSB", AUDIO_F32LSB );
+    PyModule_AddIntConstant( module, "AUDIO_F32MSB", AUDIO_F32MSB );
+    PyModule_AddIntConstant( module, "AUDIO_F32SYS", AUDIO_F32SYS );
+    PyModule_AddIntConstant( module, "AUDIO_F32",    AUDIO_F32    );
+
 }

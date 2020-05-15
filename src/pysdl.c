@@ -46,6 +46,9 @@ static PyObject * PySDL_GL_ExtensionSupported (PyObject*, PyObject*);
 static PyObject * PySDL_GL_SetSwapInterval    (PyObject*, PyObject*);
 static PyObject * PySDL_GL_GetSwapInterval    (PyObject*, PyObject*);
 
+static PyObject * PySDL_GetNumAudioDevices    (PyObject*, PyObject*);
+static PyObject * PySDL_GetAudioDeviceName    (PyObject*, PyObject*);
+
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Init",                  PySDL_Init,                  METH_VARARGS },
@@ -91,6 +94,9 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GL_ExtensionSupported", PySDL_GL_ExtensionSupported, METH_O       },
     { "GL_SetSwapInterval",    PySDL_GL_SetSwapInterval,    METH_O       },
     { "GL_GetSwapInterval",    PySDL_GL_GetSwapInterval,    METH_NOARGS  },
+
+    { "GetNumAudioDevices",    PySDL_GetNumAudioDevices,    METH_VARARGS },
+    { "GetAudioDeviceName",    PySDL_GetAudioDeviceName,    METH_VARARGS },
 
     { NULL }
 };
@@ -142,6 +148,13 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     }
     Py_INCREF(&PySDL_Texture_Type);
 
+    ok = PyType_Ready(&PySDL_Audio_Type);
+    if(0 > ok) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Audio_Type);
+    PyModule_AddObject(module, "AudioDevice", (PyObject *)&PySDL_Audio_Type);
+
     _constants(module);
 
     return module;
@@ -154,13 +167,11 @@ static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
     if(!ok) {
         return NULL;
     }
-
     ok = SDL_Init(flags);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
     return PyLong_FromLong(ok);
 }
 
@@ -184,14 +195,8 @@ static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
 
 static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
     SDL_version compiled;
-
     SDL_VERSION(&compiled);
-
-    PyObject *version = PyTuple_New(3);
-    PyTuple_SetItem(version, 0, PyLong_FromLong(compiled.major));
-    PyTuple_SetItem(version, 1, PyLong_FromLong(compiled.minor));
-    PyTuple_SetItem(version, 2, PyLong_FromLong(compiled.patch));
-    return version;
+    return Py_BuildValue("(iii)", compiled.major, compiled.minor, compiled.patch);
 }
 
 
@@ -567,57 +572,39 @@ static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *ign) {
 }
 
 static PyObject * PySDL_GetDisplayMode(PyObject *self, PyObject *args) {
-    SDL_DisplayMode displayMode;
+    SDL_DisplayMode dm;
     int ok;
 
-    ok = SDL_GetDisplayMode(PyLong_AsLong(args), 0, &displayMode);
+    ok = SDL_GetDisplayMode(PyLong_AsLong(args), 0, &dm);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
-    PyObject *mode = PyTuple_New(4);
-    PyTuple_SetItem(mode, 0, PyLong_FromLong(displayMode.format));
-    PyTuple_SetItem(mode, 1, PyLong_FromLong(displayMode.w));
-    PyTuple_SetItem(mode, 2, PyLong_FromLong(displayMode.h));
-    PyTuple_SetItem(mode, 3, PyLong_FromLong(displayMode.refresh_rate));
-    return mode;
+    return Py_BuildValue("(iiii)", dm.format, dm.w, dm.h, dm.refresh_rate);
 }
 
 static PyObject * PySDL_GetDisplayBounds(PyObject *self, PyObject *args) {
     SDL_Rect rect;
-    int ok;
-
-    ok = SDL_GetDisplayBounds(PyLong_AsLong(args), &rect);
+    int ok = SDL_GetDisplayBounds(PyLong_AsLong(args), &rect);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
-    PyObject *bounds = PyTuple_New(4);
-    PyTuple_SetItem(bounds, 0, PyLong_FromLong(rect.x));
-    PyTuple_SetItem(bounds, 1, PyLong_FromLong(rect.y));
-    PyTuple_SetItem(bounds, 2, PyLong_FromLong(rect.w));
-    PyTuple_SetItem(bounds, 3, PyLong_FromLong(rect.h));
-    return bounds;
+    return Py_BuildValue("(iiii)", rect.x, rect.y, rect.w, rect.h);
 }
 
 static PyObject * PySDL_GL_SetAttribute(PyObject *self, PyObject *args) {
     int attrib;
     int value;
-    int ok;
-
-    ok = PyArg_ParseTuple(args, "ii", &attrib, &value);
+    int ok = PyArg_ParseTuple(args, "ii", &attrib, &value);
     if(!ok) {
         return NULL;
     }
-
     ok = SDL_GL_SetAttribute(attrib, value);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
     Py_RETURN_NONE;
 }
 
@@ -654,17 +641,26 @@ static PyObject * PySDL_GL_ExtensionSupported(PyObject *self, PyObject *arg) {
 
 static PyObject * PySDL_GL_SetSwapInterval(PyObject *self, PyObject *arg) {
     int value = PyLong_AsLong(arg);
-    int ok;
-
-    ok = SDL_GL_SetSwapInterval(value);
+    int ok = SDL_GL_SetSwapInterval(value);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-
     Py_RETURN_NONE;
 }
 
 static PyObject * PySDL_GL_GetSwapInterval(PyObject *self, PyObject *ign) {
     return PyLong_FromLong(SDL_GL_GetSwapInterval());
 }
+
+static PyObject * PySDL_GetNumAudioDevices(PyObject *self, PyObject *args) {
+    // TODO: iscapture arg
+    return PyLong_FromLong(SDL_GetNumAudioDevices(0));
+}
+
+static PyObject * PySDL_GetAudioDeviceName(PyObject *self, PyObject *args) {
+    // TODO: iscapture arg
+    int idx = PyLong_AsLong(PyTuple_GetItem(args, 0));
+    return PyUnicode_FromString(SDL_GetAudioDeviceName(idx, 0));
+}
+

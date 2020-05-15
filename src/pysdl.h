@@ -52,6 +52,14 @@ typedef struct {
 extern PyTypeObject PySDL_Texture_Type;
 
 
+typedef struct {
+    PyObject_HEAD
+    SDL_AudioDeviceID deviceId;
+} PySDL_Audio;
+
+extern PyTypeObject PySDL_Audio_Type;
+
+
 // massive list of SDL2 constants
 void _constants(PyObject *module);
 
