@@ -153,7 +153,7 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         return NULL;
     }
     Py_INCREF(&PySDL_Audio_Type);
-    PyModule_AddObject(module, "AudioDevice", (PyObject *)&PySDL_Audio_Type);
+    PyModule_AddObject(module, "Audio", (PyObject *)&PySDL_Audio_Type);
 
     _constants(module);
 
@@ -347,7 +347,7 @@ static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyO
 
 
 
-PyObject * _event(SDL_Event *event) {
+static PyObject * _event(SDL_Event *event) {
     PyObject *result;
     PyObject *data;
 
