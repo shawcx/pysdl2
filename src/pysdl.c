@@ -17,27 +17,27 @@ static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 static PyObject * PySDL_CreateRGBSurface      (PyObject*, PyObject*, PyObject *);
 static PyObject * PySDL_CreateRGBSurfaceFrom  (PyObject*, PyObject*, PyObject *);
 
-static PyObject * PySDL_PollEvent        (PyObject*, PyObject*);
-static PyObject * PySDL_WaitEvent        (PyObject*, PyObject*);
-static PyObject * PySDL_GetKeyboardState (PyObject*, PyObject*);
-static PyObject * PySDL_GetModState      (PyObject*, PyObject*);
+static PyObject * PySDL_PollEvent             (PyObject*, PyObject*);
+static PyObject * PySDL_WaitEvent             (PyObject*, PyObject*);
+static PyObject * PySDL_GetKeyState           (PyObject*, PyObject*);
+static PyObject * PySDL_GetModState           (PyObject*, PyObject*);
 
-static PyObject * PySDL_GetCPUCount         (PyObject*, PyObject*);
-static PyObject * PySDL_GetCPUCacheLineSize (PyObject*, PyObject*);
-static PyObject * PySDL_Has3DNow            (PyObject*, PyObject*);
-static PyObject * PySDL_HasAVX              (PyObject*, PyObject*);
-static PyObject * PySDL_HasAVX2             (PyObject*, PyObject*);
-static PyObject * PySDL_HasAltiVec          (PyObject*, PyObject*);
-static PyObject * PySDL_HasMMX              (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE              (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE2             (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE3             (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE41            (PyObject*, PyObject*);
-static PyObject * PySDL_HasSSE42            (PyObject*, PyObject*);
+static PyObject * PySDL_GetCPUCount           (PyObject*, PyObject*);
+static PyObject * PySDL_GetCPUCacheLineSize   (PyObject*, PyObject*);
+static PyObject * PySDL_Has3DNow              (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX                (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX2               (PyObject*, PyObject*);
+static PyObject * PySDL_HasAltiVec            (PyObject*, PyObject*);
+static PyObject * PySDL_HasMMX                (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE                (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE2               (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE3               (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE41              (PyObject*, PyObject*);
+static PyObject * PySDL_HasSSE42              (PyObject*, PyObject*);
 
-static PyObject * PySDL_GetNumVideoDisplays (PyObject*, PyObject*);
-static PyObject * PySDL_GetDisplayMode      (PyObject*, PyObject*);
-static PyObject * PySDL_GetDisplayBounds    (PyObject*, PyObject*);
+static PyObject * PySDL_GetNumVideoDisplays   (PyObject*, PyObject*);
+static PyObject * PySDL_GetDisplayMode        (PyObject*, PyObject*);
+static PyObject * PySDL_GetDisplayBounds      (PyObject*, PyObject*);
 
 static PyObject * PySDL_GL_SetAttribute       (PyObject*, PyObject*);
 static PyObject * PySDL_GL_GetAttribute       (PyObject*, PyObject*);
@@ -48,7 +48,6 @@ static PyObject * PySDL_GL_GetSwapInterval    (PyObject*, PyObject*);
 
 static PyObject * PySDL_GetNumAudioDevices    (PyObject*, PyObject*);
 static PyObject * PySDL_GetAudioDeviceName    (PyObject*, PyObject*);
-
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Init",                  PySDL_Init,                  METH_VARARGS },
@@ -68,7 +67,7 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
 
     { "PollEvent",             PySDL_PollEvent,             METH_NOARGS  },
     { "WaitEvent",             PySDL_WaitEvent,             METH_NOARGS  },
-    { "GetKeyboardState",      PySDL_GetKeyboardState,      METH_NOARGS  },
+    { "GetKeyState",           PySDL_GetKeyState,           METH_NOARGS  },
     { "GetModState",           PySDL_GetModState,           METH_NOARGS  },
 
     { "GetCPUCount",           PySDL_GetCPUCount,           METH_NOARGS  },
@@ -108,7 +107,6 @@ static PyModuleDef pysdl_module = {
     -1,
     pysdl_PyMethodDefs
 };
-
 
 PyMODINIT_FUNC PyInit_SDL2(void) {
     PyObject *module;
@@ -160,7 +158,6 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     return module;
 }
 
-
 static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
     int flags = SDL_INIT_EVERYTHING;
     int ok = PyArg_ParseTuple(args, "|i", &flags);
@@ -175,7 +172,6 @@ static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
     return PyLong_FromLong(ok);
 }
 
-
 static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
     int flags = SDL_INIT_EVERYTHING;
     int ok = PyArg_ParseTuple(args, "|i", &flags);
@@ -186,12 +182,10 @@ static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
     return PyLong_FromLong(subsystems);
 }
 
-
 static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
     SDL_Quit();
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
     SDL_version compiled;
@@ -199,16 +193,13 @@ static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
     return Py_BuildValue("(iii)", compiled.major, compiled.minor, compiled.patch);
 }
 
-
 static PyObject * PySDL_GetPlatform(PyObject *self, PyObject *ign) {
     return PyUnicode_FromString(SDL_GetPlatform());
 }
 
-
 static PyObject * PySDL_GetCurrentVideoDriver(PyObject *self, PyObject *ign) {
     return PyUnicode_FromString(SDL_GetCurrentVideoDriver());
 }
-
 
 static PyObject * PySDL_GetVideoDrivers(PyObject *self, PyObject *ign) {
     PyObject *list;
@@ -224,11 +215,9 @@ static PyObject * PySDL_GetVideoDrivers(PyObject *self, PyObject *ign) {
     return list;
 }
 
-
 static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
     return PyLong_FromUnsignedLong(SDL_GetTicks());
 }
-
 
 static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
@@ -249,7 +238,6 @@ static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
     return (PyObject *)pysdl_Surface;
 }
 
-
 static PyObject * PySDL_LoadImage(PyObject *self, PyObject *arg) {
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
     if(NULL == pysdl_Surface) {
@@ -269,12 +257,10 @@ static PyObject * PySDL_LoadImage(PyObject *self, PyObject *arg) {
     return (PyObject *)pysdl_Surface;
 }
 
-
 static PyObject * PySDL_ShowCursor(PyObject *self, PyObject *args) {
     SDL_ShowCursor(PyLong_AsLong(args));
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObject *kwds) {
     int w = 0;
@@ -308,7 +294,6 @@ static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObjec
 
     return (PyObject *)pysdl_Surface;
 }
-
 
 static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyObject *kwds) {
     const uint8_t *pixels;
@@ -344,8 +329,6 @@ static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyO
 
     return (PyObject *)pysdl_Surface;
 }
-
-
 
 static PyObject * _event(SDL_Event *event) {
     PyObject *result;
@@ -476,7 +459,7 @@ static PyObject * PySDL_WaitEvent(PyObject *self, PyObject *ign) {
 //    Py_RETURN_NONE;
 //}
 
-static PyObject * PySDL_GetKeyboardState(PyObject *self, PyObject *ign) {
+static PyObject * PySDL_GetKeyState(PyObject *self, PyObject *ign) {
     PyObject *list;
     const uint8_t *keys;
     int len;

@@ -35,12 +35,10 @@ PyTypeObject PySDL_Renderer_Type = {
     .tp_new       = PyType_GenericNew
 };
 
-
 static int PySDL_Renderer_Type_init(PySDL_Renderer *self, PyObject *args, PyObject *kwds) {
     self->renderer = NULL;
     return 0;
 }
-
 
 static void PySDL_Renderer_Type_dealloc(PySDL_Renderer *self) {
     if(NULL != self->renderer) {
@@ -49,7 +47,6 @@ static void PySDL_Renderer_Type_dealloc(PySDL_Renderer *self) {
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
-
 
 static PyObject * PySDL_Renderer_CreateTextureFromSurface(PySDL_Renderer *self, PyObject *args) {
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)args;
@@ -70,12 +67,10 @@ static PyObject * PySDL_Renderer_CreateTextureFromSurface(PySDL_Renderer *self, 
     return (PyObject *)pysdl_Texture;
 }
 
-
 static PyObject * PySDL_Renderer_RenderClear(PySDL_Renderer *self, PyObject *args) {
     SDL_RenderClear(self->renderer);
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Renderer_RenderCopy(PySDL_Renderer *self, PyObject *args) {
     PySDL_Texture *pysdl_Texture = (PySDL_Texture *)args;
@@ -86,7 +81,6 @@ static PyObject * PySDL_Renderer_RenderCopy(PySDL_Renderer *self, PyObject *args
     }
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Renderer_RenderPresent(PySDL_Renderer *self, PyObject *args) {
     SDL_RenderPresent(self->renderer);
@@ -110,7 +104,6 @@ static PyObject * PySDL_Renderer_SetRenderDrawColor(PySDL_Renderer *self, PyObje
 
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Renderer_LoadTexture(PySDL_Renderer *self, PyObject *args) {
     PySDL_Texture *pysdl_Texture;

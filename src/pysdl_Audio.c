@@ -23,7 +23,6 @@ static PyMethodDef PySDL_Audio_methods[] = {
     { NULL }
 };
 
-
 PyTypeObject PySDL_Audio_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name      = "SDL2.Audio",
@@ -35,7 +34,6 @@ PyTypeObject PySDL_Audio_Type = {
     .tp_init      = (initproc)PySDL_Audio_Type_init,
     .tp_new       = PyType_GenericNew
 };
-
 
 static void _audio_callback(void *data, Uint8 *stream, int len) {
     if(_Py_IsFinalizing()) {
@@ -60,7 +58,6 @@ static void _audio_callback(void *data, Uint8 *stream, int len) {
 
     PyGILState_Release(_audio_thread);
 }
-
 
 static int PySDL_Audio_Type_init(PySDL_Audio *self, PyObject *args, PyObject *kwds) {
     char *deviceName;
@@ -123,11 +120,9 @@ static void PySDL_Audio_Type_dealloc(PySDL_Audio *self) {
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-
 static PyObject * PySDL_Audio_Open(PySDL_Audio *self, PyObject *ign) {
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Audio_Close(PySDL_Audio *self, PyObject *ign) {
     SDL_CloseAudioDevice(self->deviceId);
@@ -135,25 +130,21 @@ static PyObject * PySDL_Audio_Close(PySDL_Audio *self, PyObject *ign) {
     Py_RETURN_NONE;
 }
 
-
 static PyObject * PySDL_Audio_Lock(PySDL_Audio *self, PyObject *ign) {
     SDL_LockAudioDevice(self->deviceId);
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Audio_Unlock(PySDL_Audio *self, PyObject *ign) {
     SDL_UnlockAudioDevice(self->deviceId);
     Py_RETURN_NONE;
 }
 
-
 static PyObject * PySDL_Audio_Pause(PySDL_Audio *self, PyObject *arg) {
     int pause_on = PyLong_AsLong(arg);
     SDL_PauseAudioDevice(self->deviceId, pause_on);
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Audio_Queue(PySDL_Audio *self, PyObject *arg) {
     char *buffer;

@@ -13,7 +13,6 @@
 
 extern PyObject *pysdl_Error;
 
-
 //=========================================================
 // Types
 //=========================================================
@@ -23,42 +22,32 @@ typedef struct {
     SDL_Window *window;
     SDL_GLContext glContext;
 } PySDL_Window;
-
 extern PyTypeObject PySDL_Window_Type;
-
 
 typedef struct {
     PyObject_HEAD
     SDL_Renderer *renderer;
 } PySDL_Renderer;
-
 extern PyTypeObject PySDL_Renderer_Type;
-
 
 typedef struct {
     PyObject_HEAD
     SDL_Surface *surface;
     int shouldFree;
 } PySDL_Surface;
-
 extern PyTypeObject PySDL_Surface_Type;
-
 
 typedef struct {
     PyObject_HEAD
     SDL_Texture *texture;
 } PySDL_Texture;
-
 extern PyTypeObject PySDL_Texture_Type;
-
 
 typedef struct {
     PyObject_HEAD
     SDL_AudioDeviceID deviceId;
 } PySDL_Audio;
-
 extern PyTypeObject PySDL_Audio_Type;
-
 
 // massive list of SDL2 constants
 void _constants(PyObject *module);

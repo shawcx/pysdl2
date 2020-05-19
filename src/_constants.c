@@ -658,7 +658,6 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "GL_FRAMEBUFFER_SRGB_CAPABLE",   SDL_GL_FRAMEBUFFER_SRGB_CAPABLE );
     PyModule_AddIntConstant( module, "GL_CONTEXT_RELEASE_BEHAVIOR",   SDL_GL_CONTEXT_RELEASE_BEHAVIOR );
 
-
     PyModule_AddIntConstant( module, "AUDIO_S8",     AUDIO_S8     );
     PyModule_AddIntConstant( module, "AUDIO_U8",     AUDIO_U8     );
     PyModule_AddIntConstant( module, "AUDIO_S16LSB", AUDIO_S16LSB );

@@ -45,13 +45,11 @@ PyTypeObject PySDL_Surface_Type = {
     .tp_new       = PyType_GenericNew
 };
 
-
 static int PySDL_Surface_Type_init(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
     self->surface = NULL;
     self->shouldFree = 1;
     return 0;
 }
-
 
 static void PySDL_Surface_Type_dealloc(PySDL_Surface *self) {
     if(NULL != self->surface) {
@@ -62,7 +60,6 @@ static void PySDL_Surface_Type_dealloc(PySDL_Surface *self) {
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
-
 
 PyObject * PySDL_Surface_getter(PyObject *self, void *param) {
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)self;
@@ -87,7 +84,6 @@ PyObject * PySDL_Surface_getter(PyObject *self, void *param) {
 
     return NULL;
 }
-
 
 int PySDL_Surface_setter(PyObject *self, PyObject *value, void *param) {
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)self;
@@ -114,12 +110,10 @@ int PySDL_Surface_setter(PyObject *self, PyObject *value, void *param) {
     return 0;
 }
 
-
 static PyObject * PySDL_Surface_LockSurface(PySDL_Surface *self, PyObject *args) {
     SDL_LockSurface(self->surface);
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Surface_SaveBMP(PySDL_Surface *self, PyObject *args) {
     int ok;
@@ -130,7 +124,6 @@ static PyObject * PySDL_Surface_SaveBMP(PySDL_Surface *self, PyObject *args) {
     }
     Py_RETURN_NONE;
 }
-
 
 static PyObject * PySDL_Surface_UnlockSurface(PySDL_Surface *self, PyObject *args) {
     SDL_UnlockSurface(self->surface);
