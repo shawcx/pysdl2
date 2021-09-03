@@ -32,7 +32,7 @@ class Hertz:
         return self.y
 
 
-class Noise:
+class WhiteNoise:
     def __init__(self):
         self.amplify(1.0)
 
@@ -44,6 +44,32 @@ class Noise:
         return int(random.random() * self.amp)
 
 
+class Noise:
+    def __init__(self):
+        self.x = 0
+        self.unit = 300 / 48000.0
+        self.amplify(1.0)
+
+    def frequency(self, freq):
+        self.freq = freq
+        self.unit = self.freq / 48000.0
+        return self
+
+    def amplify(self, factor):
+        self.amp = (2**15 * factor) - 1
+        return self
+
+    def step(self):
+        #self.x += self.unit + (self.unit / random.random() * 0.1)
+        #self.y = math.sin(math.tau * self.x)
+        #self.y = int(self.amp * self.y)
+        #return self.y
+        self.x += self.unit + (self.unit * (random.random() * 10))
+        self.y = math.sin(math.tau * self.x)# + (random.random() * 0.8 - 0.4)
+        self.y = int(self.amp * self.y)
+        return self.y
+
+
 class Audio(SDL2.Audio):
     def __init__(self, name):
         super(Audio, self).__init__(name, callback=self.callback)
@@ -52,7 +78,8 @@ class Audio(SDL2.Audio):
         self.generators = [
             Hertz(random.randrange(100,3000)).amplify(0.8),
             Hertz(48000 / 204.8).amplify(0.5),
-            #Noise().amplify(0.5),
+            Noise().amplify(0.5),
+            #WhiteNoise().amplify(0.5),
             ]
 
     def callback(self):
@@ -161,6 +188,7 @@ def main():
             elif SDL2.MOUSEMOTION == event:
                 audio.generators[0].frequency(data[1] + 100)
                 audio.generators[1].frequency(data[2] * 4 + 100)
+                audio.generators[2].frequency(data[2] * 4 + 100)
                 r = data[1] / width
                 g = data[2] / height
 
