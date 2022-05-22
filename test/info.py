@@ -23,11 +23,19 @@ print('HasSSE41:   ', SDL2.HasSSE41())
 print('HasSSE42:   ', SDL2.HasSSE42())
 print()
 
-print('Number of displays:', SDL2.GetNumVideoDisplays())
 print('Current Driver:', SDL2.GetCurrentVideoDriver())
 print('Available Drivers:')
 for driver in SDL2.GetVideoDrivers():
     print('  ', driver)
 
+numberOfDisplays = SDL2.GetNumVideoDisplays()
+print('Number of displays:', numberOfDisplays)
+for idx in range(numberOfDisplays):
+    flags,width,height,rate = SDL2.GetDisplayMode(idx)
+    print('  ', f'Display Mode: {width}x{height} @ {rate}Hz')
+    flags,width,height,rate = SDL2.GetDesktopDisplayMode(idx)
+    print('  ', f'Desktop Display Mode: {width}x{height} @ {rate}Hz')
+    ddpi,hdpi,vdpi = SDL2.GetDisplayDPI(idx)
+    print('  ', f'DPI: {hdpi} H, {vdpi} V, {ddpi} D')
 
 SDL2.Quit()
