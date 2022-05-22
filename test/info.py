@@ -23,19 +23,29 @@ print('HasSSE41:   ', SDL2.HasSSE41())
 print('HasSSE42:   ', SDL2.HasSSE42())
 print()
 
-print('Current Driver:', SDL2.GetCurrentVideoDriver())
-print('Available Drivers:')
-for driver in SDL2.GetVideoDrivers():
-    print('  ', driver)
+drivers = SDL2.GetVideoDrivers()
+current = SDL2.GetCurrentVideoDriver()
+print('Number of drivers:', len(drivers))
+for driver in drivers:
+    print('-', driver, '(current)' if current == driver else '')
+print()
 
 numberOfDisplays = SDL2.GetNumVideoDisplays()
 print('Number of displays:', numberOfDisplays)
 for idx in range(numberOfDisplays):
     flags,width,height,rate = SDL2.GetDisplayMode(idx)
-    print('  ', f'Display Mode: {width}x{height} @ {rate}Hz')
+    print('-', f'Display Mode: {width}x{height} @ {rate}Hz')
     flags,width,height,rate = SDL2.GetDesktopDisplayMode(idx)
-    print('  ', f'Desktop Display Mode: {width}x{height} @ {rate}Hz')
+    print('-', f'Desktop Display Mode: {width}x{height} @ {rate}Hz')
     ddpi,hdpi,vdpi = SDL2.GetDisplayDPI(idx)
-    print('  ', f'DPI: {hdpi} H, {vdpi} V, {ddpi} D')
+    print('-', f'DPI: {hdpi} H, {vdpi} V, {ddpi} D')
+print()
+
+numberOfRenderers = SDL2.GetNumRenderDrivers()
+print('Number of renderers:', numberOfRenderers)
+for idx in range(numberOfRenderers):
+    name,flags,fmts,max_width,max_height = SDL2.GetRenderDriverInfo(idx)
+    print('-', name, hex(flags))
+print()
 
 SDL2.Quit()

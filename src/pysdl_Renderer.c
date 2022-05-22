@@ -4,18 +4,18 @@ static int        PySDL_Renderer_Type_init    (PySDL_Renderer*, PyObject*, PyObj
 static void       PySDL_Renderer_Type_dealloc (PySDL_Renderer*);
 
 static PyObject * PySDL_Renderer_CreateTextureFromSurface (PySDL_Renderer*, PyObject*);
-static PyObject * PySDL_Renderer_RenderClear              (PySDL_Renderer*, PyObject*);
-static PyObject * PySDL_Renderer_RenderCopy               (PySDL_Renderer*, PyObject*);
-static PyObject * PySDL_Renderer_RenderPresent            (PySDL_Renderer*, PyObject*);
+static PyObject * PySDL_Renderer_Clear                    (PySDL_Renderer*, PyObject*);
+static PyObject * PySDL_Renderer_Copy                     (PySDL_Renderer*, PyObject*, PyObject*);
+static PyObject * PySDL_Renderer_Present                  (PySDL_Renderer*, PyObject*);
 static PyObject * PySDL_Renderer_SetRenderDrawColor       (PySDL_Renderer*, PyObject*);
 
 static PyObject * PySDL_Renderer_LoadTexture (PySDL_Renderer*,PyObject*);
 
 static PyMethodDef PySDL_Renderer_methods[] = {
     { "CreateTextureFromSurface", (PyCFunction)PySDL_Renderer_CreateTextureFromSurface, METH_O       },
-    { "RenderClear",              (PyCFunction)PySDL_Renderer_RenderClear,              METH_NOARGS  },
-    { "RenderCopy",               (PyCFunction)PySDL_Renderer_RenderCopy,               METH_O       },
-    { "RenderPresent",            (PyCFunction)PySDL_Renderer_RenderPresent,            METH_NOARGS  },
+    { "Clear",                    (PyCFunction)PySDL_Renderer_Clear,                    METH_NOARGS  },
+    { "Copy",                     (PyCFunction)PySDL_Renderer_Copy,                     METH_VARARGS | METH_KEYWORDS },
+    { "Present",                  (PyCFunction)PySDL_Renderer_Present,                  METH_NOARGS  },
     { "SetRenderDrawColor",       (PyCFunction)PySDL_Renderer_SetRenderDrawColor,       METH_VARARGS },
     //
     { "LoadTexture", (PyCFunction)PySDL_Renderer_LoadTexture, METH_O },
@@ -67,22 +67,50 @@ static PyObject * PySDL_Renderer_CreateTextureFromSurface(PySDL_Renderer *self, 
     return (PyObject *)pysdl_Texture;
 }
 
-static PyObject * PySDL_Renderer_RenderClear(PySDL_Renderer *self, PyObject *args) {
+static PyObject * PySDL_Renderer_Clear(PySDL_Renderer *self, PyObject *args) {
     SDL_RenderClear(self->renderer);
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Renderer_RenderCopy(PySDL_Renderer *self, PyObject *args) {
-    PySDL_Texture *pysdl_Texture = (PySDL_Texture *)args;
-    int ok = SDL_RenderCopy(self->renderer, pysdl_Texture->texture, NULL, NULL);
+static PyObject * PySDL_Renderer_Copy(PySDL_Renderer *self, PyObject *args, PyObject *kwds) {
+    PySDL_Texture *texture = NULL;
+    PyObject *src_py = NULL;
+    PyObject *dst_py = NULL;
+    SDL_Rect src_rect;
+    SDL_Rect dst_rect;
+    SDL_Rect *src = NULL;
+    SDL_Rect *dst = NULL;
+
+    int ok;
+
+    static char *kwlist[] = {"texture", "src", "dst", NULL};
+
+    //ok = PyArg_ParseTupleAndKeywords(args, kwds, "O|(ii)(iiii)", kwlist, &texture, &src_x, &src_y, &dst_x, &dst_y, &dst_w, &dst_h);
+    ok = PyArg_ParseTupleAndKeywords(args, kwds, "O|OO", kwlist, &texture, &src_py, &dst_py);
+    if(!ok) {
+        return NULL;
+    }
+
+    if (src_py != Py_None) {
+        PyToRect(src_py, &src_rect);
+        src = &src_rect;
+    }
+
+    if (dst_py != Py_None) {
+        PyToRect(dst_py, &dst_rect);
+        dst = &dst_rect;
+    }
+
+    ok = SDL_RenderCopy(self->renderer, texture->texture, src, dst);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
+
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Renderer_RenderPresent(PySDL_Renderer *self, PyObject *args) {
+static PyObject * PySDL_Renderer_Present(PySDL_Renderer *self, PyObject *args) {
     SDL_RenderPresent(self->renderer);
     Py_RETURN_NONE;
 }

@@ -52,4 +52,7 @@ extern PyTypeObject PySDL_Audio_Type;
 // massive list of SDL2 constants
 void _constants(PyObject *module);
 
+// helper function to convert tuples and lists to SDL_Rect
+int PyToRect(PyObject *src, SDL_Rect *dst);
+
 #endif // __PYSDL_H__

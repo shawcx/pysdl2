@@ -6,18 +6,18 @@ static void       PySDL_Texture_Type_dealloc (PySDL_Texture* );
 PyObject * PySDL_Texture_getter (PyObject*, void*);
 int        PySDL_Texture_setter (PyObject*, PyObject*, void*);
 
-static PyObject * PySDL_Texture_LockTexture    (PySDL_Texture*, PyObject*);
-static PyObject * PySDL_Texture_QueryTexture   (PySDL_Texture*, PyObject*);
-static PyObject * PySDL_Texture_UnlockTexture  (PySDL_Texture*, PyObject*);
-static PyObject * PySDL_Texture_GL_BindTexture (PySDL_Texture*, PyObject*);
-static PyObject * PySDL_Texture_GL_UnbindTexture (PySDL_Texture*, PyObject*);
+static PyObject * PySDL_Texture_Lock    (PySDL_Texture*, PyObject*);
+static PyObject * PySDL_Texture_Query   (PySDL_Texture*, PyObject*);
+static PyObject * PySDL_Texture_Unlock  (PySDL_Texture*, PyObject*);
+static PyObject * PySDL_Texture_GL_Bind (PySDL_Texture*, PyObject*);
+static PyObject * PySDL_Texture_GL_Unbind (PySDL_Texture*, PyObject*);
 
 static PyMethodDef PySDL_Texture_methods[] = {
-    { "LockTexture",      (PyCFunction)PySDL_Texture_LockTexture,      METH_NOARGS },
-    { "QueryTexture",     (PyCFunction)PySDL_Texture_QueryTexture,     METH_NOARGS },
-    { "UnlockTexture",    (PyCFunction)PySDL_Texture_UnlockTexture,    METH_NOARGS },
-    { "GL_BindTexture",   (PyCFunction)PySDL_Texture_GL_BindTexture,   METH_NOARGS },
-    { "GL_UnbindTexture", (PyCFunction)PySDL_Texture_GL_UnbindTexture, METH_NOARGS },
+    { "Lock",      (PyCFunction)PySDL_Texture_Lock,      METH_NOARGS },
+    { "Query",     (PyCFunction)PySDL_Texture_Query,     METH_NOARGS },
+    { "Unlock",    (PyCFunction)PySDL_Texture_Unlock,    METH_NOARGS },
+    { "GL_Bind",   (PyCFunction)PySDL_Texture_GL_Bind,   METH_NOARGS },
+    { "GL_Unbind", (PyCFunction)PySDL_Texture_GL_Unbind, METH_NOARGS },
     { NULL }
 };
 
@@ -46,7 +46,7 @@ static void PySDL_Texture_Type_dealloc(PySDL_Texture *self) {
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject * PySDL_Texture_LockTexture(PySDL_Texture *self, PyObject *args) {
+static PyObject * PySDL_Texture_Lock(PySDL_Texture *self, PyObject *args) {
     void *pixels;
     int pitch;
 
@@ -54,7 +54,7 @@ static PyObject * PySDL_Texture_LockTexture(PySDL_Texture *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Texture_QueryTexture(PySDL_Texture *self, PyObject *args) {
+static PyObject * PySDL_Texture_Query(PySDL_Texture *self, PyObject *args) {
     uint32_t format = 0;
     int access = 0;
     int width  = 0;
@@ -67,12 +67,12 @@ static PyObject * PySDL_Texture_QueryTexture(PySDL_Texture *self, PyObject *args
     return Py_BuildValue("(iiii)", format, access, width, height);
 }
 
-static PyObject * PySDL_Texture_UnlockTexture(PySDL_Texture *self, PyObject *args) {
+static PyObject * PySDL_Texture_Unlock(PySDL_Texture *self, PyObject *args) {
     SDL_UnlockTexture(self->texture);
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Texture_GL_BindTexture(PySDL_Texture *self, PyObject *args) {
+static PyObject * PySDL_Texture_GL_Bind(PySDL_Texture *self, PyObject *args) {
     float w;
     float h;
     int ok = SDL_GL_BindTexture(self->texture, &w, &h);
@@ -84,7 +84,7 @@ static PyObject * PySDL_Texture_GL_BindTexture(PySDL_Texture *self, PyObject *ar
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Texture_GL_UnbindTexture(PySDL_Texture *self, PyObject *args) {
+static PyObject * PySDL_Texture_GL_Unbind(PySDL_Texture *self, PyObject *args) {
     int ok = SDL_GL_UnbindTexture(self->texture);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
