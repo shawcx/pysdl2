@@ -7,17 +7,18 @@ import glob
 
 import setuptools
 
-defines = [('_REENTRANT',None),('_GNU_SOURCE','1')]
-libs    = ['SDL2', 'SDL2_image']
-
+defines      = [('_REENTRANT',None),('_GNU_SOURCE','1')]
+include_dirs = ['/usr/local/include']
+library_dirs = ['/usr/local/lib']
+libs         = ['SDL2', 'SDL2_image']
 source_files = glob.glob('./src/*.c')
 
 setuptools.setup(
     name             = 'SDL2',
     version          = '0.2.1',
-    author           = 'Matthew Oertle',
-    author_email     = 'moertle@gmail.com',
-    url              = 'https://github.com/moertle/pysdl2',
+    author           = 'Matthew Shaw',
+    author_email     = 'mshaw.cx@gmail.com',
+    url              = 'https://github.com/shawcx/pysdl2',
     license          = 'MIT',
     description      = 'Python3 bindings for SDL2',
     long_description = open('README.rst').read(),
@@ -26,6 +27,8 @@ setuptools.setup(
             'SDL2',
             source_files,
             define_macros = defines,
+            include_dirs  = include_dirs,
+            library_dirs  = library_dirs,
             libraries     = libs
             )
         ],
