@@ -117,8 +117,8 @@ def main():
     SDL2.GL_SetAttribute(SDL2.GL_CONTEXT_MAJOR_VERSION, 2);
     SDL2.GL_SetAttribute(SDL2.GL_CONTEXT_MINOR_VERSION, 1);
 
-    width  = 3840
-    height = 2160
+    flags,width,height,rate = SDL2.GetDesktopDisplayMode(0)
+    print('  ', f'Display Mode: {width}x{height} @ {rate}Hz')
 
     dc = SDL2.Window("Audio", size=(width,height), flags=SDL2.WINDOW_OPENGL | SDL2.WINDOW_FULLSCREEN_DESKTOP)
     dc.GL_CreateContext()
