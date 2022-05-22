@@ -701,7 +701,7 @@ static PyObject * PySDL_GetNumRenderDrivers(PyObject *self, PyObject *args) {
 static PyObject * PySDL_GetRenderDriverInfo(PyObject *self, PyObject *args) {
     SDL_RendererInfo ri;
     PyObject *list;
-    PyObejct *ret;
+    PyObject *ret;
     int ok;
 
     ok = SDL_GetRenderDriverInfo(PyLong_AsLong(args), &ri);
