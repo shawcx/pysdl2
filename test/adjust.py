@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # For LCD monitors using a VGA connection run this program then "auto-adjust" the monitor
 
