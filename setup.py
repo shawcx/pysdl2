@@ -8,8 +8,8 @@ import glob
 import setuptools
 
 defines      = [('_REENTRANT',None),('_GNU_SOURCE','1')]
-include_dirs = ['/usr/local/include']
-library_dirs = ['/usr/local/lib']
+include_dirs = ['/usr/local/include','/opt/homebrew/include']
+library_dirs = ['/usr/local/lib','/opt/homebrew/lib']
 libs         = ['SDL2', 'SDL2_image']
 source_files = glob.glob('./src/*.c')
 

@@ -106,6 +106,10 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "JOYBUTTONUP",     SDL_JOYBUTTONUP     );
     PyModule_AddIntConstant( module, "USEREVENT",       SDL_USEREVENT       );
 
+    PyModule_AddIntConstant( module, "FLIP_NONE",       SDL_FLIP_NONE       );
+    PyModule_AddIntConstant( module, "FLIP_HORIZONTAL", SDL_FLIP_HORIZONTAL );
+    PyModule_AddIntConstant( module, "FLIP_VERTICAL",   SDL_FLIP_VERTICAL   );
+
     PyModule_AddIntConstant( module, "AUDIODEVICEADDED",   SDL_AUDIODEVICEADDED   );
     PyModule_AddIntConstant( module, "AUDIODEVICEREMOVED", SDL_AUDIODEVICEREMOVED );
 
