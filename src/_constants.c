@@ -26,7 +26,9 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "APP_DIDENTERBACKGROUND",  SDL_APP_DIDENTERBACKGROUND  );
     PyModule_AddIntConstant( module, "APP_WILLENTERFOREGROUND", SDL_APP_WILLENTERFOREGROUND );
     PyModule_AddIntConstant( module, "APP_DIDENTERFOREGROUND",  SDL_APP_DIDENTERFOREGROUND  );
+#ifdef SDL_LOCALECHANGED
     PyModule_AddIntConstant( module, "LOCALECHANGED",           SDL_LOCALECHANGED           );
+#endif
     PyModule_AddIntConstant( module, "DISPLAYEVENT",            SDL_DISPLAYEVENT            );
     PyModule_AddIntConstant( module, "WINDOWEVENT",             SDL_WINDOWEVENT             );
     PyModule_AddIntConstant( module, "SYSWMEVENT",              SDL_SYSWMEVENT              );
@@ -35,7 +37,9 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "TEXTEDITING",             SDL_TEXTEDITING             );
     PyModule_AddIntConstant( module, "TEXTINPUT",               SDL_TEXTINPUT               );
     PyModule_AddIntConstant( module, "KEYMAPCHANGED",           SDL_KEYMAPCHANGED           );
+#ifdef SDL_TEXTEDITING_EXT
     PyModule_AddIntConstant( module, "TEXTEDITING_EXT",         SDL_TEXTEDITING_EXT         );
+#endif
     PyModule_AddIntConstant( module, "MOUSEMOTION",             SDL_MOUSEMOTION             );
     PyModule_AddIntConstant( module, "MOUSEBUTTONDOWN",         SDL_MOUSEBUTTONDOWN         );
     PyModule_AddIntConstant( module, "MOUSEBUTTONUP",           SDL_MOUSEBUTTONUP           );
