@@ -120,14 +120,16 @@ static PyObject * PySDL_Renderer_CopyEx(PySDL_Renderer *self, PyObject *args, Py
     SDL_Rect *src = NULL;
     SDL_Rect *dst = NULL;
     double angle;
+    PyObject *center_py = NULL;
+    SDL_Point center_point;
     SDL_Point *center = NULL;
     SDL_RendererFlip flip = SDL_FLIP_NONE;
 
     int ok;
 
-    static char *kwlist[] = {"texture", "src", "dst", "angle", "flip", NULL};
+    static char *kwlist[] = {"texture", "src", "dst", "angle", "center", "flip", NULL};
 
-    ok = PyArg_ParseTupleAndKeywords(args, kwds, "O|OOdI", kwlist, &texture, &src_py, &dst_py, &angle, &flip);
+    ok = PyArg_ParseTupleAndKeywords(args, kwds, "O|OOdOI", kwlist, &texture, &src_py, &dst_py, &angle, &center_py, &flip);
     if(!ok) {
         return NULL;
     }
@@ -142,7 +144,12 @@ static PyObject * PySDL_Renderer_CopyEx(PySDL_Renderer *self, PyObject *args, Py
         dst = &dst_rect;
     }
 
-    ok = SDL_RenderCopyEx(self->renderer, texture->texture, src, dst, angle, NULL, flip);
+    if (center_py != Py_None) {
+        PyToPoint(center_py, &center_point);
+        center = &center_point;
+    }
+
+    ok = SDL_RenderCopyEx(self->renderer, texture->texture, src, dst, angle, center, flip);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;

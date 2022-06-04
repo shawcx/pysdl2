@@ -54,5 +54,6 @@ void _constants(PyObject *module);
 
 // helper function to convert tuples and lists to SDL_Rect
 int PyToRect(PyObject *src, SDL_Rect *dst);
+int PyToPoint(PyObject *src, SDL_Point *dst);
 
 #endif // __PYSDL_H__

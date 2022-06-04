@@ -764,3 +764,19 @@ int PyToRect(PyObject *src, SDL_Rect *dst) {
 
     return 0;
 }
+
+int PyToPoint(PyObject *src, SDL_Point *dst) {
+    if(PyTuple_Check(src)) {
+        dst->x = PyLong_AsLong(PyTuple_GET_ITEM(src, 0));
+        dst->y = PyLong_AsLong(PyTuple_GET_ITEM(src, 1));
+        return 1;
+    }
+
+    if(PyList_Check(src)) {
+        dst->x = PyLong_AsLong(PyList_GET_ITEM(src, 0));
+        dst->y = PyLong_AsLong(PyList_GET_ITEM(src, 1));
+        return 1;
+    }
+
+    return 0;
+}
