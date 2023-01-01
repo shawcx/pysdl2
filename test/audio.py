@@ -10,6 +10,9 @@ import time
 import SDL2
 import pygl as GL
 
+SAMPLES=4096
+
+
 class Hertz:
     def __init__(self, frequency):
         self.x = 0
@@ -32,18 +35,6 @@ class Hertz:
         return self.y
 
 
-class WhiteNoise:
-    def __init__(self):
-        self.amplify(1.0)
-
-    def amplify(self, factor):
-        self.amp = (2**15 * factor) - 1
-        return self
-
-    def step(self):
-        return int(random.random() * self.amp)
-
-
 class Noise:
     def __init__(self):
         self.x = 0
@@ -60,10 +51,6 @@ class Noise:
         return self
 
     def step(self):
-        #self.x += self.unit + (self.unit / random.random() * 0.1)
-        #self.y = math.sin(math.tau * self.x)
-        #self.y = int(self.amp * self.y)
-        #return self.y
         self.x += self.unit + (self.unit * (random.random() * 10))
         self.y = math.sin(math.tau * self.x)# + (random.random() * 0.8 - 0.4)
         self.y = int(self.amp * self.y)
@@ -71,22 +58,24 @@ class Noise:
 
 
 class Audio(SDL2.Audio):
-    def __init__(self, name):
-        super(Audio, self).__init__(name, callback=self.callback)
+    def __init__(self):
+        super(Audio, self).__init__()
         self.gl = []
         self.fresh = False
         self.generators = [
             Hertz(random.randrange(100,3000)).amplify(0.8),
-            Hertz(48000 / 204.8).amplify(0.5),
+            Hertz(48000 / (SAMPLES / 10.0)).amplify(0.5),
             Noise().amplify(0.5),
-            #WhiteNoise().amplify(0.5),
             ]
 
-    def callback(self):
+    def Open(self, name):
+        super(Audio, self).Open(name, freq=48000, channels=1, samples=SAMPLES, flags=0, callback=self.callback)
+
+    def callback(self, size, userData=None):
         self.fresh = True
         self.gl = []
         buf = []
-        for x in range(2048 * 1):
+        for x in range(SAMPLES):
             y = int(sum(h.step() for h in self.generators) / len(self.generators))
             self.gl.append(y)
             p = struct.pack('<h', y)
@@ -168,7 +157,8 @@ def main():
 
     name = SDL2.GetAudioDeviceName(index)
     print('Opening', name )
-    audio = Audio(name)
+    audio = Audio()
+    audio.Open(name)
 
     points = 1
     paused = 0
@@ -211,11 +201,9 @@ def main():
 
                 if SDL2.K_d == data[2]:
                     f = audio.generators[0].freq - 1 * mult
-                    print(f)
                     audio.generators[0].frequency(f)
                 if SDL2.K_f == data[2]:
                     f = audio.generators[0].freq + 1 * mult
-                    print(f)
                     audio.generators[0].frequency(f)
                 if SDL2.K_g == data[2]:
                     if audio.generators[0].amp == -1:
@@ -225,11 +213,9 @@ def main():
 
                 if SDL2.K_c == data[2]:
                     f = audio.generators[1].freq - 1 * mult
-                    print(f)
                     audio.generators[1].frequency(f)
                 if SDL2.K_v == data[2]:
                     f = audio.generators[1].freq + 1 * mult
-                    print(f)
                     audio.generators[1].frequency(f)
                 if SDL2.K_b == data[2]:
                     if audio.generators[1].amp == -1:
@@ -244,31 +230,25 @@ def main():
                         audio.generators[2].amplify(0)
 
         if audio.fresh:
-            if len(audio.gl) < 2048:
+            if len(audio.gl) < SAMPLES:
                 continue
+
             GL.Clear(GL.COLOR_BUFFER_BIT)
             GL.Begin(GL.POINTS if points else GL.LINE_STRIP)
-            #GL.Begin(GL.LINE_STRIP)
-            #r += 0.05 * rdir
-            #g += 0.03 * gdir
-            #b += 0.07 * bdir
+
             r1 = r
             g1 = g
             b1 = b
 
             for idx,value in enumerate(audio.gl):
-                x = idx * (width / 2048)
+                x = idx * (width / SAMPLES)
                 y = (value + 2**15) / 2**16
                 y1 = y * height
-                #r1 -= 0.0001
-                #g1 += 0.0001
-                #b1 += 0.0001
                 GL.Color4f(r1, g1, b1, 1.0)
                 GL.Vertex3f(x, y1, 0.0)
 
             GL.End()
             GL.Finish()
-            #dc.GL_SwapWindow()
 
             if rdir == 1:
                 if r >= 1.0: rdir = -1
@@ -287,8 +267,6 @@ def main():
 
             audio.fresh = False
 
-
-    #audio.Pause(1)
     #audio.Close()
 
     SDL2.Quit()

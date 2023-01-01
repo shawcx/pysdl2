@@ -705,4 +705,10 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "AUDIO_F32SYS", AUDIO_F32SYS );
     PyModule_AddIntConstant( module, "AUDIO_F32",    AUDIO_F32    );
 
+    PyModule_AddIntConstant( module, "AUDIO_ALLOW_FREQUENCY_CHANGE", SDL_AUDIO_ALLOW_FREQUENCY_CHANGE );
+    PyModule_AddIntConstant( module, "AUDIO_ALLOW_FORMAT_CHANGE",    SDL_AUDIO_ALLOW_FORMAT_CHANGE    );
+    PyModule_AddIntConstant( module, "AUDIO_ALLOW_CHANNELS_CHANGE",  SDL_AUDIO_ALLOW_CHANNELS_CHANGE  );
+    PyModule_AddIntConstant( module, "AUDIO_ALLOW_SAMPLES_CHANGE",   SDL_AUDIO_ALLOW_SAMPLES_CHANGE   );
+    PyModule_AddIntConstant( module, "AUDIO_ALLOW_ANY_CHANGE",       SDL_AUDIO_ALLOW_ANY_CHANGE       );
+
 }
