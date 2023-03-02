@@ -5,6 +5,7 @@ PyObject *pysdl_Error;
 static PyObject * PySDL_Init                  (PyObject*, PyObject*);
 static PyObject * PySDL_WasInit               (PyObject*, PyObject*);
 static PyObject * PySDL_Quit                  (PyObject*, PyObject*);
+static PyObject * PySDL_GetError              (PyObject*, PyObject*);
 static PyObject * PySDL_Version               (PyObject*, PyObject*);
 static PyObject * PySDL_GetPlatform           (PyObject*, PyObject*);
 static PyObject * PySDL_GetCurrentVideoDriver (PyObject*, PyObject*);
@@ -59,6 +60,7 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Init",                  PySDL_Init,                  METH_VARARGS },
     { "WasInit",               PySDL_WasInit,               METH_VARARGS },
     { "Quit",                  PySDL_Quit,                  METH_NOARGS  },
+    { "GetError",              PySDL_GetError,              METH_NOARGS  },
     { "Version",               PySDL_Version,               METH_NOARGS  },
     { "GetPlatform",           PySDL_GetPlatform,           METH_NOARGS  },
     { "GetCurrentVideoDriver", PySDL_GetCurrentVideoDriver, METH_NOARGS  },
@@ -191,6 +193,10 @@ static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
 static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
     SDL_Quit();
     Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_GetError(PyObject *self, PyObject *ign) {
+    return PyUnicode_FromString(SDL_GetError());
 }
 
 static PyObject * PySDL_Version(PyObject *self, PyObject *ign) {
