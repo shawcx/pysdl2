@@ -40,7 +40,7 @@ PyTypeObject PySDL_Audio_Type = {
 };
 
 static void _playback_callback(void *data, Uint8 *stream, int len) {
-    if(_Py_IsFinalizing()) {
+    if(Py_IsFinalizing()) {
         // python is shutting down
         return;
     }
@@ -66,7 +66,7 @@ static void _playback_callback(void *data, Uint8 *stream, int len) {
 }
 
 static void _capture_callback(void *data, Uint8 *stream, int len) {
-    if(_Py_IsFinalizing()) {
+    if(Py_IsFinalizing()) {
         // python is shutting down
         return;
     }
