@@ -185,3 +185,16 @@ PyObject * RectToPy(const SDL_Rect *rect) {
 PyObject * PointToPy(const SDL_Point *point) {
     return Py_BuildValue("(ii)", point->x, point->y);
 }
+
+PyObject * PySDL_WrapWindow(SDL_Window *window) {
+    if(NULL == window) {
+        Py_RETURN_NONE;
+    }
+    PySDL_Window *wrapper = (PySDL_Window *)PySDL_New(&PySDL_Window_Type);
+    if(NULL == wrapper) {
+        return NULL;
+    }
+    wrapper->window = window;
+    wrapper->shouldFree = 0;
+    return (PyObject *)wrapper;
+}

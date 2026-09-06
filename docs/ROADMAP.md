@@ -106,21 +106,32 @@ Tests: `tests/test_surface.py`, `tests/test_pixelformat.py`; example:
   `PIXELFORMAT_X{RGB,BGR}8888`, `SWSURFACE`/`PREALLOC`/`RLEACCEL`/`DONTFREE`,
   `IMG_INIT_*`.
 
-## Phase 3 - Keyboard, mouse, text input
+## Phase 3 - Keyboard, mouse, text input  — DONE
 
-- Keyboard: `GetKeyName`, `GetKeyFromName`, `GetScancodeName`,
+New `src/pysdl_input.c` holds the module-level keyboard/mouse/text functions
+(its `PyMethodDef` array is merged in `PyInit_SDL2` via `PyModule_AddFunctions`).
+Tests: `tests/test_input.py`, `tests/test_cursor.py`; example:
+`example/keyboard.py`.
+
+- **Keyboard:** `GetKeyName`, `GetKeyFromName`, `GetScancodeName`,
   `GetScancodeFromName`, `GetKeyFromScancode`, `GetScancodeFromKey`,
-  `SetModState`, `GetKeyboardFocus`, `HasScreenKeyboardSupport`,
-  `IsScreenKeyboardShown`.
-- Text input: `StartTextInput`, `StopTextInput`, `IsTextInputActive`,
-  `SetTextInputRect`; handle `SDL_TEXTINPUT` / `SDL_TEXTEDITING` in `_event()`
-  (string payload).
-- Mouse: `GetMouseState`, `GetGlobalMouseState`, `GetRelativeMouseState`,
-  `WarpMouseInWindow`, `WarpMouseGlobal`, `Set/GetRelativeMouseMode`,
-  `CaptureMouse`, `GetMouseFocus`.
-- New `src/pysdl_Cursor.c` -> `SDL2.Cursor`: `CreateCursor`,
-  `CreateColorCursor`, `CreateSystemCursor`, `Set/GetCursor`,
-  `GetDefaultCursor`, `FreeCursor`.
+  `SetModState`, `GetKeyboardFocus` (borrowed `Window`),
+  `HasScreenKeyboardSupport`, `IsScreenKeyboardShown`. Constant `K_UNKNOWN`.
+- **Text input:** `StartTextInput`, `StopTextInput`, `IsTextInputActive`,
+  `SetTextInputRect`. `_event()` decodes `TEXTINPUT` (data = the `str`) and
+  `TEXTEDITING` (`(text, start, length)`); the `KEYDOWN`/`KEYUP` tuple gained a
+  5th element `repeat` (bool).
+- **Mouse:** `GetMouseState` / `GetGlobalMouseState` / `GetRelativeMouseState`
+  (each `(buttons, x, y)`), `WarpMouseInWindow`, `WarpMouseGlobal`,
+  `SetRelativeMouseMode` / `GetRelativeMouseMode`, `CaptureMouse`,
+  `GetMouseFocus` (borrowed `Window`). Constants `PRESSED`/`RELEASED`,
+  `BUTTON_*` / `BUTTON_*MASK`, `MOUSEWHEEL_NORMAL`/`FLIPPED`.
+- New **`SDL2.Cursor(system_cursor_id)`** (`src/pysdl_Cursor.c`) + `Set()`;
+  module `CreateColorCursor(surface, hx, hy)`, `CreateCursor(data, mask, size,
+  hot)`, `GetCursor` / `GetDefaultCursor` (borrowed), `SetCursor`. Constants
+  `SYSTEM_CURSOR_*`.
+- `Window.tp_init` now takes `title` as optional (borrowed-window path);
+  `PySDL_Window` gained `shouldFree`. New helper `PySDL_WrapWindow()`.
 
 ## Phase 4 - Game controllers & joysticks
 

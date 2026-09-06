@@ -21,6 +21,7 @@ typedef struct {
     PyObject_HEAD
     SDL_Window *window;
     SDL_GLContext glContext;
+    int shouldFree;  // 0 for a borrowed window (GetKeyboardFocus, GetMouseFocus, ...)
 } PySDL_Window;
 extern PyTypeObject PySDL_Window_Type;
 
@@ -64,8 +65,19 @@ typedef struct {
 } PySDL_Audio;
 extern PyTypeObject PySDL_Audio_Type;
 
+typedef struct {
+    PyObject_HEAD
+    SDL_Cursor *cursor;
+    int shouldFree;  // 0 for a borrowed cursor (GetCursor, GetDefaultCursor)
+} PySDL_Cursor;
+extern PyTypeObject PySDL_Cursor_Type;
+
 // massive list of SDL2 constants
 void _constants(PyObject *module);
+
+// Extra module-function tables registered from their own files.
+extern PyMethodDef pysdl_input_methods[];   // pysdl_input.c  (keyboard / mouse / text input)
+extern PyMethodDef pysdl_cursor_methods[];  // pysdl_Cursor.c
 
 //=========================================================
 // Helpers (pysdl_util.c)
@@ -95,5 +107,8 @@ int PyToPixel(PyObject *src, const SDL_PixelFormat *format, Uint32 *out);
 
 PyObject * RectToPy(const SDL_Rect *rect);      // -> (x, y, w, h)
 PyObject * PointToPy(const SDL_Point *point);   // -> (x, y)
+
+// Wrap a window SDL still owns as a non-freeing SDL2.Window, or None for NULL.
+PyObject * PySDL_WrapWindow(SDL_Window *window);
 
 #endif // __PYSDL_H__

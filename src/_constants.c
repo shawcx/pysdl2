@@ -45,6 +45,36 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "MOUSEBUTTONUP",           SDL_MOUSEBUTTONUP           );
     PyModule_AddIntConstant( module, "MOUSEWHEEL",              SDL_MOUSEWHEEL              );
 
+    PyModule_AddIntConstant( module, "PRESSED",  SDL_PRESSED  );
+    PyModule_AddIntConstant( module, "RELEASED", SDL_RELEASED );
+
+    PyModule_AddIntConstant( module, "BUTTON_LEFT",    SDL_BUTTON_LEFT    );
+    PyModule_AddIntConstant( module, "BUTTON_MIDDLE",  SDL_BUTTON_MIDDLE  );
+    PyModule_AddIntConstant( module, "BUTTON_RIGHT",   SDL_BUTTON_RIGHT   );
+    PyModule_AddIntConstant( module, "BUTTON_X1",      SDL_BUTTON_X1      );
+    PyModule_AddIntConstant( module, "BUTTON_X2",      SDL_BUTTON_X2      );
+    PyModule_AddIntConstant( module, "BUTTON_LMASK",   SDL_BUTTON_LMASK   );
+    PyModule_AddIntConstant( module, "BUTTON_MMASK",   SDL_BUTTON_MMASK   );
+    PyModule_AddIntConstant( module, "BUTTON_RMASK",   SDL_BUTTON_RMASK   );
+    PyModule_AddIntConstant( module, "BUTTON_X1MASK",  SDL_BUTTON_X1MASK  );
+    PyModule_AddIntConstant( module, "BUTTON_X2MASK",  SDL_BUTTON_X2MASK  );
+
+    PyModule_AddIntConstant( module, "MOUSEWHEEL_NORMAL",  SDL_MOUSEWHEEL_NORMAL  );
+    PyModule_AddIntConstant( module, "MOUSEWHEEL_FLIPPED", SDL_MOUSEWHEEL_FLIPPED );
+
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_ARROW",     SDL_SYSTEM_CURSOR_ARROW     );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_IBEAM",     SDL_SYSTEM_CURSOR_IBEAM     );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_WAIT",      SDL_SYSTEM_CURSOR_WAIT      );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_CROSSHAIR", SDL_SYSTEM_CURSOR_CROSSHAIR );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_WAITARROW", SDL_SYSTEM_CURSOR_WAITARROW );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_SIZENWSE",  SDL_SYSTEM_CURSOR_SIZENWSE  );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_SIZENESW",  SDL_SYSTEM_CURSOR_SIZENESW  );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_SIZEWE",    SDL_SYSTEM_CURSOR_SIZEWE    );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_SIZENS",    SDL_SYSTEM_CURSOR_SIZENS    );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_SIZEALL",   SDL_SYSTEM_CURSOR_SIZEALL   );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_NO",        SDL_SYSTEM_CURSOR_NO        );
+    PyModule_AddIntConstant( module, "SYSTEM_CURSOR_HAND",      SDL_SYSTEM_CURSOR_HAND      );
+
     PyModule_AddIntConstant( module, "WINDOWEVENT_SHOWN",        SDL_WINDOWEVENT_SHOWN        );
     PyModule_AddIntConstant( module, "WINDOWEVENT_HIDDEN",       SDL_WINDOWEVENT_HIDDEN       );
     PyModule_AddIntConstant( module, "WINDOWEVENT_EXPOSED",      SDL_WINDOWEVENT_EXPOSED      );
@@ -205,8 +235,7 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "PIXELFORMAT_NV21",        SDL_PIXELFORMAT_NV21        );
 
     // KEYBOARD SYMBOLS
-//    PyModule_AddIntConstant( module, "K_UNKNOWN",      SDLK_UNKNOWN );
-//    PyModule_AddIntConstant( module, "K_FIRST",        SDLK_FIRST );
+    PyModule_AddIntConstant( module, "K_UNKNOWN",      SDLK_UNKNOWN );
     PyModule_AddIntConstant( module, "K_BACKSPACE",    SDLK_BACKSPACE );
     PyModule_AddIntConstant( module, "K_TAB",          SDLK_TAB );
     PyModule_AddIntConstant( module, "K_CLEAR",        SDLK_CLEAR );

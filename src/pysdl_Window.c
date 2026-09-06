@@ -85,23 +85,26 @@ static int PySDL_Window_Type_init(PySDL_Window *self, PyObject *args, PyObject *
     int x = SDL_WINDOWPOS_CENTERED;
     int y = SDL_WINDOWPOS_CENTERED;
     int f = 0;
-    int ok;
 
     static char *kwlist[] = {"title", "size", "position", "flags", NULL};
 
-    ok = PyArg_ParseTupleAndKeywords(args, kwds, "s|(ii)(ii)I", kwlist,
-        &title, &w, &h, &x, &y, &f);
-    if(!ok) {
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|s(ii)(ii)I", kwlist,
+        &title, &w, &h, &x, &y, &f)) {
         return -1;
     }
 
-    self->window = SDL_CreateWindow(title, x, y, w, h, f);
-    if(NULL == self->window) {
-        PyErr_SetString(pysdl_Error, SDL_GetError());
-        return -1;
-    }
-
+    self->window = NULL;
     self->glContext = NULL;
+    self->shouldFree = 1;
+
+    // No title: internal allocation (borrowed-window wrappers fill ->window in).
+    if(NULL != title) {
+        self->window = SDL_CreateWindow(title, x, y, w, h, f);
+        if(NULL == self->window) {
+            PyErr_SetString(pysdl_Error, SDL_GetError());
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -112,7 +115,9 @@ static void PySDL_Window_Type_dealloc(PySDL_Window *self) {
         self->glContext = NULL;
     }
     if(NULL != self->window) {
-        SDL_DestroyWindow(self->window);
+        if(self->shouldFree) {
+            SDL_DestroyWindow(self->window);
+        }
         self->window = NULL;
     }
     Py_TYPE(self)->tp_free((PyObject*)self);

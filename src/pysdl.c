@@ -237,6 +237,19 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     Py_INCREF(&PySDL_Audio_Type);
     PyModule_AddObject(module, "Audio", (PyObject *)&PySDL_Audio_Type);
 
+    if(0 > PyType_Ready(&PySDL_Cursor_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Cursor_Type);
+    PyModule_AddObject(module, "Cursor", (PyObject *)&PySDL_Cursor_Type);
+
+    if(0 > PyModule_AddFunctions(module, pysdl_input_methods)) {
+        return NULL;
+    }
+    if(0 > PyModule_AddFunctions(module, pysdl_cursor_methods)) {
+        return NULL;
+    }
+
     _constants(module);
 
     return module;
@@ -602,13 +615,23 @@ static PyObject * _event(SDL_Event *event) {
     //    break;
     case SDL_KEYDOWN:
     case SDL_KEYUP: {
-            data = PyTuple_New(4);
+            data = PyTuple_New(5);
             SDL_KeyboardEvent *keyboard = (SDL_KeyboardEvent *)event;
             PyTuple_SetItem(data, 0, PyLong_FromLong(keyboard->state));
             PyTuple_SetItem(data, 1, PyLong_FromLong(keyboard->keysym.scancode));
             PyTuple_SetItem(data, 2, PyLong_FromLong(keyboard->keysym.sym));
             PyTuple_SetItem(data, 3, PyLong_FromLong(keyboard->keysym.mod));
-            //PyTuple_SetItem(data, 5, PyLong_FromLong(keyboard->keysym.unicode));
+            PyTuple_SetItem(data, 4, PyBool_FromLong(keyboard->repeat));
+        }
+        break;
+    case SDL_TEXTINPUT:
+        data = PyUnicode_FromString(event->text.text);
+        break;
+    case SDL_TEXTEDITING: {
+            data = PyTuple_New(3);
+            PyTuple_SetItem(data, 0, PyUnicode_FromString(event->edit.text));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(event->edit.start));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(event->edit.length));
         }
         break;
     case SDL_MOUSEMOTION: {

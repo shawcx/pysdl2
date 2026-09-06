@@ -46,6 +46,7 @@ a display:
 - `python3 example/info.py` — prints CPU/display/renderer info, no window
 - `python3 example/draw.py` — primitives, blend modes, render-to-texture, geometry
 - `python3 example/surface.py [out.png]` — software-surface compositing, no window
+- `python3 example/keyboard.py` — keyboard / text-input / mouse event echo, cursors
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
@@ -56,15 +57,21 @@ a display:
 `PyTypeObject`, the module-wide `pysdl_Error` exception, and the helpers in
 `pysdl_util.c`. Every `.c` file includes only this.
 
-- `src/pysdl.c` — module definition and `PyInit_SDL2`. Holds all module-level
+- `src/pysdl.c` — module definition and `PyInit_SDL2`. Holds most module-level
   functions (`Init`, `PollEvent`, `LoadImage`, display/GL/CPU/audio-device
   queries, timers, error/clipboard/screensaver) and the `_event()` helper that
-  flattens an `SDL_Event` into a `(type, data_tuple)` pair for
-  `PollEvent`/`WaitEvent`.
+  flattens an `SDL_Event` into a `(type, data)` pair for `PollEvent`/`WaitEvent`
+  (`data` is a tuple for structured events, a bare `str` for `TEXTINPUT`, `None`
+  for `QUIT`).
 - `src/pysdl_Window.c`, `pysdl_Renderer.c`, `pysdl_Surface.c`, `pysdl_Texture.c`,
-  `pysdl_Audio.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c` — one wrapped SDL
-  object per file, each a full `PyTypeObject` with `PySDL_<Type>_<Method>`
-  functions.
+  `pysdl_Audio.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c`, `pysdl_Cursor.c` —
+  one wrapped SDL object per file, each a full `PyTypeObject` with
+  `PySDL_<Type>_<Method>` functions.
+- `src/pysdl_input.c` — module-level keyboard / mouse / text-input functions.
+  Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into the module
+  in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_Cursor.c` does the same
+  for the cursor-factory functions (`pysdl_cursor_methods`). Use this pattern to
+  add a batch of module functions from a new file.
 - `src/pysdl_util.c` — `PySDL_New()` (wrapper allocation), `PySDL_ThreadEnter` /
   `PySDL_ThreadLeave` (GIL handling for SDL-owned threads), and the
   `PyToRect` / `PyToPoint` / `PyToColor` / `PyToFRect` / `PyToFPoint` /
@@ -75,21 +82,26 @@ a display:
 
 ### Object model
 
-Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus a
-couple of tracking fields: `Surface.shouldFree`, `Renderer.target`,
-`Audio.pycallback`). The SDL pointer is filled in either by `tp_init` (public
-construction) or afterwards by the C code that allocated the wrapper with
-`PySDL_New(&PySDL_X_Type)`; it is released in `tp_dealloc`.
+Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus
+tracking fields where needed: `Surface`/`Window`/`Cursor`.`shouldFree`,
+`Renderer.target`, `Audio.pycallback`, `Surface.pixels`). The SDL pointer is
+filled in either by `tp_init` (public construction) or afterwards by the C code
+that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
+`tp_dealloc` unless `shouldFree` is 0 (a *borrowed* pointer SDL still owns —
+`Window.GetWindowSurface()`, `GetKeyboardFocus()`/`GetMouseFocus()` via
+`PySDL_WrapWindow()`, `GetCursor()`/`GetDefaultCursor()`).
 
-`Window`, `Audio`, `Renderer`, `Texture`, `PixelFormat`, and `Palette` are in
-the module namespace and constructible: `SDL2.Renderer(window, index=-1,
-flags=0)`, `SDL2.Texture(renderer, format=…, access=…, size=(0,0))`,
-`SDL2.PixelFormat(format_enum)`, `SDL2.Palette(ncolors)`. Their `tp_init` takes
-the primary arg as *optional* — with none given it just nulls the pointer, the
-path `PySDL_New` and the C-side factory functions use. `Renderer`/`Texture` lean
-on SDL's NULL-pointer tolerance; `PixelFormat`/`Palette` methods and getters go
-through a `_fmt()`/`_pal()` guard that raises on an uninitialised instance.
-`Surface` is still constructed only via module/Window/Renderer functions.
+`Window`, `Audio`, `Renderer`, `Texture`, `PixelFormat`, `Palette`, and `Cursor`
+are in the module namespace and constructible: `SDL2.Window(title=None,
+size=…, …)`, `SDL2.Renderer(window, …)`, `SDL2.Texture(renderer, …)`,
+`SDL2.PixelFormat(format_enum)`, `SDL2.Palette(ncolors)`,
+`SDL2.Cursor(system_cursor_id)`. Every `tp_init` takes its primary arg as
+*optional* — with none given it just nulls the pointer, the path `PySDL_New` and
+the C-side factory functions use. `Window`/`Renderer`/`Texture` lean on SDL's
+NULL-pointer tolerance; `PixelFormat`/`Palette`/`Cursor` methods and getters go
+through a `_fmt()`/`_pal()` / explicit guard that raises on an uninitialised
+instance. `Surface` is still constructed only via module/Window/Renderer
+functions.
 
 `PySDL_Surface` carries a `shouldFree` flag: surfaces it owns (loaded images,
 `CreateRGBSurface`) are `SDL_FreeSurface`d on dealloc; a borrowed surface like
