@@ -9,6 +9,7 @@ static PyObject * PySDL_Renderer_Copy                     (PySDL_Renderer*, PyOb
 static PyObject * PySDL_Renderer_CopyEx                   (PySDL_Renderer*, PyObject*, PyObject*);
 static PyObject * PySDL_Renderer_Present                  (PySDL_Renderer*, PyObject*);
 static PyObject * PySDL_Renderer_SetRenderDrawColor       (PySDL_Renderer*, PyObject*);
+static PyObject * PySDL_Renderer_GetRenderDrawColor       (PySDL_Renderer*, PyObject*);
 
 static PyObject * PySDL_Renderer_LoadTexture (PySDL_Renderer*,PyObject*);
 
@@ -19,6 +20,7 @@ static PyMethodDef PySDL_Renderer_methods[] = {
     { "CopyEx",                   (PyCFunction)PySDL_Renderer_CopyEx,                   METH_VARARGS | METH_KEYWORDS },
     { "Present",                  (PyCFunction)PySDL_Renderer_Present,                  METH_NOARGS  },
     { "SetRenderDrawColor",       (PyCFunction)PySDL_Renderer_SetRenderDrawColor,       METH_VARARGS },
+    { "GetRenderDrawColor",       (PyCFunction)PySDL_Renderer_GetRenderDrawColor,       METH_NOARGS  },
     //
     { "LoadTexture", (PyCFunction)PySDL_Renderer_LoadTexture, METH_O },
     //
@@ -54,9 +56,8 @@ static PyObject * PySDL_Renderer_CreateTextureFromSurface(PySDL_Renderer *self, 
     PySDL_Surface *pysdl_Surface = (PySDL_Surface *)args;
     PySDL_Texture *pysdl_Texture;
 
-    pysdl_Texture = (PySDL_Texture *)PyObject_CallObject((PyObject *)&PySDL_Texture_Type, NULL);
+    pysdl_Texture = (PySDL_Texture *)PySDL_New(&PySDL_Texture_Type);
     if(NULL == pysdl_Texture) {
-        PyErr_SetString(PyExc_TypeError, "Could not create pysdl_.Texture object");
         return NULL;
     }
 
@@ -92,13 +93,17 @@ static PyObject * PySDL_Renderer_Copy(PySDL_Renderer *self, PyObject *args, PyOb
         return NULL;
     }
 
-    if (src_py != Py_None) {
-        PyToRect(src_py, &src_rect);
+    if (src_py && src_py != Py_None) {
+        if (!PyToRect(src_py, &src_rect)) {
+            return NULL;
+        }
         src = &src_rect;
     }
 
-    if (dst_py != Py_None) {
-        PyToRect(dst_py, &dst_rect);
+    if (dst_py && dst_py != Py_None) {
+        if (!PyToRect(dst_py, &dst_rect)) {
+            return NULL;
+        }
         dst = &dst_rect;
     }
 
@@ -119,7 +124,7 @@ static PyObject * PySDL_Renderer_CopyEx(PySDL_Renderer *self, PyObject *args, Py
     SDL_Rect dst_rect;
     SDL_Rect *src = NULL;
     SDL_Rect *dst = NULL;
-    double angle;
+    double angle = 0.0;
     PyObject *center_py = NULL;
     SDL_Point center_point;
     SDL_Point *center = NULL;
@@ -134,18 +139,24 @@ static PyObject * PySDL_Renderer_CopyEx(PySDL_Renderer *self, PyObject *args, Py
         return NULL;
     }
 
-    if (src_py != Py_None) {
-        PyToRect(src_py, &src_rect);
+    if (src_py && src_py != Py_None) {
+        if (!PyToRect(src_py, &src_rect)) {
+            return NULL;
+        }
         src = &src_rect;
     }
 
-    if (dst_py != Py_None) {
-        PyToRect(dst_py, &dst_rect);
+    if (dst_py && dst_py != Py_None) {
+        if (!PyToRect(dst_py, &dst_rect)) {
+            return NULL;
+        }
         dst = &dst_rect;
     }
 
-    if (center_py != Py_None) {
-        PyToPoint(center_py, &center_point);
+    if (center_py && center_py != Py_None) {
+        if (!PyToPoint(center_py, &center_point)) {
+            return NULL;
+        }
         center = &center_point;
     }
 
@@ -181,12 +192,25 @@ static PyObject * PySDL_Renderer_SetRenderDrawColor(PySDL_Renderer *self, PyObje
     Py_RETURN_NONE;
 }
 
+static PyObject * PySDL_Renderer_GetRenderDrawColor(PySDL_Renderer *self, PyObject *ign) {
+    Uint8 r = 0;
+    Uint8 g = 0;
+    Uint8 b = 0;
+    Uint8 a = 0;
+
+    if(0 > SDL_GetRenderDrawColor(self->renderer, &r, &g, &b, &a)) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    return Py_BuildValue("(iiii)", r, g, b, a);
+}
+
 static PyObject * PySDL_Renderer_LoadTexture(PySDL_Renderer *self, PyObject *args) {
     PySDL_Texture *pysdl_Texture;
 
-    pysdl_Texture = (PySDL_Texture *)PyObject_CallObject((PyObject *)&PySDL_Texture_Type, NULL);
+    pysdl_Texture = (PySDL_Texture *)PySDL_New(&PySDL_Texture_Type);
     if(NULL == pysdl_Texture) {
-        PyErr_SetString(PyExc_TypeError, "Could not create pysdl_.Texture object");
         return NULL;
     }
 

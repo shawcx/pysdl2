@@ -146,9 +146,8 @@ static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *ign) 
 static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *ign) {
     PySDL_Surface *pysdl_Surface;
 
-    pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == pysdl_Surface) {
-        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
         return NULL;
     }
 
@@ -272,9 +271,8 @@ static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *ign)
 
     flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
 
-    pysdl_Renderer = (PySDL_Renderer *)PyObject_CallObject((PyObject *)&PySDL_Renderer_Type, NULL);
+    pysdl_Renderer = (PySDL_Renderer *)PySDL_New(&PySDL_Renderer_Type);
     if(NULL == pysdl_Renderer) {
-        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Renderer object");
         return NULL;
     }
 

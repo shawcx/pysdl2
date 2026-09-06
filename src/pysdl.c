@@ -56,6 +56,25 @@ static PyObject * PySDL_GetRenderDriverInfo   (PyObject*, PyObject*);
 static PyObject * PySDL_GetNumAudioDevices    (PyObject*, PyObject*);
 static PyObject * PySDL_GetAudioDeviceName    (PyObject*, PyObject*);
 
+static PyObject * PySDL_Delay                    (PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_GetTicks64               (PyObject*, PyObject*);
+#endif
+static PyObject * PySDL_GetPerformanceCounter    (PyObject*, PyObject*);
+static PyObject * PySDL_GetPerformanceFrequency  (PyObject*, PyObject*);
+static PyObject * PySDL_GetVersion               (PyObject*, PyObject*);
+static PyObject * PySDL_GetRevision              (PyObject*, PyObject*);
+static PyObject * PySDL_SetError                 (PyObject*, PyObject*);
+static PyObject * PySDL_ClearError               (PyObject*, PyObject*);
+static PyObject * PySDL_GetBasePath              (PyObject*, PyObject*);
+static PyObject * PySDL_GetPrefPath              (PyObject*, PyObject*);
+static PyObject * PySDL_EnableScreenSaver        (PyObject*, PyObject*);
+static PyObject * PySDL_DisableScreenSaver       (PyObject*, PyObject*);
+static PyObject * PySDL_IsScreenSaverEnabled     (PyObject*, PyObject*);
+static PyObject * PySDL_GetClipboardText         (PyObject*, PyObject*);
+static PyObject * PySDL_SetClipboardText         (PyObject*, PyObject*);
+static PyObject * PySDL_HasClipboardText         (PyObject*, PyObject*);
+
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Init",                  PySDL_Init,                  METH_VARARGS },
     { "WasInit",               PySDL_WasInit,               METH_VARARGS },
@@ -110,6 +129,25 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
 
     { "GetNumAudioDevices",    PySDL_GetNumAudioDevices,    METH_VARARGS },
     { "GetAudioDeviceName",    PySDL_GetAudioDeviceName,    METH_VARARGS },
+
+    { "Delay",                    PySDL_Delay,                    METH_O       },
+#if SDL_VERSION_ATLEAST(2,0,18)
+    { "GetTicks64",               PySDL_GetTicks64,               METH_NOARGS  },
+#endif
+    { "GetPerformanceCounter",    PySDL_GetPerformanceCounter,    METH_NOARGS  },
+    { "GetPerformanceFrequency",  PySDL_GetPerformanceFrequency,  METH_NOARGS  },
+    { "GetVersion",               PySDL_GetVersion,               METH_NOARGS  },
+    { "GetRevision",              PySDL_GetRevision,              METH_NOARGS  },
+    { "SetError",                 PySDL_SetError,                 METH_O       },
+    { "ClearError",               PySDL_ClearError,               METH_NOARGS  },
+    { "GetBasePath",              PySDL_GetBasePath,              METH_NOARGS  },
+    { "GetPrefPath",              PySDL_GetPrefPath,              METH_VARARGS },
+    { "EnableScreenSaver",        PySDL_EnableScreenSaver,        METH_NOARGS  },
+    { "DisableScreenSaver",       PySDL_DisableScreenSaver,       METH_NOARGS  },
+    { "IsScreenSaverEnabled",     PySDL_IsScreenSaverEnabled,     METH_NOARGS  },
+    { "GetClipboardText",         PySDL_GetClipboardText,         METH_NOARGS  },
+    { "SetClipboardText",         PySDL_SetClipboardText,         METH_O       },
+    { "HasClipboardText",         PySDL_HasClipboardText,         METH_NOARGS  },
 
     { NULL }
 };
@@ -232,9 +270,8 @@ static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
 }
 
 static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
-    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == pysdl_Surface) {
-        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
         return NULL;
     }
 
@@ -251,9 +288,8 @@ static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
 }
 
 static PyObject * PySDL_LoadImage(PyObject *self, PyObject *arg) {
-    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == pysdl_Surface) {
-        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
         return NULL;
     }
 
@@ -292,9 +328,8 @@ static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObjec
         return NULL;
     }
 
-    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == pysdl_Surface) {
-        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
         return NULL;
     }
 
@@ -326,9 +361,8 @@ static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyO
         return NULL;
     }
 
-    PySDL_Surface * pysdl_Surface = (PySDL_Surface *)PyObject_CallObject((PyObject *)&PySDL_Surface_Type, NULL);
+    PySDL_Surface * pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == pysdl_Surface) {
-        PyErr_SetString(PyExc_TypeError, "Could not create SDL2.Surface object");
         return NULL;
     }
 
@@ -742,50 +776,115 @@ static PyObject * PySDL_GetAudioDeviceName(PyObject *self, PyObject *args) {
     return PyUnicode_FromString(SDL_GetAudioDeviceName(idx, isCapture));
 }
 
-int PyToRect(PyObject *src, SDL_Rect *dst) {
-    if(PyTuple_Check(src)) {
-        dst->x = PyLong_AsLong(PyTuple_GET_ITEM(src, 0));
-        dst->y = PyLong_AsLong(PyTuple_GET_ITEM(src, 1));
-        if (PyTuple_Size(src) == 4) {
-            dst->w = PyLong_AsLong(PyTuple_GET_ITEM(src, 2));
-            dst->h = PyLong_AsLong(PyTuple_GET_ITEM(src, 3));
-        }
-        else {
-            dst->w = -1;
-            dst->h = -1;
-        }
-        return 1;
+static PyObject * PySDL_Delay(PyObject *self, PyObject *arg) {
+    long ms = PyLong_AsLong(arg);
+    if(-1 == ms && PyErr_Occurred()) {
+        return NULL;
     }
-
-    if(PyList_Check(src)) {
-        dst->x = PyLong_AsLong(PyList_GET_ITEM(src, 0));
-        dst->y = PyLong_AsLong(PyList_GET_ITEM(src, 1));
-        if (PyList_Size(src) == 4) {
-            dst->w = PyLong_AsLong(PyList_GET_ITEM(src, 2));
-            dst->h = PyLong_AsLong(PyList_GET_ITEM(src, 3));
-        }
-        else {
-            dst->w = -1;
-            dst->h = -1;
-        }
-        return 1;
-    }
-
-    return 0;
+    Py_BEGIN_ALLOW_THREADS
+        SDL_Delay((Uint32)ms);
+    Py_END_ALLOW_THREADS
+    Py_RETURN_NONE;
 }
 
-int PyToPoint(PyObject *src, SDL_Point *dst) {
-    if(PyTuple_Check(src)) {
-        dst->x = PyLong_AsLong(PyTuple_GET_ITEM(src, 0));
-        dst->y = PyLong_AsLong(PyTuple_GET_ITEM(src, 1));
-        return 1;
-    }
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_GetTicks64(PyObject *self, PyObject *ign) {
+    return PyLong_FromUnsignedLongLong(SDL_GetTicks64());
+}
+#endif
 
-    if(PyList_Check(src)) {
-        dst->x = PyLong_AsLong(PyList_GET_ITEM(src, 0));
-        dst->y = PyLong_AsLong(PyList_GET_ITEM(src, 1));
-        return 1;
-    }
+static PyObject * PySDL_GetPerformanceCounter(PyObject *self, PyObject *ign) {
+    return PyLong_FromUnsignedLongLong(SDL_GetPerformanceCounter());
+}
 
-    return 0;
+static PyObject * PySDL_GetPerformanceFrequency(PyObject *self, PyObject *ign) {
+    return PyLong_FromUnsignedLongLong(SDL_GetPerformanceFrequency());
+}
+
+static PyObject * PySDL_GetVersion(PyObject *self, PyObject *ign) {
+    SDL_version linked;
+    SDL_GetVersion(&linked);
+    return Py_BuildValue("(iii)", linked.major, linked.minor, linked.patch);
+}
+
+static PyObject * PySDL_GetRevision(PyObject *self, PyObject *ign) {
+    return PyUnicode_FromString(SDL_GetRevision());
+}
+
+static PyObject * PySDL_SetError(PyObject *self, PyObject *arg) {
+    const char *msg = PyUnicode_AsUTF8(arg);
+    if(NULL == msg) {
+        return NULL;
+    }
+    SDL_SetError("%s", msg);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_ClearError(PyObject *self, PyObject *ign) {
+    SDL_ClearError();
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_GetBasePath(PyObject *self, PyObject *ign) {
+    char *path = SDL_GetBasePath();
+    if(NULL == path) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    PyObject *result = PyUnicode_FromString(path);
+    SDL_free(path);
+    return result;
+}
+
+static PyObject * PySDL_GetPrefPath(PyObject *self, PyObject *args) {
+    const char *org;
+    const char *app;
+    if(!PyArg_ParseTuple(args, "ss", &org, &app)) {
+        return NULL;
+    }
+    char *path = SDL_GetPrefPath(org, app);
+    if(NULL == path) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    PyObject *result = PyUnicode_FromString(path);
+    SDL_free(path);
+    return result;
+}
+
+static PyObject * PySDL_EnableScreenSaver(PyObject *self, PyObject *ign) {
+    SDL_EnableScreenSaver();
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_DisableScreenSaver(PyObject *self, PyObject *ign) {
+    SDL_DisableScreenSaver();
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_IsScreenSaverEnabled(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_IsScreenSaverEnabled());
+}
+
+static PyObject * PySDL_GetClipboardText(PyObject *self, PyObject *ign) {
+    char *text = SDL_GetClipboardText();
+    PyObject *result = PyUnicode_FromString(text ? text : "");
+    SDL_free(text);
+    return result;
+}
+
+static PyObject * PySDL_SetClipboardText(PyObject *self, PyObject *arg) {
+    const char *text = PyUnicode_AsUTF8(arg);
+    if(NULL == text) {
+        return NULL;
+    }
+    if(0 != SDL_SetClipboardText(text)) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_HasClipboardText(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasClipboardText());
 }

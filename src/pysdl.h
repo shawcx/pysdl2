@@ -46,14 +46,34 @@ extern PyTypeObject PySDL_Texture_Type;
 typedef struct {
     PyObject_HEAD
     SDL_AudioDeviceID deviceId;
+    PyObject *pycallback;  // (callback, userdata) tuple passed to SDL_OpenAudioDevice
 } PySDL_Audio;
 extern PyTypeObject PySDL_Audio_Type;
 
 // massive list of SDL2 constants
 void _constants(PyObject *module);
 
-// helper function to convert tuples and lists to SDL_Rect
-int PyToRect(PyObject *src, SDL_Rect *dst);
-int PyToPoint(PyObject *src, SDL_Point *dst);
+//=========================================================
+// Helpers (pysdl_util.c)
+//=========================================================
+
+// Allocate a wrapper instance of `type`; sets a TypeError and returns NULL on
+// failure. Replaces the repeated PyObject_CallObject boilerplate.
+PyObject * PySDL_New(PyTypeObject *type);
+
+// Enter/leave the interpreter from an SDL-owned thread (audio, timer, ...).
+// PySDL_ThreadEnter returns 0 without acquiring the GIL if Python is shutting
+// down, in which case the caller must not touch any Python object.
+int  PySDL_ThreadEnter(PyGILState_STATE *state);
+void PySDL_ThreadLeave(PyGILState_STATE state);
+
+// Convert a Python tuple/list to an SDL struct. Return 1 on success, or 0 with
+// an exception set (usable directly as an "O&" converter).
+int PyToRect(PyObject *src, SDL_Rect *dst);    // 2 items -> w/h = -1, or 4 items
+int PyToPoint(PyObject *src, SDL_Point *dst);  // 2 items
+int PyToColor(PyObject *src, SDL_Color *dst);  // 3 items -> a = 255, or 4 items
+
+PyObject * RectToPy(const SDL_Rect *rect);     // -> (x, y, w, h)
+PyObject * PointToPy(const SDL_Point *point);  // -> (x, y)
 
 #endif // __PYSDL_H__

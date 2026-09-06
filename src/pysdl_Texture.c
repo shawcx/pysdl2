@@ -73,15 +73,14 @@ static PyObject * PySDL_Texture_Unlock(PySDL_Texture *self, PyObject *args) {
 }
 
 static PyObject * PySDL_Texture_GL_Bind(PySDL_Texture *self, PyObject *args) {
-    float w;
-    float h;
+    float w = 0;
+    float h = 0;
     int ok = SDL_GL_BindTexture(self->texture, &w, &h);
     if(0 > ok) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
-    // TODO: return floats
-    Py_RETURN_NONE;
+    return Py_BuildValue("(ff)", w, h);
 }
 
 static PyObject * PySDL_Texture_GL_Unbind(PySDL_Texture *self, PyObject *args) {

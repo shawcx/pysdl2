@@ -40,66 +40,78 @@ PyTypeObject PySDL_Audio_Type = {
 };
 
 static void _playback_callback(void *data, Uint8 *stream, int len) {
-    if(Py_IsFinalizing()) {
-        // python is shutting down
+    PyGILState_STATE gil;
+
+    // Silence is the fallback whenever the Python callback does not deliver a
+    // full buffer (error, wrong type, short bytes).
+    SDL_memset(stream, 0, len);
+
+    if(!PySDL_ThreadEnter(&gil)) {
         return;
     }
-
-    PyGILState_STATE _audio_thread = PyGILState_Ensure();
 
     PyObject *callback = PyTuple_GET_ITEM((PyObject *)data, 0);
     PyObject *userdata = PyTuple_GET_ITEM((PyObject *)data, 1);
-    PyObject *size = PyLong_FromLong(len);
+    PyObject *size     = PyLong_FromLong(len);
 
     PyObject *audioData = PyObject_CallFunctionObjArgs(callback, size, userdata, NULL);
-    if(audioData) {
-        memcpy(stream, PyBytes_AS_STRING(audioData), len);
+    if(NULL == audioData) {
+        PyErr_Print();
+    } else if(!PyBytes_Check(audioData)) {
+        PyErr_Format(PyExc_TypeError, "audio callback must return bytes, not %s", Py_TYPE(audioData)->tp_name);
+        PyErr_Print();
         Py_DECREF(audioData);
     } else {
-        PyErr_Print();
-        PyErr_Clear();
+        Py_ssize_t have = PyBytes_GET_SIZE(audioData);
+        memcpy(stream, PyBytes_AS_STRING(audioData), have < len ? (size_t)have : (size_t)len);
+        Py_DECREF(audioData);
     }
 
-    Py_DECREF(size);
+    Py_XDECREF(size);
 
-    PyGILState_Release(_audio_thread);
+    PySDL_ThreadLeave(gil);
 }
 
 static void _capture_callback(void *data, Uint8 *stream, int len) {
-    if(Py_IsFinalizing()) {
-        // python is shutting down
+    PyGILState_STATE gil;
+
+    if(!PySDL_ThreadEnter(&gil)) {
         return;
     }
-
-    PyGILState_STATE _audio_thread = PyGILState_Ensure();
 
     PyObject *callback = PyTuple_GET_ITEM((PyObject *)data, 0);
     PyObject *userdata = PyTuple_GET_ITEM((PyObject *)data, 1);
 
     PyObject *audioData = PyBytes_FromStringAndSize((char *)stream, len);
-    PyObject *retval = PyObject_CallFunctionObjArgs(callback, audioData, userdata, NULL);
-    if(retval) {
-        Py_DECREF(retval);
+    if(NULL != audioData) {
+        PyObject *retval = PyObject_CallFunctionObjArgs(callback, audioData, userdata, NULL);
+        if(NULL == retval) {
+            PyErr_Print();
+        } else {
+            Py_DECREF(retval);
+        }
+        Py_DECREF(audioData);
     } else {
         PyErr_Print();
-        PyErr_Clear();
     }
 
-    Py_DECREF(audioData);
-
-    PyGILState_Release(_audio_thread);
+    PySDL_ThreadLeave(gil);
 }
 
 static int PySDL_Audio_Type_init(PySDL_Audio *self, PyObject *args, PyObject *kwds) {
     self->deviceId = 0;
+    self->pycallback = NULL;
     return 0;
 }
 
 static void PySDL_Audio_Type_dealloc(PySDL_Audio *self) {
     if(0 != self->deviceId) {
-        SDL_CloseAudioDevice(self->deviceId);
+        Py_BEGIN_ALLOW_THREADS
+            SDL_CloseAudioDevice(self->deviceId);
+        Py_END_ALLOW_THREADS
         self->deviceId = 0;
     }
+    Py_XDECREF(self->pycallback);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -122,8 +134,8 @@ static PyObject * PySDL_Audio_Open(PySDL_Audio *self, PyObject *args, PyObject *
 
     //want.freq     = 48000;
     //want.format   = AUDIO_S16LSB;
-    //want.channels = 1;
-    //want.samples  = 2048;
+    //want.channels = 2;
+    //want.samples  = 4096;
 
     static char *kwlist[] = {"deviceName", "capture", "freq", "format", "channels", "samples", "flags", "callback", "userdata", NULL};
     int ok = PyArg_ParseTupleAndKeywords(args, kwds, "s|iiiiiiOO", kwlist,
@@ -132,39 +144,53 @@ static PyObject * PySDL_Audio_Open(PySDL_Audio *self, PyObject *args, PyObject *
         return NULL;
     }
 
+    PyObject *cbtuple = NULL;
+
     if(NULL != callback) {
         if(!PyCallable_Check(callback)) {
             PyErr_SetString(PyExc_TypeError, "The callback is not a callable object");
             return NULL;
         }
 
-        // set the C callback
+        // set the C callback; the tuple owns the only references SDL's audio
+        // thread holds and is released in Close/dealloc.
         want.callback = capture ? _capture_callback : _playback_callback;
-        if(NULL == userdata) {
-            userdata = Py_NewRef(Py_None);
+        cbtuple = Py_BuildValue("(OO)", callback, userdata ? userdata : Py_None);
+        if(NULL == cbtuple) {
+            return NULL;
         }
-        want.userdata = Py_BuildValue("(OO)", callback, userdata);
-        //Py_DECREF(callback);
-        //Py_DECREF(userdata);
+        want.userdata = cbtuple;
     }
 
     self->deviceId = SDL_OpenAudioDevice(deviceName, capture, &want, &have, flags);
     if(0 == self->deviceId) {
+        Py_XDECREF(cbtuple);
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
+
+    self->pycallback = cbtuple;
 
     return Py_BuildValue("(iiii)", have.freq, have.format, have.channels, have.samples);
 }
 
 static PyObject * PySDL_Audio_Close(PySDL_Audio *self, PyObject *ign) {
-    SDL_CloseAudioDevice(self->deviceId);
-    self->deviceId = 0;
+    if(0 != self->deviceId) {
+        // Drop the GIL: SDL_CloseAudioDevice joins the callback thread, which
+        // is itself trying to re-acquire the GIL.
+        Py_BEGIN_ALLOW_THREADS
+            SDL_CloseAudioDevice(self->deviceId);
+        Py_END_ALLOW_THREADS
+        self->deviceId = 0;
+    }
+    Py_CLEAR(self->pycallback);
     Py_RETURN_NONE;
 }
 
 static PyObject * PySDL_Audio_Lock(PySDL_Audio *self, PyObject *ign) {
-    SDL_LockAudioDevice(self->deviceId);
+    Py_BEGIN_ALLOW_THREADS
+        SDL_LockAudioDevice(self->deviceId);
+    Py_END_ALLOW_THREADS
     Py_RETURN_NONE;
 }
 
@@ -174,7 +200,13 @@ static PyObject * PySDL_Audio_Unlock(PySDL_Audio *self, PyObject *ign) {
 }
 
 static PyObject * PySDL_Audio_Pause(PySDL_Audio *self, PyObject *arg) {
-    SDL_PauseAudioDevice(self->deviceId, PyObject_IsTrue(arg));
+    int pause = PyObject_IsTrue(arg);
+    if(-1 == pause) {
+        return NULL;
+    }
+    Py_BEGIN_ALLOW_THREADS
+        SDL_PauseAudioDevice(self->deviceId, pause);
+    Py_END_ALLOW_THREADS
     Py_RETURN_NONE;
 }
 
