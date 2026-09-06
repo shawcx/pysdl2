@@ -67,6 +67,10 @@ static PyObject * PySDL_Window_GL_SwapWindow       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_GetDrawableSize  (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_Vulkan_GetDrawableSize (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_Vulkan_CreateSurface   (PySDL_Window*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,11)
+static PyObject * PySDL_Window_Metal_CreateView      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_Metal_GetDrawableSize (PySDL_Window*, PyObject*);
+#endif
 
 static PyMethodDef PySDL_Window_methods[] = {
     { "GetWindowID",         (PyCFunction)PySDL_Window_GetWindowID,         METH_NOARGS  },
@@ -134,6 +138,10 @@ static PyMethodDef PySDL_Window_methods[] = {
 
     { "Vulkan_GetDrawableSize", (PyCFunction)PySDL_Window_Vulkan_GetDrawableSize, METH_NOARGS },
     { "Vulkan_CreateSurface",   (PyCFunction)PySDL_Window_Vulkan_CreateSurface,   METH_O      },
+#if SDL_VERSION_ATLEAST(2,0,11)
+    { "Metal_CreateView",       (PyCFunction)PySDL_Window_Metal_CreateView,       METH_NOARGS },
+    { "Metal_GetDrawableSize",  (PyCFunction)PySDL_Window_Metal_GetDrawableSize,  METH_NOARGS },
+#endif
     { NULL }
 };
 
@@ -728,3 +736,22 @@ static PyObject * PySDL_Window_Vulkan_CreateSurface(PySDL_Window *self, PyObject
     }
     return PyLong_FromUnsignedLongLong((unsigned long long)(uintptr_t)surface);
 }
+
+#if SDL_VERSION_ATLEAST(2,0,11)
+static PyObject * PySDL_Window_Metal_CreateView(PySDL_Window *self, PyObject *ign) {
+    // The window must have been created with SDL_WINDOW_METAL. Returns the
+    // SDL_MetalView handle as an int; pass it to SDL2.Metal_GetLayer /
+    // SDL2.Metal_DestroyView.
+    SDL_MetalView view = SDL_Metal_CreateView(self->window);
+    if(NULL == view) {
+        return _wraise();
+    }
+    return PyLong_FromVoidPtr(view);
+}
+
+static PyObject * PySDL_Window_Metal_GetDrawableSize(PySDL_Window *self, PyObject *ign) {
+    int w = 0, h = 0;
+    SDL_Metal_GetDrawableSize(self->window, &w, &h);
+    return Py_BuildValue("(ii)", w, h);
+}
+#endif

@@ -29,7 +29,7 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "APP_DIDENTERBACKGROUND",  SDL_APP_DIDENTERBACKGROUND  );
     PyModule_AddIntConstant( module, "APP_WILLENTERFOREGROUND", SDL_APP_WILLENTERFOREGROUND );
     PyModule_AddIntConstant( module, "APP_DIDENTERFOREGROUND",  SDL_APP_DIDENTERFOREGROUND  );
-#ifdef SDL_LOCALECHANGED
+#if SDL_VERSION_ATLEAST(2,0,14)
     PyModule_AddIntConstant( module, "LOCALECHANGED",           SDL_LOCALECHANGED           );
 #endif
     PyModule_AddIntConstant( module, "DISPLAYEVENT",            SDL_DISPLAYEVENT            );
@@ -40,7 +40,7 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "TEXTEDITING",             SDL_TEXTEDITING             );
     PyModule_AddIntConstant( module, "TEXTINPUT",               SDL_TEXTINPUT               );
     PyModule_AddIntConstant( module, "KEYMAPCHANGED",           SDL_KEYMAPCHANGED           );
-#ifdef SDL_TEXTEDITING_EXT
+#if SDL_VERSION_ATLEAST(2,0,22)
     PyModule_AddIntConstant( module, "TEXTEDITING_EXT",         SDL_TEXTEDITING_EXT         );
 #endif
     PyModule_AddIntConstant( module, "MOUSEMOTION",             SDL_MOUSEMOTION             );
@@ -92,10 +92,10 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "WINDOWEVENT_FOCUS_GAINED", SDL_WINDOWEVENT_FOCUS_GAINED );
     PyModule_AddIntConstant( module, "WINDOWEVENT_FOCUS_LOST",   SDL_WINDOWEVENT_FOCUS_LOST   );
     PyModule_AddIntConstant( module, "WINDOWEVENT_CLOSE",        SDL_WINDOWEVENT_CLOSE        );
-#ifdef SDL_WINDOWEVENT_TAKE_FOCUS
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOWEVENT_TAKE_FOCUS",   SDL_WINDOWEVENT_TAKE_FOCUS   );
 #endif
-#ifdef SDL_WINDOWEVENT_HIT_TEST
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOWEVENT_HIT_TEST",     SDL_WINDOWEVENT_HIT_TEST     );
 #endif
 
@@ -115,28 +115,28 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "WINDOW_FOREIGN",            SDL_WINDOW_FOREIGN            );
     PyModule_AddIntConstant( module, "WINDOW_ALLOW_HIGHDPI",      SDL_WINDOW_ALLOW_HIGHDPI      );
     PyModule_AddIntConstant( module, "WINDOW_MOUSE_CAPTURE",      SDL_WINDOW_MOUSE_CAPTURE      );
-#ifdef SDL_WINDOW_ALWAYS_ON_TOP
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOW_ALWAYS_ON_TOP",      SDL_WINDOW_ALWAYS_ON_TOP      );
 #endif
-#ifdef SDL_WINDOW_SKIP_TASKBAR
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOW_SKIP_TASKBAR",       SDL_WINDOW_SKIP_TASKBAR       );
 #endif
-#ifdef SDL_WINDOW_UTILITY
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOW_UTILITY",            SDL_WINDOW_UTILITY            );
 #endif
-#ifdef SDL_WINDOW_TOOLTIP
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOW_TOOLTIP",            SDL_WINDOW_TOOLTIP            );
 #endif
-#ifdef SDL_WINDOW_POPUP_MENU
+#if SDL_VERSION_ATLEAST(2,0,5)
     PyModule_AddIntConstant( module, "WINDOW_POPUP_MENU",         SDL_WINDOW_POPUP_MENU         );
 #endif
-#ifdef SDL_WINDOW_VULKAN
+#if SDL_VERSION_ATLEAST(2,0,6)
     PyModule_AddIntConstant( module, "WINDOW_VULKAN",             SDL_WINDOW_VULKAN            );
 #endif
-#ifdef SDL_WINDOW_METAL
+#if SDL_VERSION_ATLEAST(2,0,11)
     PyModule_AddIntConstant( module, "WINDOW_METAL",              SDL_WINDOW_METAL            );
 #endif
-#ifdef SDL_WINDOW_KEYBOARD_GRABBED
+#if SDL_VERSION_ATLEAST(2,0,16)
     PyModule_AddIntConstant( module, "WINDOW_KEYBOARD_GRABBED",   SDL_WINDOW_KEYBOARD_GRABBED );
     PyModule_AddIntConstant( module, "WINDOW_MOUSE_GRABBED",      SDL_WINDOW_MOUSE_GRABBED    );
 #endif
@@ -184,7 +184,7 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "BLENDMODE_BLEND", SDL_BLENDMODE_BLEND );
     PyModule_AddIntConstant( module, "BLENDMODE_ADD",   SDL_BLENDMODE_ADD   );
     PyModule_AddIntConstant( module, "BLENDMODE_MOD",   SDL_BLENDMODE_MOD   );
-#ifdef SDL_BLENDMODE_MUL
+#if SDL_VERSION_ATLEAST(2,0,12)
     PyModule_AddIntConstant( module, "BLENDMODE_MUL",   SDL_BLENDMODE_MUL   );
 #endif
     PyModule_AddIntConstant( module, "BLENDMODE_INVALID", SDL_BLENDMODE_INVALID );
@@ -410,7 +410,7 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "PIXELFORMAT_ARGB32",      SDL_PIXELFORMAT_ARGB32      );
     PyModule_AddIntConstant( module, "PIXELFORMAT_BGRA32",      SDL_PIXELFORMAT_BGRA32      );
     PyModule_AddIntConstant( module, "PIXELFORMAT_ABGR32",      SDL_PIXELFORMAT_ABGR32      );
-#ifdef SDL_PIXELFORMAT_XRGB8888
+#if SDL_VERSION_ATLEAST(2,0,14)
     PyModule_AddIntConstant( module, "PIXELFORMAT_XRGB8888",    SDL_PIXELFORMAT_XRGB8888    );
     PyModule_AddIntConstant( module, "PIXELFORMAT_XBGR8888",    SDL_PIXELFORMAT_XBGR8888    );
 #endif

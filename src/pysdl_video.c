@@ -378,6 +378,25 @@ static PyObject * PySDL_Vulkan_GetVkGetInstanceProcAddr(PyObject *self, PyObject
     return PyLong_FromVoidPtr(fn);
 }
 
+#if SDL_VERSION_ATLEAST(2,0,11)
+static PyObject * PySDL_Metal_GetLayer(PyObject *self, PyObject *arg) {
+    void *view = PyLong_AsVoidPtr(arg);
+    if(NULL == view && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyLong_FromVoidPtr(SDL_Metal_GetLayer((SDL_MetalView)view));
+}
+
+static PyObject * PySDL_Metal_DestroyView(PyObject *self, PyObject *arg) {
+    void *view = PyLong_AsVoidPtr(arg);
+    if(NULL == view && PyErr_Occurred()) {
+        return NULL;
+    }
+    SDL_Metal_DestroyView((SDL_MetalView)view);
+    Py_RETURN_NONE;
+}
+#endif
+
 static PyObject * PySDL_Vulkan_GetInstanceExtensions(PyObject *self, PyObject *args) {
     PyObject *window_py = Py_None;
     if(!PyArg_ParseTuple(args, "|O", &window_py)) {
@@ -468,6 +487,10 @@ PyMethodDef pysdl_video_methods[] = {
     { "Vulkan_UnloadLibrary",     PySDL_Vulkan_UnloadLibrary,     METH_NOARGS  },
     { "Vulkan_GetVkGetInstanceProcAddr", PySDL_Vulkan_GetVkGetInstanceProcAddr, METH_NOARGS },
     { "Vulkan_GetInstanceExtensions",    PySDL_Vulkan_GetInstanceExtensions,    METH_VARARGS },
+#if SDL_VERSION_ATLEAST(2,0,11)
+    { "Metal_GetLayer",           PySDL_Metal_GetLayer,           METH_O       },
+    { "Metal_DestroyView",        PySDL_Metal_DestroyView,        METH_O       },
+#endif
 
     { NULL }
 };

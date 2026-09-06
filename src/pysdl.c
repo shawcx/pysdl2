@@ -309,7 +309,8 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         || 0 > PyModule_AddFunctions(module, pysdl_haptic_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_sensor_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_video_methods)
-        || 0 > PyModule_AddFunctions(module, pysdl_audio_methods)) {
+        || 0 > PyModule_AddFunctions(module, pysdl_audio_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_rect_methods)) {
         return NULL;
     }
 

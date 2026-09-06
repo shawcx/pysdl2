@@ -142,6 +142,28 @@ def test_gl_get_proc_address(sdl):
     assert isinstance(sdl.GL_GetCurrentContext(), int)
 
 
+def test_window_flag_constants_present(sdl):
+    # these are SDL enum members - they were silently missing when guarded with
+    # #ifdef instead of a version check
+    for name in ('WINDOW_ALWAYS_ON_TOP', 'WINDOW_UTILITY', 'WINDOW_POPUP_MENU',
+                 'WINDOW_VULKAN', 'BLENDMODE_MUL', 'LOCALECHANGED'):
+        assert isinstance(getattr(sdl, name), int), name
+
+
+def test_metal_view(sdl):
+    if not hasattr(sdl, 'WINDOW_METAL') or not hasattr(sdl, 'Metal_GetLayer'):
+        pytest.skip('SDL < 2.0.11')
+    try:
+        win = sdl.Window('metal-test', (32, 32), flags=sdl.WINDOW_METAL)
+        view = win.Metal_CreateView()
+    except sdl.error:
+        pytest.skip('no Metal support in this driver / platform')
+    assert isinstance(view, int) and view != 0
+    assert isinstance(sdl.Metal_GetLayer(view), int)
+    assert win.Metal_GetDrawableSize() == (32, 32)
+    sdl.Metal_DestroyView(view)
+
+
 def test_vulkan_functions_present(sdl, window):
     assert hasattr(sdl, 'Vulkan_GetInstanceExtensions')
     assert hasattr(window, 'Vulkan_CreateSurface')

@@ -52,6 +52,7 @@ a display:
 - `python3 example/timer.py` — fixed-rate animation driven by SDL2.Timer + power state
 - `python3 example/window.py` — window-state playground: border/grab/opacity/flash, message box, display + Vulkan info
 - `python3 example/wav.py [file.wav]` — LoadWAV + AudioStream resample + queue playback
+- `python3 example/rects.py` — live rect intersection / union / enclose / line-clip
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio callback + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
@@ -83,16 +84,20 @@ a display:
   `pysdl_video.c` (extra display queries, message boxes, hints, `OpenURL` /
   locales, GL / Vulkan loaders, `GetWindowFromID` / `GetGrabbedWindow`),
   `pysdl_Audio.c` (drivers, `LoadWAV`, `MixAudioFormat`, device-spec queries),
-  `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Haptic.c`,
-  `pysdl_Sensor.c` do the same for their functions. Use this pattern to add a
-  batch of module functions from a new file.
+  `pysdl_rect.c` (rect / point geometry), `pysdl_Cursor.c`, `pysdl_Joystick.c`,
+  `pysdl_GameController.c`, `pysdl_Haptic.c`, `pysdl_Sensor.c` do the same for
+  their functions. Use this pattern to add a batch of module functions from a
+  new file.
 - `src/pysdl_util.c` — `PySDL_New()` (wrapper allocation), `PySDL_ThreadEnter` /
   `PySDL_ThreadLeave` (GIL handling for SDL-owned threads), and the
   `PyToRect` / `PyToPoint` / `PyToColor` / `PyToFRect` / `PyToFPoint` /
   `PyToPixel` / `RectToPy` / `PointToPy` converters.
-- `src/_constants.c` — `_constants(module)` bulk-registers ~700 SDL enum/#define
-  values as module int constants. Add new constants here; some are wrapped in
-  `#ifdef` for SDL version portability.
+- `src/_constants.c` — `_constants(module)` bulk-registers ~900 SDL enum/#define
+  values as module int constants. Add new constants here. Portability guard:
+  `#ifdef SDL_FOO` works **only** for `#define`d names — for an *enum member*
+  (most `SDL_WINDOW_*`, `SDL_BLENDMODE_*`, event types, …) `#ifdef` is always
+  false and silently drops the constant, so gate those with `#if
+  SDL_VERSION_ATLEAST(x,y,z)` at the version they were introduced.
 
 ### Object model
 

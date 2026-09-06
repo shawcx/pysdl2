@@ -273,12 +273,27 @@ Tests: `tests/test_audio.py` (extended); example: `example/wav.py`.
   `Get(max_len)` -> bytes, `Available()`, `Flush()`, `Clear()`; freed on dealloc.
 - Constants: `AUDIO_STOPPED` / `PLAYING` / `PAUSED`, `MIX_MAXVOLUME`.
 
-## Phase 9 - Loose ends
+## Phase 9 - Loose ends  — DONE
 
-- Rect math as pure-Python helpers in a thin `SDL2/__init__` shim, or in C:
-  `HasIntersection`, `IntersectRect`, `UnionRect`, `EnclosePoints`,
-  `PointInRect`, `RectEmpty`, `RectEquals`.
-- Filesystem / RWops: covered implicitly by the "accept bytes" decision.
+Tests: `tests/test_rect.py`; example: `example/rects.py`.
+
+- New `src/pysdl_rect.c` (`pysdl_rect_methods`): `HasIntersection`,
+  `IntersectRect` (-> rect or `None`), `UnionRect`, `EnclosePoints(points,
+  clip=None)`, `IntersectRectAndLine(rect, (x1,y1,x2,y2))` (-> clipped line or
+  `None`), `PointInRect`, `RectEmpty`, `RectEquals`; float variants
+  `HasIntersectionF` / `IntersectFRect` / `UnionFRect` / `PointInFRect` /
+  `FRectEmpty` / `FRectEquals` (≥2.0.22). (No `SDL2/__init__` shim — the binding
+  is a single extension module; the helpers are in C over the same tuple rects.)
+- **Metal** (rounding out the GL / Vulkan / Metal trio, ≥2.0.11): window
+  `Metal_CreateView()` -> view int, `Metal_GetDrawableSize()`; module
+  `Metal_GetLayer(view)` -> `CAMetalLayer` pointer int, `Metal_DestroyView(view)`.
+- **Bug fix**: ~14 constants (`WINDOW_ALWAYS_ON_TOP`, `WINDOW_VULKAN`,
+  `WINDOW_METAL`, `WINDOW_*_GRABBED`, `BLENDMODE_MUL`, `LOCALECHANGED`,
+  `PIXELFORMAT_XRGB8888`, …) were guarded with `#ifdef` on an enum member and so
+  never registered; switched to `SDL_VERSION_ATLEAST`.
+- Filesystem / RWops: covered by the "accept bytes / take a path" decision
+  throughout (`LoadBMP` / `LoadImage` / `LoadWAV`, the `…SurfaceFrom` keepalive,
+  dollar-template save/load).
 
 ## Explicitly out of scope
 

@@ -122,8 +122,9 @@ extern PyMethodDef pysdl_joystick_methods[];        // pysdl_Joystick.c
 extern PyMethodDef pysdl_gamecontroller_methods[];  // pysdl_GameController.c
 extern PyMethodDef pysdl_haptic_methods[];          // pysdl_Haptic.c
 extern PyMethodDef pysdl_sensor_methods[];          // pysdl_Sensor.c
-extern PyMethodDef pysdl_video_methods[];           // pysdl_video.c   (display / messagebox / hints / vulkan)
+extern PyMethodDef pysdl_video_methods[];           // pysdl_video.c   (display / messagebox / hints / vulkan / metal)
 extern PyMethodDef pysdl_audio_methods[];           // pysdl_Audio.c   (drivers / LoadWAV / mixing)
+extern PyMethodDef pysdl_rect_methods[];            // pysdl_rect.c    (rect / point math)
 
 //=========================================================
 // Helpers (pysdl_util.c)
