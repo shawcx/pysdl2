@@ -157,7 +157,7 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetPowerInfo",          PySDL_GetPowerInfo,          METH_NOARGS  },
 
     { "GetNumVideoDisplays",   PySDL_GetNumVideoDisplays,   METH_NOARGS  },
-    { "GetDisplayMode",        PySDL_GetDisplayMode,        METH_O       },
+    { "GetDisplayMode",        PySDL_GetDisplayMode,        METH_VARARGS },
     { "GetDesktopDisplayMode", PySDL_GetDesktopDisplayMode, METH_O       },
     { "GetCurrentDisplayMode", PySDL_GetCurrentDisplayMode, METH_O       },
     { "GetDisplayBounds",      PySDL_GetDisplayBounds,      METH_O       },
@@ -301,7 +301,8 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         || 0 > PyModule_AddFunctions(module, pysdl_joystick_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_gamecontroller_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_haptic_methods)
-        || 0 > PyModule_AddFunctions(module, pysdl_sensor_methods)) {
+        || 0 > PyModule_AddFunctions(module, pysdl_sensor_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_video_methods)) {
         return NULL;
     }
 
@@ -797,9 +798,14 @@ static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *ign) {
 }
 
 static PyObject * PySDL_GetDisplayMode(PyObject *self, PyObject *args) {
+    int display;
+    int mode = 0;
     SDL_DisplayMode dm;
 
-    if(0 > SDL_GetDisplayMode(PyLong_AsLong(args), 0, &dm)) {
+    if(!PyArg_ParseTuple(args, "i|i", &display, &mode)) {
+        return NULL;
+    }
+    if(0 > SDL_GetDisplayMode(display, mode, &dm)) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }

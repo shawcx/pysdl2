@@ -8,6 +8,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_vulkan.h>
 
 #define  DOC_MOD  "Python wrapper for SDL."
 
@@ -115,6 +116,7 @@ extern PyMethodDef pysdl_joystick_methods[];        // pysdl_Joystick.c
 extern PyMethodDef pysdl_gamecontroller_methods[];  // pysdl_GameController.c
 extern PyMethodDef pysdl_haptic_methods[];          // pysdl_Haptic.c
 extern PyMethodDef pysdl_sensor_methods[];          // pysdl_Sensor.c
+extern PyMethodDef pysdl_video_methods[];           // pysdl_video.c   (display / messagebox / hints / vulkan)
 
 //=========================================================
 // Helpers (pysdl_util.c)

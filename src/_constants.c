@@ -130,6 +130,42 @@ void _constants(PyObject *module) {
 #ifdef SDL_WINDOW_POPUP_MENU
     PyModule_AddIntConstant( module, "WINDOW_POPUP_MENU",         SDL_WINDOW_POPUP_MENU         );
 #endif
+#ifdef SDL_WINDOW_VULKAN
+    PyModule_AddIntConstant( module, "WINDOW_VULKAN",             SDL_WINDOW_VULKAN            );
+#endif
+#ifdef SDL_WINDOW_METAL
+    PyModule_AddIntConstant( module, "WINDOW_METAL",              SDL_WINDOW_METAL            );
+#endif
+#ifdef SDL_WINDOW_KEYBOARD_GRABBED
+    PyModule_AddIntConstant( module, "WINDOW_KEYBOARD_GRABBED",   SDL_WINDOW_KEYBOARD_GRABBED );
+    PyModule_AddIntConstant( module, "WINDOW_MOUSE_GRABBED",      SDL_WINDOW_MOUSE_GRABBED    );
+#endif
+
+    PyModule_AddIntConstant( module, "WINDOWPOS_UNDEFINED", SDL_WINDOWPOS_UNDEFINED );
+
+    PyModule_AddIntConstant( module, "MESSAGEBOX_ERROR",       SDL_MESSAGEBOX_ERROR       );
+    PyModule_AddIntConstant( module, "MESSAGEBOX_WARNING",     SDL_MESSAGEBOX_WARNING     );
+    PyModule_AddIntConstant( module, "MESSAGEBOX_INFORMATION", SDL_MESSAGEBOX_INFORMATION );
+    PyModule_AddIntConstant( module, "MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT",    SDL_MESSAGEBOX_BUTTONS_LEFT_TO_RIGHT    );
+    PyModule_AddIntConstant( module, "MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT",    SDL_MESSAGEBOX_BUTTONS_RIGHT_TO_LEFT    );
+    PyModule_AddIntConstant( module, "MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT );
+    PyModule_AddIntConstant( module, "MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT );
+
+    PyModule_AddIntConstant( module, "HINT_DEFAULT",  SDL_HINT_DEFAULT  );
+    PyModule_AddIntConstant( module, "HINT_NORMAL",   SDL_HINT_NORMAL   );
+    PyModule_AddIntConstant( module, "HINT_OVERRIDE", SDL_HINT_OVERRIDE );
+
+    PyModule_AddIntConstant( module, "ORIENTATION_UNKNOWN",           SDL_ORIENTATION_UNKNOWN           );
+    PyModule_AddIntConstant( module, "ORIENTATION_LANDSCAPE",         SDL_ORIENTATION_LANDSCAPE         );
+    PyModule_AddIntConstant( module, "ORIENTATION_LANDSCAPE_FLIPPED", SDL_ORIENTATION_LANDSCAPE_FLIPPED );
+    PyModule_AddIntConstant( module, "ORIENTATION_PORTRAIT",          SDL_ORIENTATION_PORTRAIT          );
+    PyModule_AddIntConstant( module, "ORIENTATION_PORTRAIT_FLIPPED",  SDL_ORIENTATION_PORTRAIT_FLIPPED  );
+
+#if SDL_VERSION_ATLEAST(2,0,16)
+    PyModule_AddIntConstant( module, "FLASH_CANCEL",        SDL_FLASH_CANCEL        );
+    PyModule_AddIntConstant( module, "FLASH_BRIEFLY",       SDL_FLASH_BRIEFLY       );
+    PyModule_AddIntConstant( module, "FLASH_UNTIL_FOCUSED", SDL_FLASH_UNTIL_FOCUSED );
+#endif
 
     PyModule_AddIntConstant( module, "RENDERER_SOFTWARE",      SDL_RENDERER_SOFTWARE      );
     PyModule_AddIntConstant( module, "RENDERER_ACCELERATED",   SDL_RENDERER_ACCELERATED   );

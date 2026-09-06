@@ -50,6 +50,7 @@ a display:
 - `python3 example/gamepad.py [--virtual]` — game controller / joystick monitor
 - `python3 example/events.py` — dump every event, custom + cross-thread events, filter
 - `python3 example/timer.py` — fixed-rate animation driven by SDL2.Timer + power state
+- `python3 example/window.py` — window-state playground: border/grab/opacity/flash, message box, display + Vulkan info
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
@@ -78,6 +79,8 @@ a display:
 - `src/pysdl_input.c` — module-level keyboard / mouse / touch / text-input
   functions. Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into
   the module in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_events.c`,
+  `pysdl_video.c` (extra display queries, message boxes, hints, `OpenURL` /
+  locales, GL / Vulkan loaders, `GetWindowFromID` / `GetGrabbedWindow`),
   `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Haptic.c`,
   `pysdl_Sensor.c` do the same for their functions. Use this pattern to add a
   batch of module functions from a new file.

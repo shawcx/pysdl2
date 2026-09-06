@@ -26,12 +26,47 @@ static PyObject * PySDL_Window_RestoreWindow       (PySDL_Window*, PyObject*);
 
 static PyObject * PySDL_Window_UpdateWindowSurface (PySDL_Window*, PyObject*);
 
+static PyObject * PySDL_Window_GetWindowFlags        (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowDisplayIndex (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowPixelFormat  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowMinimumSize  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowMinimumSize  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowMaximumSize  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowMaximumSize  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowBordered     (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowInputFocus   (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowModalFor     (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowGrab         (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowGrab         (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowOpacity      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowOpacity      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowBordersSize  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_UpdateWindowSurfaceRects (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowGammaRamp    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowGammaRamp    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowDisplayMode  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowDisplayMode  (PySDL_Window*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,16)
+static PyObject * PySDL_Window_SetWindowAlwaysOnTop  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowKeyboardGrab (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowKeyboardGrab (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowMouseGrab    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowMouseGrab    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_FlashWindow           (PySDL_Window*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_Window_SetWindowMouseRect    (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowMouseRect    (PySDL_Window*, PyObject*);
+#endif
+
 static PyObject * PySDL_Window_CreateRenderer      (PySDL_Window*, PyObject*, PyObject*);
 static PyObject * PySDL_Window_GL_CreateContext    (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_DeleteContext    (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_MakeCurrent      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_SwapWindow       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_GetDrawableSize  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_Vulkan_GetDrawableSize (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_Vulkan_CreateSurface   (PySDL_Window*, PyObject*);
 
 static PyMethodDef PySDL_Window_methods[] = {
     { "GetWindowID",         (PyCFunction)PySDL_Window_GetWindowID,         METH_NOARGS  },
@@ -63,6 +98,42 @@ static PyMethodDef PySDL_Window_methods[] = {
     { "GL_MakeCurrent",      (PyCFunction)PySDL_Window_GL_MakeCurrent,      METH_NOARGS  },
     { "GL_SwapWindow",       (PyCFunction)PySDL_Window_GL_SwapWindow,       METH_NOARGS  },
     { "GL_GetDrawableSize",  (PyCFunction)PySDL_Window_GL_GetDrawableSize,  METH_NOARGS  },
+
+    { "GetWindowFlags",        (PyCFunction)PySDL_Window_GetWindowFlags,        METH_NOARGS  },
+    { "GetWindowDisplayIndex", (PyCFunction)PySDL_Window_GetWindowDisplayIndex, METH_NOARGS  },
+    { "GetWindowPixelFormat",  (PyCFunction)PySDL_Window_GetWindowPixelFormat,  METH_NOARGS  },
+    { "SetWindowMinimumSize",  (PyCFunction)PySDL_Window_SetWindowMinimumSize,  METH_VARARGS },
+    { "GetWindowMinimumSize",  (PyCFunction)PySDL_Window_GetWindowMinimumSize,  METH_NOARGS  },
+    { "SetWindowMaximumSize",  (PyCFunction)PySDL_Window_SetWindowMaximumSize,  METH_VARARGS },
+    { "GetWindowMaximumSize",  (PyCFunction)PySDL_Window_GetWindowMaximumSize,  METH_NOARGS  },
+    { "SetWindowBordered",     (PyCFunction)PySDL_Window_SetWindowBordered,     METH_O       },
+    { "SetWindowInputFocus",   (PyCFunction)PySDL_Window_SetWindowInputFocus,   METH_NOARGS  },
+    { "SetWindowModalFor",     (PyCFunction)PySDL_Window_SetWindowModalFor,     METH_O       },
+    { "SetWindowGrab",         (PyCFunction)PySDL_Window_SetWindowGrab,         METH_O       },
+    { "GetWindowGrab",         (PyCFunction)PySDL_Window_GetWindowGrab,         METH_NOARGS  },
+    { "SetWindowOpacity",      (PyCFunction)PySDL_Window_SetWindowOpacity,      METH_O       },
+    { "GetWindowOpacity",      (PyCFunction)PySDL_Window_GetWindowOpacity,      METH_NOARGS  },
+    { "GetWindowBordersSize",  (PyCFunction)PySDL_Window_GetWindowBordersSize,  METH_NOARGS  },
+    { "UpdateWindowSurfaceRects", (PyCFunction)PySDL_Window_UpdateWindowSurfaceRects, METH_O },
+    { "SetWindowGammaRamp",    (PyCFunction)PySDL_Window_SetWindowGammaRamp,    METH_VARARGS },
+    { "GetWindowGammaRamp",    (PyCFunction)PySDL_Window_GetWindowGammaRamp,    METH_NOARGS  },
+    { "SetWindowDisplayMode",  (PyCFunction)PySDL_Window_SetWindowDisplayMode,  METH_O       },
+    { "GetWindowDisplayMode",  (PyCFunction)PySDL_Window_GetWindowDisplayMode,  METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,0,16)
+    { "SetWindowAlwaysOnTop",  (PyCFunction)PySDL_Window_SetWindowAlwaysOnTop,  METH_O       },
+    { "SetWindowKeyboardGrab", (PyCFunction)PySDL_Window_SetWindowKeyboardGrab, METH_O       },
+    { "GetWindowKeyboardGrab", (PyCFunction)PySDL_Window_GetWindowKeyboardGrab, METH_NOARGS  },
+    { "SetWindowMouseGrab",    (PyCFunction)PySDL_Window_SetWindowMouseGrab,    METH_O       },
+    { "GetWindowMouseGrab",    (PyCFunction)PySDL_Window_GetWindowMouseGrab,    METH_NOARGS  },
+    { "FlashWindow",           (PyCFunction)PySDL_Window_FlashWindow,           METH_O       },
+#endif
+#if SDL_VERSION_ATLEAST(2,0,18)
+    { "SetWindowMouseRect",    (PyCFunction)PySDL_Window_SetWindowMouseRect,    METH_O       },
+    { "GetWindowMouseRect",    (PyCFunction)PySDL_Window_GetWindowMouseRect,    METH_NOARGS  },
+#endif
+
+    { "Vulkan_GetDrawableSize", (PyCFunction)PySDL_Window_Vulkan_GetDrawableSize, METH_NOARGS },
+    { "Vulkan_CreateSurface",   (PyCFunction)PySDL_Window_Vulkan_CreateSurface,   METH_O      },
     { NULL }
 };
 
@@ -327,4 +398,333 @@ static PyObject * PySDL_Window_GL_GetDrawableSize(PySDL_Window *self, PyObject *
     int w, h;
     SDL_GL_GetDrawableSize(self->window, &w, &h);
     return Py_BuildValue("(ii)", w, h);
+}
+
+//=========================================================
+// phase 7: window state
+//=========================================================
+
+static PyObject * _wraise(void) {
+    PyErr_SetString(pysdl_Error, SDL_GetError());
+    return NULL;
+}
+
+static PyObject * PySDL_Window_GetWindowFlags(PySDL_Window *self, PyObject *ign) {
+    return PyLong_FromUnsignedLong(SDL_GetWindowFlags(self->window));
+}
+
+static PyObject * PySDL_Window_GetWindowDisplayIndex(PySDL_Window *self, PyObject *ign) {
+    int index = SDL_GetWindowDisplayIndex(self->window);
+    if(0 > index) {
+        return _wraise();
+    }
+    return PyLong_FromLong(index);
+}
+
+static PyObject * PySDL_Window_GetWindowPixelFormat(PySDL_Window *self, PyObject *ign) {
+    return PyLong_FromUnsignedLong(SDL_GetWindowPixelFormat(self->window));
+}
+
+static PyObject * PySDL_Window_SetWindowMinimumSize(PySDL_Window *self, PyObject *args) {
+    int w, h;
+    if(!PyArg_ParseTuple(args, "(ii)", &w, &h)) {
+        return NULL;
+    }
+    SDL_SetWindowMinimumSize(self->window, w, h);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowMinimumSize(PySDL_Window *self, PyObject *ign) {
+    int w = 0, h = 0;
+    SDL_GetWindowMinimumSize(self->window, &w, &h);
+    return Py_BuildValue("(ii)", w, h);
+}
+
+static PyObject * PySDL_Window_SetWindowMaximumSize(PySDL_Window *self, PyObject *args) {
+    int w, h;
+    if(!PyArg_ParseTuple(args, "(ii)", &w, &h)) {
+        return NULL;
+    }
+    SDL_SetWindowMaximumSize(self->window, w, h);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowMaximumSize(PySDL_Window *self, PyObject *ign) {
+    int w = 0, h = 0;
+    SDL_GetWindowMaximumSize(self->window, &w, &h);
+    return Py_BuildValue("(ii)", w, h);
+}
+
+static PyObject * PySDL_Window_SetWindowBordered(PySDL_Window *self, PyObject *arg) {
+    int on = PyObject_IsTrue(arg);
+    if(-1 == on) {
+        return NULL;
+    }
+    SDL_SetWindowBordered(self->window, on ? SDL_TRUE : SDL_FALSE);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_SetWindowInputFocus(PySDL_Window *self, PyObject *ign) {
+    if(0 > SDL_SetWindowInputFocus(self->window)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_SetWindowModalFor(PySDL_Window *self, PyObject *arg) {
+    if(!PyObject_TypeCheck(arg, &PySDL_Window_Type)) {
+        PyErr_SetString(PyExc_TypeError, "expected an SDL2.Window (the parent)");
+        return NULL;
+    }
+    if(0 > SDL_SetWindowModalFor(self->window, ((PySDL_Window *)arg)->window)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_SetWindowGrab(PySDL_Window *self, PyObject *arg) {
+    int on = PyObject_IsTrue(arg);
+    if(-1 == on) {
+        return NULL;
+    }
+    SDL_SetWindowGrab(self->window, on ? SDL_TRUE : SDL_FALSE);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowGrab(PySDL_Window *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_GetWindowGrab(self->window));
+}
+
+static PyObject * PySDL_Window_SetWindowOpacity(PySDL_Window *self, PyObject *arg) {
+    double opacity = PyFloat_AsDouble(arg);
+    if(-1.0 == opacity && PyErr_Occurred()) {
+        return NULL;
+    }
+    if(0 > SDL_SetWindowOpacity(self->window, (float)opacity)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowOpacity(PySDL_Window *self, PyObject *ign) {
+    float opacity = 1.0f;
+    if(0 > SDL_GetWindowOpacity(self->window, &opacity)) {
+        return _wraise();
+    }
+    return PyFloat_FromDouble(opacity);
+}
+
+static PyObject * PySDL_Window_GetWindowBordersSize(PySDL_Window *self, PyObject *ign) {
+    int top = 0, left = 0, bottom = 0, right = 0;
+    if(0 > SDL_GetWindowBordersSize(self->window, &top, &left, &bottom, &right)) {
+        return _wraise();
+    }
+    return Py_BuildValue("(iiii)", top, left, bottom, right);
+}
+
+static PyObject * PySDL_Window_UpdateWindowSurfaceRects(PySDL_Window *self, PyObject *arg) {
+    PyObject *fast = PySequence_Fast(arg, "expected a list of (x, y, w, h) rects");
+    if(NULL == fast) {
+        return NULL;
+    }
+    Py_ssize_t n = PySequence_Fast_GET_SIZE(fast);
+    SDL_Rect *rects = PyMem_New(SDL_Rect, n > 0 ? n : 1);
+    if(NULL == rects) {
+        Py_DECREF(fast);
+        return PyErr_NoMemory();
+    }
+    for(Py_ssize_t idx = 0; idx < n; ++idx) {
+        if(!PyToRect(PySequence_Fast_GET_ITEM(fast, idx), &rects[idx])) {
+            PyMem_Free(rects);
+            Py_DECREF(fast);
+            return NULL;
+        }
+    }
+    Py_DECREF(fast);
+    int rc = SDL_UpdateWindowSurfaceRects(self->window, rects, (int)n);
+    PyMem_Free(rects);
+    if(0 > rc) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+// gamma ramp: each channel is 256 Uint16 values
+static int _ramp_from_py(PyObject *seq, Uint16 *out) {
+    PyObject *fast = PySequence_Fast(seq, "each gamma ramp must be 256 values");
+    if(NULL == fast) {
+        return 0;
+    }
+    if(256 != PySequence_Fast_GET_SIZE(fast)) {
+        PyErr_SetString(PyExc_ValueError, "each gamma ramp must have exactly 256 values");
+        Py_DECREF(fast);
+        return 0;
+    }
+    for(int idx = 0; idx < 256; ++idx) {
+        long v = PyLong_AsLong(PySequence_Fast_GET_ITEM(fast, idx));
+        if(-1 == v && PyErr_Occurred()) {
+            Py_DECREF(fast);
+            return 0;
+        }
+        out[idx] = (Uint16)v;
+    }
+    Py_DECREF(fast);
+    return 1;
+}
+
+static PyObject * PySDL_Window_SetWindowGammaRamp(PySDL_Window *self, PyObject *args) {
+    PyObject *r_py, *g_py, *b_py;
+    if(!PyArg_ParseTuple(args, "OOO", &r_py, &g_py, &b_py)) {
+        return NULL;
+    }
+    Uint16 r[256], g[256], b[256];
+    if(!_ramp_from_py(r_py, r) || !_ramp_from_py(g_py, g) || !_ramp_from_py(b_py, b)) {
+        return NULL;
+    }
+    if(0 > SDL_SetWindowGammaRamp(self->window, r, g, b)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowGammaRamp(PySDL_Window *self, PyObject *ign) {
+    Uint16 r[256], g[256], b[256];
+    if(0 > SDL_GetWindowGammaRamp(self->window, r, g, b)) {
+        return _wraise();
+    }
+    PyObject *result = PyTuple_New(3);
+    Uint16 *channels[3] = {r, g, b};
+    for(int c = 0; c < 3; ++c) {
+        PyObject *list = PyList_New(256);
+        if(NULL == list) {
+            Py_DECREF(result);
+            return NULL;
+        }
+        for(int idx = 0; idx < 256; ++idx) {
+            PyList_SET_ITEM(list, idx, PyLong_FromLong(channels[c][idx]));
+        }
+        PyTuple_SET_ITEM(result, c, list);
+    }
+    return result;
+}
+
+static PyObject * PySDL_Window_SetWindowDisplayMode(PySDL_Window *self, PyObject *arg) {
+    SDL_DisplayMode mode;
+    SDL_DisplayMode *mp = NULL;
+    if(arg != Py_None) {
+        SDL_memset(&mode, 0, sizeof(mode));
+        if(!PyArg_ParseTuple(arg, "iiii", &mode.format, &mode.w, &mode.h, &mode.refresh_rate)) {
+            return NULL;
+        }
+        mp = &mode;
+    }
+    if(0 > SDL_SetWindowDisplayMode(self->window, mp)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowDisplayMode(PySDL_Window *self, PyObject *ign) {
+    SDL_DisplayMode mode;
+    if(0 > SDL_GetWindowDisplayMode(self->window, &mode)) {
+        return _wraise();
+    }
+    return Py_BuildValue("(iiii)", mode.format, mode.w, mode.h, mode.refresh_rate);
+}
+
+#if SDL_VERSION_ATLEAST(2,0,16)
+static PyObject * PySDL_Window_SetWindowAlwaysOnTop(PySDL_Window *self, PyObject *arg) {
+    int on = PyObject_IsTrue(arg);
+    if(-1 == on) {
+        return NULL;
+    }
+    SDL_SetWindowAlwaysOnTop(self->window, on ? SDL_TRUE : SDL_FALSE);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_SetWindowKeyboardGrab(PySDL_Window *self, PyObject *arg) {
+    int on = PyObject_IsTrue(arg);
+    if(-1 == on) {
+        return NULL;
+    }
+    SDL_SetWindowKeyboardGrab(self->window, on ? SDL_TRUE : SDL_FALSE);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowKeyboardGrab(PySDL_Window *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_GetWindowKeyboardGrab(self->window));
+}
+
+static PyObject * PySDL_Window_SetWindowMouseGrab(PySDL_Window *self, PyObject *arg) {
+    int on = PyObject_IsTrue(arg);
+    if(-1 == on) {
+        return NULL;
+    }
+    SDL_SetWindowMouseGrab(self->window, on ? SDL_TRUE : SDL_FALSE);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowMouseGrab(PySDL_Window *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_GetWindowMouseGrab(self->window));
+}
+
+static PyObject * PySDL_Window_FlashWindow(PySDL_Window *self, PyObject *arg) {
+    long op = PyLong_AsLong(arg);
+    if(-1 == op && PyErr_Occurred()) {
+        return NULL;
+    }
+    if(0 > SDL_FlashWindow(self->window, (SDL_FlashOperation)op)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+#endif
+
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_Window_SetWindowMouseRect(PySDL_Window *self, PyObject *arg) {
+    SDL_Rect rect;
+    SDL_Rect *rp = NULL;
+    if(arg != Py_None) {
+        if(!PyToRect(arg, &rect)) {
+            return NULL;
+        }
+        rp = &rect;
+    }
+    if(0 > SDL_SetWindowMouseRect(self->window, rp)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_Window_GetWindowMouseRect(PySDL_Window *self, PyObject *ign) {
+    const SDL_Rect *rect = SDL_GetWindowMouseRect(self->window);
+    if(NULL == rect) {
+        Py_RETURN_NONE;
+    }
+    return Py_BuildValue("(iiii)", rect->x, rect->y, rect->w, rect->h);
+}
+#endif
+
+//=========================================================
+// vulkan
+//=========================================================
+
+static PyObject * PySDL_Window_Vulkan_GetDrawableSize(PySDL_Window *self, PyObject *ign) {
+    int w = 0, h = 0;
+    SDL_Vulkan_GetDrawableSize(self->window, &w, &h);
+    return Py_BuildValue("(ii)", w, h);
+}
+
+static PyObject * PySDL_Window_Vulkan_CreateSurface(PySDL_Window *self, PyObject *arg) {
+    // `arg` is a VkInstance handle as an int (e.g. from the `vulkan` package).
+    unsigned long long instance_handle = PyLong_AsUnsignedLongLong(arg);
+    if((unsigned long long)-1 == instance_handle && PyErr_Occurred()) {
+        return NULL;
+    }
+    VkSurfaceKHR surface = 0;
+    if(SDL_FALSE == SDL_Vulkan_CreateSurface(self->window,
+        (VkInstance)(uintptr_t)instance_handle, &surface)) {
+        return _wraise();
+    }
+    return PyLong_FromUnsignedLongLong((unsigned long long)(uintptr_t)surface);
 }

@@ -216,25 +216,43 @@ Tests: `tests/test_timer.py`, `tests/test_system.py`; example: `example/timer.py
 - Constants: `INIT_SENSOR`, `HAPTIC_*`, `SENSOR_*`, `TOUCH_DEVICE_*`,
   `TOUCH_MOUSEID` / `MOUSE_TOUCHID`, `POWERSTATE_*`.
 
-## Phase 7 - Video/window completeness & system integration
+## Phase 7 - Video/window completeness & system integration  — DONE
 
-- Window: `GetWindowFlags`, `GetWindowDisplayIndex`, `GetWindowPixelFormat`,
-  min/max size, `SetWindowBordered`, `SetWindowAlwaysOnTop`,
-  `SetWindowInputFocus`, `SetWindowModalFor`, `Set/GetWindowGrab` (+ keyboard /
-  mouse grab), `Set/GetWindowOpacity`, `SetWindowMouseRect`, `FlashWindow`,
-  `GetWindowBordersSize`, `UpdateWindowSurfaceRects`, gamma ramp,
-  `Set/GetWindowDisplayMode`; module `GetWindowFromID` / `GetGrabbedWindow`
-  (borrowed); `SetWindowHitTest` (trampoline, optional).
-- Display: `GetDisplayName`, `GetDisplayUsableBounds`, `GetDisplayOrientation`,
-  `GetNumDisplayModes`, `GetClosestDisplayMode`; add a mode-index arg to
-  `GetDisplayMode` (currently hardcoded to 0).
-- Message box: `ShowSimpleMessageBox`, `ShowMessageBox` (button list).
-- Hints: `SetHint`, `SetHintWithPriority`, `GetHint`, `GetHintBoolean`,
-  `ClearHints`.
-- Misc: `OpenURL`, `GetPreferredLocales`.
-- Optional/advanced: Vulkan (`Vulkan_LoadLibrary`,
-  `Vulkan_GetInstanceExtensions`, `Vulkan_CreateSurface`), `GL_LoadLibrary` /
-  `GL_GetCurrentContext`.
+New `src/pysdl_video.c` for the module-level video functions. Tests:
+`tests/test_video.py`; example: `example/window.py`.
+
+- **Window** methods added (`pysdl_Window.c`): `GetWindowFlags`,
+  `GetWindowDisplayIndex`, `GetWindowPixelFormat`, `Set/GetWindowMinimumSize`,
+  `Set/GetWindowMaximumSize`, `SetWindowBordered`, `SetWindowInputFocus`,
+  `SetWindowModalFor`, `Set/GetWindowGrab`, `Set/GetWindowOpacity`,
+  `GetWindowBordersSize`, `UpdateWindowSurfaceRects`, `Set/GetWindowGammaRamp`
+  (256-value channels), `Set/GetWindowDisplayMode`; `SetWindowAlwaysOnTop`,
+  `Set/GetWindowKeyboardGrab`, `Set/GetWindowMouseGrab`, `FlashWindow` (≥2.0.16);
+  `Set/GetWindowMouseRect` (≥2.0.18). (`SetWindowHitTest` skipped — a hit-test
+  callback per pixel is a poor fit here.)
+- **Display** (module): `GetDisplayName`, `GetDisplayUsableBounds`,
+  `GetDisplayOrientation`, `GetNumDisplayModes`, `GetClosestDisplayMode`;
+  `GetPointDisplayIndex` / `GetRectDisplayIndex` (≥2.24). `GetDisplayMode(display,
+  mode=0)` now takes the mode index.
+- **Message box**: `ShowSimpleMessageBox(title, message, flags=INFORMATION,
+  window=None)`, `ShowMessageBox({title, message, buttons, flags, window})` ->
+  selected button id (buttons are `(id, text[, flags])`).
+- **Hints**: `SetHint`, `SetHintWithPriority`, `GetHint`, `GetHintBoolean`,
+  `ResetHint` (≥2.24), `ClearHints`.
+- **Misc**: `OpenURL`, `GetPreferredLocales` -> `[(lang, country_or_None), …]`
+  (≥2.0.14).
+- **Borrowed windows** (module): `GetWindowFromID`, `GetGrabbedWindow` (≥2.0.16),
+  `GL_GetCurrentWindow`.
+- **GL loaders** (module): `GL_LoadLibrary`, `GL_UnloadLibrary`,
+  `GL_GetProcAddress` -> address int, `GL_GetCurrentContext` -> address int.
+- **Vulkan**: module `Vulkan_LoadLibrary` / `Vulkan_UnloadLibrary` /
+  `Vulkan_GetInstanceExtensions(window=None)` -> `[str]` /
+  `Vulkan_GetVkGetInstanceProcAddr()` -> address int; window
+  `Vulkan_GetDrawableSize()` -> `(w, h)` and `Vulkan_CreateSurface(vk_instance:int)`
+  -> `vk_surface:int` (handles as ints, for interop with a Python Vulkan binding).
+- Constants: `WINDOW_VULKAN` / `WINDOW_METAL` / `WINDOW_*_GRABBED`,
+  `WINDOWPOS_UNDEFINED`, `MESSAGEBOX_*`, `HINT_DEFAULT` / `NORMAL` / `OVERRIDE`,
+  `ORIENTATION_*`, `FLASH_*` (≥2.0.16).
 
 ## Phase 8 - Audio completeness
 
