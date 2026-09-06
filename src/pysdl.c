@@ -44,6 +44,20 @@ static PyObject * PySDL_HasSSE2               (PyObject*, PyObject*);
 static PyObject * PySDL_HasSSE3               (PyObject*, PyObject*);
 static PyObject * PySDL_HasSSE41              (PyObject*, PyObject*);
 static PyObject * PySDL_HasSSE42              (PyObject*, PyObject*);
+static PyObject * PySDL_HasAVX512F            (PyObject*, PyObject*);
+static PyObject * PySDL_HasNEON               (PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,12)
+static PyObject * PySDL_HasARMSIMD            (PyObject*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+static PyObject * PySDL_HasLSX                (PyObject*, PyObject*);
+static PyObject * PySDL_HasLASX               (PyObject*, PyObject*);
+#endif
+static PyObject * PySDL_GetSystemRAM          (PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,10)
+static PyObject * PySDL_SIMDGetAlignment      (PyObject*, PyObject*);
+#endif
+static PyObject * PySDL_GetPowerInfo          (PyObject*, PyObject*);
 
 static PyObject * PySDL_GetNumVideoDisplays   (PyObject*, PyObject*);
 static PyObject * PySDL_GetDisplayMode        (PyObject*, PyObject*);
@@ -127,6 +141,20 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "HasSSE3",               PySDL_HasSSE3,               METH_NOARGS  },
     { "HasSSE41",              PySDL_HasSSE41,              METH_NOARGS  },
     { "HasSSE42",              PySDL_HasSSE42,              METH_NOARGS  },
+    { "HasAVX512F",            PySDL_HasAVX512F,            METH_NOARGS  },
+    { "HasNEON",               PySDL_HasNEON,               METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,0,12)
+    { "HasARMSIMD",            PySDL_HasARMSIMD,            METH_NOARGS  },
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+    { "HasLSX",                PySDL_HasLSX,                METH_NOARGS  },
+    { "HasLASX",               PySDL_HasLASX,               METH_NOARGS  },
+#endif
+    { "GetSystemRAM",          PySDL_GetSystemRAM,          METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,0,10)
+    { "SIMDGetAlignment",      PySDL_SIMDGetAlignment,      METH_NOARGS  },
+#endif
+    { "GetPowerInfo",          PySDL_GetPowerInfo,          METH_NOARGS  },
 
     { "GetNumVideoDisplays",   PySDL_GetNumVideoDisplays,   METH_NOARGS  },
     { "GetDisplayMode",        PySDL_GetDisplayMode,        METH_O       },
@@ -249,11 +277,31 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     Py_INCREF(&PySDL_GameController_Type);
     PyModule_AddObject(module, "GameController", (PyObject *)&PySDL_GameController_Type);
 
+    if(0 > PyType_Ready(&PySDL_Timer_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Timer_Type);
+    PyModule_AddObject(module, "Timer", (PyObject *)&PySDL_Timer_Type);
+
+    if(0 > PyType_Ready(&PySDL_Haptic_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Haptic_Type);
+    PyModule_AddObject(module, "Haptic", (PyObject *)&PySDL_Haptic_Type);
+
+    if(0 > PyType_Ready(&PySDL_Sensor_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Sensor_Type);
+    PyModule_AddObject(module, "Sensor", (PyObject *)&PySDL_Sensor_Type);
+
     if(0 > PyModule_AddFunctions(module, pysdl_events_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_input_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_cursor_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_joystick_methods)
-        || 0 > PyModule_AddFunctions(module, pysdl_gamecontroller_methods)) {
+        || 0 > PyModule_AddFunctions(module, pysdl_gamecontroller_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_haptic_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_sensor_methods)) {
         return NULL;
     }
 
@@ -694,6 +742,47 @@ static PyObject * PySDL_HasSSE42(PyObject *self, PyObject *ign) {
     PyObject *hasFeature = SDL_HasSSE42() ? Py_True : Py_False;
     Py_INCREF(hasFeature);
     return hasFeature;
+}
+
+static PyObject * PySDL_HasAVX512F(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasAVX512F());
+}
+
+static PyObject * PySDL_HasNEON(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasNEON());
+}
+
+#if SDL_VERSION_ATLEAST(2,0,12)
+static PyObject * PySDL_HasARMSIMD(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasARMSIMD());
+}
+#endif
+
+#if SDL_VERSION_ATLEAST(2,24,0)
+static PyObject * PySDL_HasLSX(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasLSX());
+}
+
+static PyObject * PySDL_HasLASX(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasLASX());
+}
+#endif
+
+static PyObject * PySDL_GetSystemRAM(PyObject *self, PyObject *ign) {
+    return PyLong_FromLong(SDL_GetSystemRAM());
+}
+
+#if SDL_VERSION_ATLEAST(2,0,10)
+static PyObject * PySDL_SIMDGetAlignment(PyObject *self, PyObject *ign) {
+    return PyLong_FromSize_t(SDL_SIMDGetAlignment());
+}
+#endif
+
+static PyObject * PySDL_GetPowerInfo(PyObject *self, PyObject *ign) {
+    int seconds = -1;
+    int percent = -1;
+    SDL_PowerState state = SDL_GetPowerInfo(&seconds, &percent);
+    return Py_BuildValue("(iii)", state, seconds, percent);
 }
 
 static PyObject * PySDL_GetNumVideoDisplays(PyObject *self, PyObject *ign) {

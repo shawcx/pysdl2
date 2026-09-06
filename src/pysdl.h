@@ -85,15 +85,36 @@ typedef struct {
 } PySDL_GameController;
 extern PyTypeObject PySDL_GameController_Type;
 
+typedef struct {
+    PyObject_HEAD
+    SDL_TimerID id;
+    PyObject *callback;  // owned; released when the timer is removed
+} PySDL_Timer;
+extern PyTypeObject PySDL_Timer_Type;
+
+typedef struct {
+    PyObject_HEAD
+    SDL_Haptic *haptic;
+} PySDL_Haptic;
+extern PyTypeObject PySDL_Haptic_Type;
+
+typedef struct {
+    PyObject_HEAD
+    SDL_Sensor *sensor;
+} PySDL_Sensor;
+extern PyTypeObject PySDL_Sensor_Type;
+
 // massive list of SDL2 constants
 void _constants(PyObject *module);
 
 // Extra module-function tables registered from their own files.
 extern PyMethodDef pysdl_events_methods[];          // pysdl_events.c  (event queue)
-extern PyMethodDef pysdl_input_methods[];           // pysdl_input.c   (keyboard / mouse / text)
+extern PyMethodDef pysdl_input_methods[];           // pysdl_input.c   (keyboard / mouse / touch / text)
 extern PyMethodDef pysdl_cursor_methods[];          // pysdl_Cursor.c
 extern PyMethodDef pysdl_joystick_methods[];        // pysdl_Joystick.c
 extern PyMethodDef pysdl_gamecontroller_methods[];  // pysdl_GameController.c
+extern PyMethodDef pysdl_haptic_methods[];          // pysdl_Haptic.c
+extern PyMethodDef pysdl_sensor_methods[];          // pysdl_Sensor.c
 
 //=========================================================
 // Helpers (pysdl_util.c)

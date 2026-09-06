@@ -184,20 +184,37 @@ Tests: `tests/test_joystick.py` (driven by a virtual joystick); example:
   `SENSORUPDATE`, `RENDER_TARGETS_RESET` / `RENDER_DEVICE_RESET`, `FIRSTEVENT` /
   `LASTEVENT` / `ADDEVENT` / `PEEKEVENT` / `GETEVENT`.
 
-## Phase 6 - Timers, haptics, sensors, touch, power
+## Phase 6 - Timers, haptics, sensors, touch, power  — DONE
 
-- New `src/pysdl_Timer.c` -> `SDL2.Timer`: `AddTimer` / `RemoveTimer`
-  (trampoline, callback returns next interval).
-- New `src/pysdl_Haptic.c` -> `SDL2.Haptic`: open from index / joystick / mouse,
-  `RumbleInit` / `RumblePlay` / `RumbleStop`, effect lifecycle (`NewEffect` /
-  `RunEffect` / `UpdateEffect` / `StopEffect` / `DestroyEffect`), `Query`,
-  `NumEffects`.
-- New `src/pysdl_Sensor.c` -> `SDL2.Sensor`: `NumSensors`, open, `GetData`,
-  `GetType`, `GetName`.
-- Touch (module): `GetNumTouchDevices`, `GetTouchDevice`, `GetNumTouchFingers`,
-  `GetTouchFinger`, gesture record/load/save.
-- Power: `GetPowerInfo`. CPU extras: `GetSystemRAM`, `HasNEON`, `HasARMSIMD`,
-  `HasLSX`, `HasLASX`, `SIMDGetAlignment`.
+Tests: `tests/test_timer.py`, `tests/test_system.py`; example: `example/timer.py`.
+
+- New **`SDL2.Timer(interval_ms, callback)`** (`src/pysdl_Timer.c`): `Remove()`,
+  `id`. Callback fires on SDL's timer thread via the `PySDL_ThreadEnter`
+  trampoline; its return value is the next interval (`None` = same, `0`/falsy =
+  stop). Dropping the wrapper cancels the timer (GIL dropped around
+  `SDL_RemoveTimer`).
+- New **`SDL2.Haptic(device_index)`** (`src/pysdl_Haptic.c`): `Query`, `NumAxes`,
+  `NumEffects` / `NumEffectsPlaying`, `RumbleSupported` / `RumbleInit` /
+  `RumblePlay(strength, ms)` / `RumbleStop`, `SetGain` / `SetAutocenter`,
+  `Pause` / `Unpause` / `StopAll`, `EffectSupported` / `NewEffect` /
+  `UpdateEffect` / `RunEffect` / `StopEffect` / `DestroyEffect` /
+  `GetEffectStatus` (effects passed as a dict with `type` = LEFTRIGHT / CONSTANT
+  / SINE / TRIANGLE / SAWTOOTH*). Module: `NumHaptics`, `HapticName`,
+  `MouseIsHaptic`, `HapticOpenFromMouse`, `JoystickIsHaptic`,
+  `HapticOpenFromJoystick`.
+- New **`SDL2.Sensor(device_index)`** (`src/pysdl_Sensor.c`): `GetName`,
+  `GetType`, `GetNonPortableType`, `GetInstanceID`, `GetData(count=6)`, `Close`.
+  Module: `NumSensors`, `SensorGetDeviceName` / `…Type` / `…InstanceID`,
+  `SensorUpdate`.
+- Touch (module, in `pysdl_input.c`): `GetNumTouchDevices`, `GetTouchDevice`,
+  `GetTouchDeviceType`, `GetTouchName` (≥2.0.22), `GetNumTouchFingers`,
+  `GetTouchFinger` -> `(id, x, y, pressure)`, `RecordGesture`,
+  `LoadDollarTemplates` / `SaveDollarTemplate` / `SaveAllDollarTemplates` (path).
+- Power: `GetPowerInfo` -> `(state, seconds, percent)`. CPU extras: `GetSystemRAM`,
+  `HasNEON`, `HasAVX512F`, `HasARMSIMD` (≥2.0.12), `HasLSX` / `HasLASX` (≥2.24),
+  `SIMDGetAlignment` (≥2.0.10).
+- Constants: `INIT_SENSOR`, `HAPTIC_*`, `SENSOR_*`, `TOUCH_DEVICE_*`,
+  `TOUCH_MOUSEID` / `MOUSE_TOUCHID`, `POWERSTATE_*`.
 
 ## Phase 7 - Video/window completeness & system integration
 

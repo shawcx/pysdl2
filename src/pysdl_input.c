@@ -213,6 +213,129 @@ static PyObject * PySDL_GetMouseFocus(PyObject *self, PyObject *ign) {
     return PySDL_WrapWindow(SDL_GetMouseFocus());
 }
 
+//=========================================================
+// touch
+//=========================================================
+
+static PyObject * PySDL_GetNumTouchDevices(PyObject *self, PyObject *ign) {
+    return PyLong_FromLong(SDL_GetNumTouchDevices());
+}
+
+static PyObject * PySDL_GetTouchDevice(PyObject *self, PyObject *arg) {
+    long index = PyLong_AsLong(arg);
+    if(-1 == index && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyLong_FromLongLong(SDL_GetTouchDevice((int)index));
+}
+
+static PyObject * PySDL_GetTouchDeviceType(PyObject *self, PyObject *arg) {
+    long long touchID = PyLong_AsLongLong(arg);
+    if(-1 == touchID && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyLong_FromLong(SDL_GetTouchDeviceType((SDL_TouchID)touchID));
+}
+
+#if SDL_VERSION_ATLEAST(2,0,22)
+static PyObject * PySDL_GetTouchName(PyObject *self, PyObject *arg) {
+    long index = PyLong_AsLong(arg);
+    if(-1 == index && PyErr_Occurred()) {
+        return NULL;
+    }
+    const char *name = SDL_GetTouchName((int)index);
+    return PyUnicode_FromString(name ? name : "");
+}
+#endif
+
+static PyObject * PySDL_GetNumTouchFingers(PyObject *self, PyObject *arg) {
+    long long touchID = PyLong_AsLongLong(arg);
+    if(-1 == touchID && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyLong_FromLong(SDL_GetNumTouchFingers((SDL_TouchID)touchID));
+}
+
+static PyObject * PySDL_GetTouchFinger(PyObject *self, PyObject *args) {
+    long long touchID;
+    int index;
+    if(!PyArg_ParseTuple(args, "Li", &touchID, &index)) {
+        return NULL;
+    }
+    SDL_Finger *finger = SDL_GetTouchFinger((SDL_TouchID)touchID, index);
+    if(NULL == finger) {
+        Py_RETURN_NONE;
+    }
+    return Py_BuildValue("(Lfff)", (long long)finger->id, finger->x, finger->y, finger->pressure);
+}
+
+static PyObject * PySDL_RecordGesture(PyObject *self, PyObject *arg) {
+    long long touchID = PyLong_AsLongLong(arg);
+    if(-1 == touchID && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyBool_FromLong(SDL_RecordGesture((SDL_TouchID)touchID));
+}
+
+static PyObject * PySDL_LoadDollarTemplates(PyObject *self, PyObject *args) {
+    long long touchID;
+    const char *path;
+    if(!PyArg_ParseTuple(args, "Ls", &touchID, &path)) {
+        return NULL;
+    }
+    SDL_RWops *rw = SDL_RWFromFile(path, "rb");
+    if(NULL == rw) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    int rc = SDL_LoadDollarTemplates((SDL_TouchID)touchID, rw);
+    SDL_RWclose(rw);
+    if(0 > rc) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return PyLong_FromLong(rc);
+}
+
+static PyObject * PySDL_SaveDollarTemplate(PyObject *self, PyObject *args) {
+    long long gestureID;
+    const char *path;
+    if(!PyArg_ParseTuple(args, "Ls", &gestureID, &path)) {
+        return NULL;
+    }
+    SDL_RWops *rw = SDL_RWFromFile(path, "wb");
+    if(NULL == rw) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    int rc = SDL_SaveDollarTemplate((SDL_GestureID)gestureID, rw);
+    SDL_RWclose(rw);
+    if(0 == rc) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_SaveAllDollarTemplates(PyObject *self, PyObject *arg) {
+    const char *path = PyUnicode_AsUTF8(arg);
+    if(NULL == path) {
+        return NULL;
+    }
+    SDL_RWops *rw = SDL_RWFromFile(path, "wb");
+    if(NULL == rw) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    int rc = SDL_SaveAllDollarTemplates(rw);
+    SDL_RWclose(rw);
+    if(0 == rc) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return PyLong_FromLong(rc);
+}
+
 PyMethodDef pysdl_input_methods[] = {
     { "GetKeyName",               PySDL_GetKeyName,               METH_O      },
     { "GetKeyFromName",           PySDL_GetKeyFromName,           METH_O      },
@@ -241,6 +364,19 @@ PyMethodDef pysdl_input_methods[] = {
     { "GetRelativeMouseMode",     PySDL_GetRelativeMouseMode,    METH_NOARGS },
     { "CaptureMouse",             PySDL_CaptureMouse,            METH_O      },
     { "GetMouseFocus",            PySDL_GetMouseFocus,           METH_NOARGS },
+
+    { "GetNumTouchDevices",       PySDL_GetNumTouchDevices,      METH_NOARGS },
+    { "GetTouchDevice",           PySDL_GetTouchDevice,          METH_O      },
+    { "GetTouchDeviceType",       PySDL_GetTouchDeviceType,      METH_O      },
+#if SDL_VERSION_ATLEAST(2,0,22)
+    { "GetTouchName",             PySDL_GetTouchName,            METH_O      },
+#endif
+    { "GetNumTouchFingers",       PySDL_GetNumTouchFingers,      METH_O      },
+    { "GetTouchFinger",           PySDL_GetTouchFinger,          METH_VARARGS },
+    { "RecordGesture",            PySDL_RecordGesture,           METH_O      },
+    { "LoadDollarTemplates",      PySDL_LoadDollarTemplates,     METH_VARARGS },
+    { "SaveDollarTemplate",       PySDL_SaveDollarTemplate,      METH_VARARGS },
+    { "SaveAllDollarTemplates",   PySDL_SaveAllDollarTemplates,  METH_O      },
 
     { NULL }
 };

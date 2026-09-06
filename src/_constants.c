@@ -13,6 +13,9 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "INIT_HAPTIC",         SDL_INIT_HAPTIC         );
     PyModule_AddIntConstant( module, "INIT_GAMECONTROLLER", SDL_INIT_GAMECONTROLLER );
     PyModule_AddIntConstant( module, "INIT_EVENTS",         SDL_INIT_EVENTS         );
+#ifdef SDL_INIT_SENSOR
+    PyModule_AddIntConstant( module, "INIT_SENSOR",         SDL_INIT_SENSOR         );
+#endif
     PyModule_AddIntConstant( module, "INIT_NOPARACHUTE",    SDL_INIT_NOPARACHUTE    );
     PyModule_AddIntConstant( module, "INIT_EVERYTHING",     SDL_INIT_EVERYTHING     );
 
@@ -286,6 +289,48 @@ void _constants(PyObject *module) {
 #if SDL_VERSION_ATLEAST(2,0,14)
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_PS5",                 SDL_CONTROLLER_TYPE_PS5                 );
 #endif
+
+    PyModule_AddIntConstant( module, "HAPTIC_CONSTANT",      SDL_HAPTIC_CONSTANT      );
+    PyModule_AddIntConstant( module, "HAPTIC_SINE",          SDL_HAPTIC_SINE          );
+    PyModule_AddIntConstant( module, "HAPTIC_LEFTRIGHT",     SDL_HAPTIC_LEFTRIGHT     );
+    PyModule_AddIntConstant( module, "HAPTIC_TRIANGLE",      SDL_HAPTIC_TRIANGLE      );
+    PyModule_AddIntConstant( module, "HAPTIC_SAWTOOTHUP",    SDL_HAPTIC_SAWTOOTHUP    );
+    PyModule_AddIntConstant( module, "HAPTIC_SAWTOOTHDOWN",  SDL_HAPTIC_SAWTOOTHDOWN  );
+    PyModule_AddIntConstant( module, "HAPTIC_RAMP",          SDL_HAPTIC_RAMP          );
+    PyModule_AddIntConstant( module, "HAPTIC_SPRING",        SDL_HAPTIC_SPRING        );
+    PyModule_AddIntConstant( module, "HAPTIC_DAMPER",        SDL_HAPTIC_DAMPER        );
+    PyModule_AddIntConstant( module, "HAPTIC_INERTIA",       SDL_HAPTIC_INERTIA       );
+    PyModule_AddIntConstant( module, "HAPTIC_FRICTION",      SDL_HAPTIC_FRICTION      );
+    PyModule_AddIntConstant( module, "HAPTIC_CUSTOM",        SDL_HAPTIC_CUSTOM        );
+    PyModule_AddIntConstant( module, "HAPTIC_GAIN",          SDL_HAPTIC_GAIN          );
+    PyModule_AddIntConstant( module, "HAPTIC_AUTOCENTER",    SDL_HAPTIC_AUTOCENTER    );
+    PyModule_AddIntConstant( module, "HAPTIC_STATUS",        SDL_HAPTIC_STATUS        );
+    PyModule_AddIntConstant( module, "HAPTIC_PAUSE",         SDL_HAPTIC_PAUSE         );
+    PyModule_AddIntConstant( module, "HAPTIC_POLAR",         SDL_HAPTIC_POLAR         );
+    PyModule_AddIntConstant( module, "HAPTIC_CARTESIAN",     SDL_HAPTIC_CARTESIAN     );
+    PyModule_AddIntConstant( module, "HAPTIC_SPHERICAL",     SDL_HAPTIC_SPHERICAL     );
+#ifdef SDL_HAPTIC_STEERING_AXIS
+    PyModule_AddIntConstant( module, "HAPTIC_STEERING_AXIS", SDL_HAPTIC_STEERING_AXIS );
+#endif
+    PyModule_AddIntConstant( module, "HAPTIC_INFINITY",      SDL_HAPTIC_INFINITY      );
+
+    PyModule_AddIntConstant( module, "SENSOR_INVALID", SDL_SENSOR_INVALID );
+    PyModule_AddIntConstant( module, "SENSOR_UNKNOWN", SDL_SENSOR_UNKNOWN );
+    PyModule_AddIntConstant( module, "SENSOR_ACCEL",   SDL_SENSOR_ACCEL   );
+    PyModule_AddIntConstant( module, "SENSOR_GYRO",    SDL_SENSOR_GYRO    );
+
+    PyModule_AddIntConstant( module, "TOUCH_DEVICE_INVALID",           SDL_TOUCH_DEVICE_INVALID           );
+    PyModule_AddIntConstant( module, "TOUCH_DEVICE_DIRECT",            SDL_TOUCH_DEVICE_DIRECT            );
+    PyModule_AddIntConstant( module, "TOUCH_DEVICE_INDIRECT_ABSOLUTE", SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE );
+    PyModule_AddIntConstant( module, "TOUCH_DEVICE_INDIRECT_RELATIVE", SDL_TOUCH_DEVICE_INDIRECT_RELATIVE );
+    PyModule_AddIntConstant( module, "TOUCH_MOUSEID", (long)SDL_TOUCH_MOUSEID );
+    PyModule_AddIntConstant( module, "MOUSE_TOUCHID", (long)SDL_MOUSE_TOUCHID );
+
+    PyModule_AddIntConstant( module, "POWERSTATE_UNKNOWN",    SDL_POWERSTATE_UNKNOWN    );
+    PyModule_AddIntConstant( module, "POWERSTATE_ON_BATTERY", SDL_POWERSTATE_ON_BATTERY );
+    PyModule_AddIntConstant( module, "POWERSTATE_NO_BATTERY", SDL_POWERSTATE_NO_BATTERY );
+    PyModule_AddIntConstant( module, "POWERSTATE_CHARGING",   SDL_POWERSTATE_CHARGING   );
+    PyModule_AddIntConstant( module, "POWERSTATE_CHARGED",    SDL_POWERSTATE_CHARGED    );
 
     PyModule_AddIntConstant( module, "FLIP_NONE",       SDL_FLIP_NONE       );
     PyModule_AddIntConstant( module, "FLIP_HORIZONTAL", SDL_FLIP_HORIZONTAL );
