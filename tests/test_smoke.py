@@ -1,4 +1,4 @@
-'''Headless port of test/info.py: the module loads and the query API works.'''
+'''Headless port of example/info.py: the module loads and the query API works.'''
 
 
 def test_compiled_and_linked_versions(sdl):

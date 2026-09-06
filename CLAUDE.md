@@ -41,13 +41,13 @@ extension if `build/` is missing, and puts it on `sys.path`; the `sdl` fixture
 does one `Init`/`Quit` per session. Run one file with `python3 -m pytest
 tests/test_audio.py`.
 
-`test/` (singular) holds runnable example programs, most of which open a window
-and need a display:
-- `python3 test/info.py` — prints CPU/display/renderer info, no window
-- `python3 test/draw.py` — primitives, blend modes, render-to-texture, geometry
-- `python3 test/simple.py <image>` — load an image, show it, event loop
-- `python3 test/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
-- `test/adjust.py` — fullscreen test pattern on every display
+`example/` holds runnable example programs, most of which open a window and need
+a display:
+- `python3 example/info.py` — prints CPU/display/renderer info, no window
+- `python3 example/draw.py` — primitives, blend modes, render-to-texture, geometry
+- `python3 example/simple.py <image>` — load an image, show it, event loop
+- `python3 example/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
+- `example/adjust.py` — fullscreen test pattern on every display
 
 ## Architecture
 

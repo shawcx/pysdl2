@@ -22,7 +22,7 @@ These shape every later phase.
 
 - **Headless test harness**: `pytest` suite under `tests/` (`conftest.py` forces
   the dummy drivers, auto-builds, injects `sys.path`; `sdl` session fixture).
-  `test/info.py` ported to `tests/test_smoke.py`. 50 tests.
+  `example/info.py` ported to `tests/test_smoke.py`. 50 tests.
 - **Audio callback template fixed**: `PySDL_Audio.pycallback` now holds the
   `(callback, userdata)` tuple and is released in `Close`/dealloc;
   `_playback_callback` checks the return is `bytes` and long enough (else
@@ -53,7 +53,7 @@ These shape every later phase.
 
 `pysdl_Renderer.c` / `pysdl_Texture.c` rewritten; `Renderer` and `Texture` are
 now in the module namespace and constructible. Tests: `tests/test_renderer.py`,
-`tests/test_texture.py`; example: `test/draw.py`.
+`tests/test_texture.py`; example: `example/draw.py`.
 
 - **Construction**: `SDL2.Renderer(window, index=-1, flags=0)`,
   `SDL2.Texture(renderer, format, access, size)`,
@@ -197,5 +197,5 @@ its own linked lib + `pysdl_ttf.c` etc., or separate packages.
 ## Per-phase checklist
 
 Each phase ships: new constants, `.tp_doc` + terse method docstrings matching the
-existing style, one `test/` example script, one headless `tests/test_<area>.py`,
+existing style, one `example/` script, one headless `tests/test_<area>.py`,
 and a README coverage note.
