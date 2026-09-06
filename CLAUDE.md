@@ -51,8 +51,9 @@ a display:
 - `python3 example/events.py` — dump every event, custom + cross-thread events, filter
 - `python3 example/timer.py` — fixed-rate animation driven by SDL2.Timer + power state
 - `python3 example/window.py` — window-state playground: border/grab/opacity/flash, message box, display + Vulkan info
+- `python3 example/wav.py [file.wav]` — LoadWAV + AudioStream resample + queue playback
 - `python3 example/simple.py <image>` — load an image, show it, event loop
-- `python3 example/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
+- `python3 example/audio.py` — audio callback + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
 
 ## Architecture
@@ -72,15 +73,16 @@ a display:
   takes a `consume` flag — 1 frees the `drop.file` string SDL handed us, 0 when
   the event still belongs to SDL (event filter, `SDL_PEEKEVENT`).
 - `src/pysdl_Window.c`, `pysdl_Renderer.c`, `pysdl_Surface.c`, `pysdl_Texture.c`,
-  `pysdl_Audio.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c`, `pysdl_Cursor.c`,
-  `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Timer.c`, `pysdl_Haptic.c`,
-  `pysdl_Sensor.c` — one wrapped SDL object per file, each a full `PyTypeObject`
-  with `PySDL_<Type>_<Method>` functions.
+  `pysdl_Audio.c`, `pysdl_AudioStream.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c`,
+  `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Timer.c`,
+  `pysdl_Haptic.c`, `pysdl_Sensor.c` — one wrapped SDL object per file, each a
+  full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
 - `src/pysdl_input.c` — module-level keyboard / mouse / touch / text-input
   functions. Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into
   the module in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_events.c`,
   `pysdl_video.c` (extra display queries, message boxes, hints, `OpenURL` /
   locales, GL / Vulkan loaders, `GetWindowFromID` / `GetGrabbedWindow`),
+  `pysdl_Audio.c` (drivers, `LoadWAV`, `MixAudioFormat`, device-spec queries),
   `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Haptic.c`,
   `pysdl_Sensor.c` do the same for their functions. Use this pattern to add a
   batch of module functions from a new file.
@@ -104,14 +106,15 @@ that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `PySDL_WrapWindow()`, `GetCursor()`/`GetDefaultCursor()`,
 `GameController.GetJoystick()`).
 
-`Window`, `Audio`, `Renderer`, `Texture`, `PixelFormat`, `Palette`, `Cursor`,
-`Joystick`, `GameController`, `Timer`, `Haptic`, and `Sensor` are in the module
-namespace and constructible: `SDL2.Window(title=None, size=…, …)`,
-`SDL2.Renderer(window, …)`, `SDL2.Texture(renderer, …)`,
+`Window`, `Audio`, `AudioStream`, `Renderer`, `Texture`, `PixelFormat`,
+`Palette`, `Cursor`, `Joystick`, `GameController`, `Timer`, `Haptic`, and
+`Sensor` are in the module namespace and constructible: `SDL2.Window(title=None,
+size=…, …)`, `SDL2.Renderer(window, …)`, `SDL2.Texture(renderer, …)`,
 `SDL2.PixelFormat(format_enum)`, `SDL2.Palette(ncolors)`,
 `SDL2.Cursor(system_cursor_id)`, `SDL2.Joystick(device_index)`,
 `SDL2.GameController(device_index)`, `SDL2.Timer(interval_ms, callback)`,
-`SDL2.Haptic(device_index)`, `SDL2.Sensor(device_index)`. Every `tp_init` takes
+`SDL2.Haptic(device_index)`, `SDL2.Sensor(device_index)`,
+`SDL2.AudioStream(src_format, src_channels, src_rate, dst_…)`. Every `tp_init` takes
 its primary arg as *optional* — with none given it just nulls the pointer, the
 path `PySDL_New` and the C-side factory functions use. `Window`/`Renderer`/
 `Texture` lean on SDL's NULL-pointer tolerance; the rest go through a

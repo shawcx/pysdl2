@@ -1,0 +1,143 @@
+#include "pysdl.h"
+
+static int        PySDL_AudioStream_Type_init    (PySDL_AudioStream*, PyObject*, PyObject*);
+static void       PySDL_AudioStream_Type_dealloc (PySDL_AudioStream*);
+
+static PyObject * PySDL_AudioStream_Put       (PySDL_AudioStream*, PyObject*);
+static PyObject * PySDL_AudioStream_Get       (PySDL_AudioStream*, PyObject*);
+static PyObject * PySDL_AudioStream_Available (PySDL_AudioStream*, PyObject*);
+static PyObject * PySDL_AudioStream_Flush     (PySDL_AudioStream*, PyObject*);
+static PyObject * PySDL_AudioStream_Clear     (PySDL_AudioStream*, PyObject*);
+
+static PyMethodDef PySDL_AudioStream_methods[] = {
+    { "Put",       (PyCFunction)PySDL_AudioStream_Put,       METH_O      },
+    { "Get",       (PyCFunction)PySDL_AudioStream_Get,       METH_O      },
+    { "Available", (PyCFunction)PySDL_AudioStream_Available, METH_NOARGS },
+    { "Flush",     (PyCFunction)PySDL_AudioStream_Flush,     METH_NOARGS },
+    { "Clear",     (PyCFunction)PySDL_AudioStream_Clear,     METH_NOARGS },
+    { NULL }
+};
+
+PyTypeObject PySDL_AudioStream_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name      = "SDL2.AudioStream",
+    .tp_basicsize = sizeof(PySDL_AudioStream),
+    .tp_dealloc   = (destructor)PySDL_AudioStream_Type_dealloc,
+    .tp_flags     = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc       = "SDL2.AudioStream(src_format, src_channels, src_rate, dst_format, dst_channels, dst_rate)",
+    .tp_methods   = PySDL_AudioStream_methods,
+    .tp_init      = (initproc)PySDL_AudioStream_Type_init,
+    .tp_new       = PyType_GenericNew
+};
+
+static int PySDL_AudioStream_Type_init(PySDL_AudioStream *self, PyObject *args, PyObject *kwds) {
+    int src_format = 0, src_channels = 0, src_rate = 0;
+    int dst_format = 0, dst_channels = 0, dst_rate = 0;
+
+    static char *kwlist[] = {"src_format", "src_channels", "src_rate",
+                             "dst_format", "dst_channels", "dst_rate", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|iiiiii", kwlist,
+        &src_format, &src_channels, &src_rate, &dst_format, &dst_channels, &dst_rate)) {
+        return -1;
+    }
+
+    self->stream = NULL;
+    if(src_rate > 0 && dst_rate > 0) {
+        self->stream = SDL_NewAudioStream(
+            (SDL_AudioFormat)src_format, (Uint8)src_channels, src_rate,
+            (SDL_AudioFormat)dst_format, (Uint8)dst_channels, dst_rate);
+        if(NULL == self->stream) {
+            PyErr_SetString(pysdl_Error, SDL_GetError());
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static void PySDL_AudioStream_Type_dealloc(PySDL_AudioStream *self) {
+    if(NULL != self->stream) {
+        SDL_FreeAudioStream(self->stream);
+        self->stream = NULL;
+    }
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+static SDL_AudioStream * _stream(PySDL_AudioStream *self) {
+    if(NULL == self->stream) {
+        PyErr_SetString(pysdl_Error, "AudioStream is not initialized");
+        return NULL;
+    }
+    return self->stream;
+}
+
+static PyObject * PySDL_AudioStream_Put(PySDL_AudioStream *self, PyObject *arg) {
+    SDL_AudioStream *stream = _stream(self);
+    if(NULL == stream) {
+        return NULL;
+    }
+
+    Py_buffer buffer;
+    if(0 > PyObject_GetBuffer(arg, &buffer, PyBUF_SIMPLE)) {
+        return NULL;
+    }
+    int rc = SDL_AudioStreamPut(stream, buffer.buf, (int)buffer.len);
+    PyBuffer_Release(&buffer);
+    if(0 > rc) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_AudioStream_Get(PySDL_AudioStream *self, PyObject *arg) {
+    SDL_AudioStream *stream = _stream(self);
+    long want = PyLong_AsLong(arg);
+    if(NULL == stream || (-1 == want && PyErr_Occurred())) {
+        return NULL;
+    }
+    if(want < 0) {
+        PyErr_SetString(PyExc_ValueError, "length must be >= 0");
+        return NULL;
+    }
+
+    PyObject *out = PyBytes_FromStringAndSize(NULL, want);
+    if(NULL == out) {
+        return NULL;
+    }
+    int got = SDL_AudioStreamGet(stream, PyBytes_AS_STRING(out), (int)want);
+    if(0 > got) {
+        Py_DECREF(out);
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    if(got != want && 0 > _PyBytes_Resize(&out, got)) {
+        return NULL;
+    }
+    return out;
+}
+
+static PyObject * PySDL_AudioStream_Available(PySDL_AudioStream *self, PyObject *ign) {
+    SDL_AudioStream *stream = _stream(self);
+    return stream ? PyLong_FromLong(SDL_AudioStreamAvailable(stream)) : NULL;
+}
+
+static PyObject * PySDL_AudioStream_Flush(PySDL_AudioStream *self, PyObject *ign) {
+    SDL_AudioStream *stream = _stream(self);
+    if(NULL == stream) {
+        return NULL;
+    }
+    if(0 > SDL_AudioStreamFlush(stream)) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_AudioStream_Clear(PySDL_AudioStream *self, PyObject *ign) {
+    SDL_AudioStream *stream = _stream(self);
+    if(NULL == stream) {
+        return NULL;
+    }
+    SDL_AudioStreamClear(stream);
+    Py_RETURN_NONE;
+}

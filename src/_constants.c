@@ -972,6 +972,11 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "AUDIO_ALLOW_SAMPLES_CHANGE",   SDL_AUDIO_ALLOW_SAMPLES_CHANGE   );
     PyModule_AddIntConstant( module, "AUDIO_ALLOW_ANY_CHANGE",       SDL_AUDIO_ALLOW_ANY_CHANGE       );
 
+    PyModule_AddIntConstant( module, "AUDIO_STOPPED", SDL_AUDIO_STOPPED );
+    PyModule_AddIntConstant( module, "AUDIO_PLAYING", SDL_AUDIO_PLAYING );
+    PyModule_AddIntConstant( module, "AUDIO_PAUSED",  SDL_AUDIO_PAUSED  );
+    PyModule_AddIntConstant( module, "MIX_MAXVOLUME", SDL_MIX_MAXVOLUME );
+
     PyModule_AddIntConstant( module, "SWSURFACE", SDL_SWSURFACE );
     PyModule_AddIntConstant( module, "PREALLOC",  SDL_PREALLOC  );
     PyModule_AddIntConstant( module, "RLEACCEL",  SDL_RLEACCEL  );

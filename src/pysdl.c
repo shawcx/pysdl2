@@ -259,6 +259,12 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     Py_INCREF(&PySDL_Audio_Type);
     PyModule_AddObject(module, "Audio", (PyObject *)&PySDL_Audio_Type);
 
+    if(0 > PyType_Ready(&PySDL_AudioStream_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_AudioStream_Type);
+    PyModule_AddObject(module, "AudioStream", (PyObject *)&PySDL_AudioStream_Type);
+
     if(0 > PyType_Ready(&PySDL_Cursor_Type)) {
         return NULL;
     }
@@ -302,7 +308,8 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         || 0 > PyModule_AddFunctions(module, pysdl_gamecontroller_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_haptic_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_sensor_methods)
-        || 0 > PyModule_AddFunctions(module, pysdl_video_methods)) {
+        || 0 > PyModule_AddFunctions(module, pysdl_video_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_audio_methods)) {
         return NULL;
     }
 

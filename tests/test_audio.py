@@ -1,6 +1,7 @@
-'''Audio callback trampoline: it runs, survives a bad return value, and the
-device can be reopened after Close (the (callback, userdata) tuple is released).'''
+'''Audio: the callback trampoline (phase 0), plus drivers, queueing, LoadWAV,
+mixing, and AudioStream resampling (phase 8).'''
 
+import struct
 import time
 
 import pytest
@@ -11,6 +12,13 @@ def device_name(sdl):
     if sdl.GetNumAudioDevices() < 1:
         pytest.skip('no audio playback device')
     return sdl.GetAudioDeviceName(0)
+
+
+def _make_wav(pcm, rate=8000):
+    hdr = b'RIFF' + struct.pack('<I', 36 + len(pcm)) + b'WAVE'
+    hdr += b'fmt ' + struct.pack('<IHHIIHH', 16, 1, 1, rate, rate * 2, 2, 16)
+    hdr += b'data' + struct.pack('<I', len(pcm))
+    return hdr + pcm
 
 
 def _run(audio, seconds=0.15):
@@ -53,3 +61,95 @@ def test_bad_callback_return_does_not_crash(sdl, device_name, capfd):
     audio.Close()
     # the trampoline reports the error on stderr instead of propagating it
     assert 'must return bytes' in capfd.readouterr().err
+
+
+# --- phase 8 --------------------------------------------------------------
+
+def test_open_default_device(sdl):
+    # no deviceName -> the system default device
+    audio = sdl.Audio()
+    spec = audio.Open(freq=44100, channels=2, samples=1024)
+    assert spec[0] == 44100
+    audio.Close()
+
+
+def test_driver_module_functions(sdl):
+    n = sdl.GetNumAudioDrivers()
+    assert n >= 1
+    assert all(sdl.GetAudioDriver(i) for i in range(n))
+    assert sdl.GetCurrentAudioDriver() == 'dummy'
+
+
+def test_queue_status_and_clear(sdl, device_name):
+    audio = sdl.Audio()
+    audio.Open(device_name, freq=44100, format=sdl.AUDIO_S16SYS, channels=2, samples=2048)
+    assert audio.GetStatus() == sdl.AUDIO_PAUSED
+    audio.Pause(0)
+    assert audio.GetStatus() == sdl.AUDIO_PLAYING
+
+    audio.Queue(b'\x01\x02' * 500)
+    assert audio.GetQueueSize() == 1000
+    audio.ClearQueued()
+    assert audio.GetQueueSize() == 0
+    audio.Close()
+
+
+def test_load_wav_from_bytes_and_path(sdl, tmp_path):
+    pcm = struct.pack('<200h', *[(i * 137) % 20000 - 10000 for i in range(200)])
+    wav = _make_wav(pcm)
+
+    spec, data = sdl.LoadWAV(wav)
+    assert len(spec) == 4 and spec[0] == 8000
+    assert data == pcm
+
+    path = tmp_path / 'tone.wav'
+    path.write_bytes(wav)
+    spec2, data2 = sdl.LoadWAV(str(path))
+    assert data2 == pcm
+
+
+def test_mix_audio_format(sdl):
+    a = struct.pack('<4h', 1000, 2000, 3000, 4000)
+    b = struct.pack('<4h', 500, 500, 500, 500)
+
+    full = struct.unpack('<4h', sdl.MixAudioFormat(a, b, sdl.AUDIO_S16SYS, sdl.MIX_MAXVOLUME))
+    assert full == (1500, 2500, 3500, 4500)
+
+    half = struct.unpack('<4h', sdl.MixAudioFormat(a, b, sdl.AUDIO_S16SYS, sdl.MIX_MAXVOLUME // 2))
+    assert half == (1250, 2250, 3250, 4250)
+
+
+def test_audio_stream_resamples(sdl):
+    stream = sdl.AudioStream(sdl.AUDIO_S16SYS, 1, 22050, sdl.AUDIO_F32SYS, 2, 44100)
+    src = struct.pack('<100h', *([12000, -12000] * 50))
+    stream.Put(src)
+    stream.Flush()
+
+    available = stream.Available()
+    # up-sample 2x, mono->stereo 2x, s16 (2 bytes) -> f32 (4 bytes) 2x  => ~8x
+    assert available == len(src) * 8
+
+    out = stream.Get(available)
+    assert len(out) == available
+    assert stream.Available() == 0
+
+    stream.Clear()
+    stream.Put(src)
+    assert stream.Available() > 0
+    stream.Clear()
+    assert stream.Available() == 0
+
+
+def test_audio_stream_get_returns_what_is_available(sdl):
+    stream = sdl.AudioStream(sdl.AUDIO_S16SYS, 1, 8000, sdl.AUDIO_S16SYS, 1, 8000)
+    stream.Put(b'\x00\x01' * 10)
+    stream.Flush()
+    out = stream.Get(1_000_000)  # ask for far more than exists
+    assert 0 < len(out) <= 40
+
+
+def test_uninitialised_audio_stream_is_guarded(sdl):
+    with pytest.raises(sdl.error):
+        sdl.AudioStream().Put(b'\x00')
+    with pytest.raises(sdl.error):
+        sdl.AudioStream().Available()

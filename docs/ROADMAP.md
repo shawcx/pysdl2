@@ -254,14 +254,24 @@ New `src/pysdl_video.c` for the module-level video functions. Tests:
   `WINDOWPOS_UNDEFINED`, `MESSAGEBOX_*`, `HINT_DEFAULT` / `NORMAL` / `OVERRIDE`,
   `ORIENTATION_*`, `FLASH_*` (≥2.0.16).
 
-## Phase 8 - Audio completeness
+## Phase 8 - Audio completeness  — DONE
 
-- Module: `GetNumAudioDrivers`, `GetAudioDriver`, `GetCurrentAudioDriver`,
-  `AudioInit` / `AudioQuit`, `GetAudioDeviceStatus`, `LoadWAV` (path + bytes),
-  `MixAudioFormat`, `GetAudioDeviceSpec`.
-- Device: `ClearQueuedAudio`.
-- New `src/pysdl_AudioStream.c` -> `SDL2.AudioStream`: `NewAudioStream`, `Put`,
-  `Get`, `Available`, `Flush`, `Clear`, `Free` (the modern resampling path).
+Tests: `tests/test_audio.py` (extended); example: `example/wav.py`.
+
+- Module (`pysdl_Audio.c`, `pysdl_audio_methods`): `GetNumAudioDrivers`,
+  `GetAudioDriver`, `GetCurrentAudioDriver`, `AudioInit` / `AudioQuit`,
+  `LoadWAV(path | bytes)` -> `((freq, format, channels, samples), bytes)`,
+  `MixAudioFormat(dst, src, format, volume=MIX_MAXVOLUME)` -> mixed bytes,
+  `GetAudioDeviceSpec(index, iscapture=False)` (≥2.0.16),
+  `GetDefaultAudioInfo(iscapture=False)` (≥2.24).
+- `Audio` methods: `ClearQueued`, `GetStatus` (-> `AUDIO_STOPPED` / `PLAYING` /
+  `PAUSED`). `Queue` now accepts any bytes-like; `Dequeue` returns exactly the
+  bytes read (both hardened). `Open()`'s `deviceName` is now optional — omit it
+  for the system default device.
+- New **`SDL2.AudioStream(src_format, src_channels, src_rate, dst_format,
+  dst_channels, dst_rate)`** (`src/pysdl_AudioStream.c`): `Put(data)`,
+  `Get(max_len)` -> bytes, `Available()`, `Flush()`, `Clear()`; freed on dealloc.
+- Constants: `AUDIO_STOPPED` / `PLAYING` / `PAUSED`, `MIX_MAXVOLUME`.
 
 ## Phase 9 - Loose ends
 

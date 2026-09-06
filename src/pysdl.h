@@ -105,6 +105,12 @@ typedef struct {
 } PySDL_Sensor;
 extern PyTypeObject PySDL_Sensor_Type;
 
+typedef struct {
+    PyObject_HEAD
+    SDL_AudioStream *stream;
+} PySDL_AudioStream;
+extern PyTypeObject PySDL_AudioStream_Type;
+
 // massive list of SDL2 constants
 void _constants(PyObject *module);
 
@@ -117,6 +123,7 @@ extern PyMethodDef pysdl_gamecontroller_methods[];  // pysdl_GameController.c
 extern PyMethodDef pysdl_haptic_methods[];          // pysdl_Haptic.c
 extern PyMethodDef pysdl_sensor_methods[];          // pysdl_Sensor.c
 extern PyMethodDef pysdl_video_methods[];           // pysdl_video.c   (display / messagebox / hints / vulkan)
+extern PyMethodDef pysdl_audio_methods[];           // pysdl_Audio.c   (drivers / LoadWAV / mixing)
 
 //=========================================================
 // Helpers (pysdl_util.c)
