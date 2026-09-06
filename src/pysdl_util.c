@@ -160,6 +160,24 @@ int PyToColor(PyObject *src, SDL_Color *dst) {
     return 1;
 }
 
+int PyToPixel(PyObject *src, const SDL_PixelFormat *format, Uint32 *out) {
+    if(PyLong_Check(src)) {
+        unsigned long value = PyLong_AsUnsignedLong(src);
+        if((unsigned long)-1 == value && PyErr_Occurred()) {
+            return 0;
+        }
+        *out = (Uint32)value;
+        return 1;
+    }
+
+    SDL_Color color;
+    if(!PyToColor(src, &color)) {
+        return 0;
+    }
+    *out = SDL_MapRGBA(format, color.r, color.g, color.b, color.a);
+    return 1;
+}
+
 PyObject * RectToPy(const SDL_Rect *rect) {
     return Py_BuildValue("(iiii)", rect->x, rect->y, rect->w, rect->h);
 }

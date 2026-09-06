@@ -35,6 +35,7 @@ typedef struct {
     PyObject_HEAD
     SDL_Surface *surface;
     int shouldFree;
+    Py_buffer pixels;  // backing buffer for a *...From surface; pixels.obj == NULL otherwise
 } PySDL_Surface;
 extern PyTypeObject PySDL_Surface_Type;
 
@@ -43,6 +44,18 @@ typedef struct {
     SDL_Texture *texture;
 } PySDL_Texture;
 extern PyTypeObject PySDL_Texture_Type;
+
+typedef struct {
+    PyObject_HEAD
+    SDL_PixelFormat *format;
+} PySDL_PixelFormat;
+extern PyTypeObject PySDL_PixelFormat_Type;
+
+typedef struct {
+    PyObject_HEAD
+    SDL_Palette *palette;
+} PySDL_Palette;
+extern PyTypeObject PySDL_Palette_Type;
 
 typedef struct {
     PyObject_HEAD
@@ -75,6 +88,10 @@ int PyToPoint(PyObject *src, SDL_Point *dst);   // 2 items
 int PyToColor(PyObject *src, SDL_Color *dst);   // 3 items -> a = 255, or 4 items
 int PyToFRect(PyObject *src, SDL_FRect *dst);   // 2 items -> w/h = -1, or 4 items
 int PyToFPoint(PyObject *src, SDL_FPoint *dst); // 2 items
+
+// A pixel value: an int is taken verbatim, a 3/4-item sequence is mapped
+// through `format`.
+int PyToPixel(PyObject *src, const SDL_PixelFormat *format, Uint32 *out);
 
 PyObject * RectToPy(const SDL_Rect *rect);      // -> (x, y, w, h)
 PyObject * PointToPy(const SDL_Point *point);   // -> (x, y)

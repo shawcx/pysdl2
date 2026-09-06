@@ -188,10 +188,14 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "PIXELFORMAT_ABGR8888",    SDL_PIXELFORMAT_ABGR8888    );
     PyModule_AddIntConstant( module, "PIXELFORMAT_BGRA8888",    SDL_PIXELFORMAT_BGRA8888    );
     PyModule_AddIntConstant( module, "PIXELFORMAT_ARGB2101010", SDL_PIXELFORMAT_ARGB2101010 );
-    //PyModule_AddIntConstant( module, "PIXELFORMAT_RGBA32",      SDL_PIXELFORMAT_RGBA32      );
-    //PyModule_AddIntConstant( module, "PIXELFORMAT_ARGB32",      SDL_PIXELFORMAT_ARGB32      );
-    //PyModule_AddIntConstant( module, "PIXELFORMAT_BGRA32",      SDL_PIXELFORMAT_BGRA32      );
-    //PyModule_AddIntConstant( module, "PIXELFORMAT_ABGR32",      SDL_PIXELFORMAT_ABGR32      );
+    PyModule_AddIntConstant( module, "PIXELFORMAT_RGBA32",      SDL_PIXELFORMAT_RGBA32      );
+    PyModule_AddIntConstant( module, "PIXELFORMAT_ARGB32",      SDL_PIXELFORMAT_ARGB32      );
+    PyModule_AddIntConstant( module, "PIXELFORMAT_BGRA32",      SDL_PIXELFORMAT_BGRA32      );
+    PyModule_AddIntConstant( module, "PIXELFORMAT_ABGR32",      SDL_PIXELFORMAT_ABGR32      );
+#ifdef SDL_PIXELFORMAT_XRGB8888
+    PyModule_AddIntConstant( module, "PIXELFORMAT_XRGB8888",    SDL_PIXELFORMAT_XRGB8888    );
+    PyModule_AddIntConstant( module, "PIXELFORMAT_XBGR8888",    SDL_PIXELFORMAT_XBGR8888    );
+#endif
     PyModule_AddIntConstant( module, "PIXELFORMAT_YV12",        SDL_PIXELFORMAT_YV12        );
     PyModule_AddIntConstant( module, "PIXELFORMAT_IYUV",        SDL_PIXELFORMAT_IYUV        );
     PyModule_AddIntConstant( module, "PIXELFORMAT_YUY2",        SDL_PIXELFORMAT_YUY2        );
@@ -751,4 +755,19 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "AUDIO_ALLOW_SAMPLES_CHANGE",   SDL_AUDIO_ALLOW_SAMPLES_CHANGE   );
     PyModule_AddIntConstant( module, "AUDIO_ALLOW_ANY_CHANGE",       SDL_AUDIO_ALLOW_ANY_CHANGE       );
 
+    PyModule_AddIntConstant( module, "SWSURFACE", SDL_SWSURFACE );
+    PyModule_AddIntConstant( module, "PREALLOC",  SDL_PREALLOC  );
+    PyModule_AddIntConstant( module, "RLEACCEL",  SDL_RLEACCEL  );
+    PyModule_AddIntConstant( module, "DONTFREE",  SDL_DONTFREE  );
+
+    PyModule_AddIntConstant( module, "IMG_INIT_JPG",  IMG_INIT_JPG  );
+    PyModule_AddIntConstant( module, "IMG_INIT_PNG",  IMG_INIT_PNG  );
+    PyModule_AddIntConstant( module, "IMG_INIT_TIF",  IMG_INIT_TIF  );
+    PyModule_AddIntConstant( module, "IMG_INIT_WEBP", IMG_INIT_WEBP );
+#ifdef IMG_INIT_JXL
+    PyModule_AddIntConstant( module, "IMG_INIT_JXL",  IMG_INIT_JXL  );
+#endif
+#ifdef IMG_INIT_AVIF
+    PyModule_AddIntConstant( module, "IMG_INIT_AVIF", IMG_INIT_AVIF );
+#endif
 }

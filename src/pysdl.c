@@ -15,8 +15,17 @@ static PyObject * PySDL_LoadBMP               (PyObject*, PyObject*);
 static PyObject * PySDL_LoadImage             (PyObject*, PyObject*);
 static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 
-static PyObject * PySDL_CreateRGBSurface      (PyObject*, PyObject*, PyObject *);
-static PyObject * PySDL_CreateRGBSurfaceFrom  (PyObject*, PyObject*, PyObject *);
+static PyObject * PySDL_CreateRGBSurface             (PyObject*, PyObject*, PyObject *);
+static PyObject * PySDL_CreateRGBSurfaceFrom         (PyObject*, PyObject*, PyObject *);
+static PyObject * PySDL_CreateRGBSurfaceWithFormat     (PyObject*, PyObject*, PyObject *);
+static PyObject * PySDL_CreateRGBSurfaceWithFormatFrom (PyObject*, PyObject*, PyObject *);
+
+static PyObject * PySDL_GetPixelFormatName     (PyObject*, PyObject*);
+static PyObject * PySDL_PixelFormatEnumToMasks (PyObject*, PyObject*);
+static PyObject * PySDL_MasksToPixelFormatEnum (PyObject*, PyObject*);
+
+static PyObject * PySDL_IMG_Init (PyObject*, PyObject*);
+static PyObject * PySDL_IMG_Quit (PyObject*, PyObject*);
 
 static PyObject * PySDL_CreateSoftwareRenderer (PyObject*, PyObject*);
 static PyObject * PySDL_ComposeCustomBlendMode (PyObject*, PyObject*);
@@ -94,6 +103,15 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
 
     { "CreateRGBSurface",     (PyCFunction)PySDL_CreateRGBSurface,     METH_VARARGS | METH_KEYWORDS },
     { "CreateRGBSurfaceFrom", (PyCFunction)PySDL_CreateRGBSurfaceFrom, METH_VARARGS | METH_KEYWORDS },
+    { "CreateRGBSurfaceWithFormat",     (PyCFunction)PySDL_CreateRGBSurfaceWithFormat,     METH_VARARGS | METH_KEYWORDS },
+    { "CreateRGBSurfaceWithFormatFrom", (PyCFunction)PySDL_CreateRGBSurfaceWithFormatFrom, METH_VARARGS | METH_KEYWORDS },
+
+    { "GetPixelFormatName",     PySDL_GetPixelFormatName,     METH_O       },
+    { "PixelFormatEnumToMasks", PySDL_PixelFormatEnumToMasks, METH_O       },
+    { "MasksToPixelFormatEnum", PySDL_MasksToPixelFormatEnum, METH_VARARGS },
+
+    { "IMG_Init",             PySDL_IMG_Init,              METH_VARARGS },
+    { "IMG_Quit",             PySDL_IMG_Quit,              METH_NOARGS  },
 
     { "CreateSoftwareRenderer", PySDL_CreateSoftwareRenderer, METH_O       },
     { "ComposeCustomBlendMode", PySDL_ComposeCustomBlendMode, METH_VARARGS },
@@ -201,6 +219,18 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     Py_INCREF(&PySDL_Texture_Type);
     PyModule_AddObject(module, "Texture", (PyObject *)&PySDL_Texture_Type);
 
+    if(0 > PyType_Ready(&PySDL_PixelFormat_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_PixelFormat_Type);
+    PyModule_AddObject(module, "PixelFormat", (PyObject *)&PySDL_PixelFormat_Type);
+
+    if(0 > PyType_Ready(&PySDL_Palette_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Palette_Type);
+    PyModule_AddObject(module, "Palette", (PyObject *)&PySDL_Palette_Type);
+
     if(0 > PyType_Ready(&PySDL_Audio_Type)) {
         return NULL;
     }
@@ -277,40 +307,52 @@ static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
     return PyLong_FromUnsignedLong(SDL_GetTicks());
 }
 
+// Both loaders take a filesystem path (str) or the file's bytes.
+static PyObject * _load_surface(PyObject *arg, int is_image) {
+    PySDL_Surface *wrapper = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
+    if(NULL == wrapper) {
+        return NULL;
+    }
+
+    if(PyBytes_Check(arg) || PyByteArray_Check(arg)) {
+        Py_buffer buffer;
+        if(0 > PyObject_GetBuffer(arg, &buffer, PyBUF_SIMPLE)) {
+            Py_DECREF(wrapper);
+            return NULL;
+        }
+        SDL_RWops *rw = SDL_RWFromConstMem(buffer.buf, (int)buffer.len);
+        if(NULL != rw) {
+            Py_BEGIN_ALLOW_THREADS
+                wrapper->surface = is_image ? IMG_Load_RW(rw, 1) : SDL_LoadBMP_RW(rw, 1);
+            Py_END_ALLOW_THREADS
+        }
+        PyBuffer_Release(&buffer);
+    } else {
+        const char *path = PyUnicode_AsUTF8(arg);
+        if(NULL == path) {
+            Py_DECREF(wrapper);
+            return NULL;
+        }
+        Py_BEGIN_ALLOW_THREADS
+            wrapper->surface = is_image ? IMG_Load(path) : SDL_LoadBMP(path);
+        Py_END_ALLOW_THREADS
+    }
+
+    if(NULL == wrapper->surface) {
+        Py_DECREF(wrapper);
+        PyErr_SetString(pysdl_Error, is_image ? IMG_GetError() : SDL_GetError());
+        return NULL;
+    }
+
+    return (PyObject *)wrapper;
+}
+
 static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
-    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
-    if(NULL == pysdl_Surface) {
-        return NULL;
-    }
-
-    Py_BEGIN_ALLOW_THREADS
-        pysdl_Surface->surface = SDL_LoadBMP(PyUnicode_AsUTF8(arg));
-    Py_END_ALLOW_THREADS
-
-    if(NULL == pysdl_Surface->surface) {
-        PyErr_SetString(pysdl_Error, SDL_GetError());
-        return NULL;
-    }
-
-    return (PyObject *)pysdl_Surface;
+    return _load_surface(arg, 0);
 }
 
 static PyObject * PySDL_LoadImage(PyObject *self, PyObject *arg) {
-    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
-    if(NULL == pysdl_Surface) {
-        return NULL;
-    }
-
-    Py_BEGIN_ALLOW_THREADS
-        pysdl_Surface->surface = IMG_Load(PyUnicode_AsUTF8(arg));
-    Py_END_ALLOW_THREADS
-
-    if(NULL == pysdl_Surface->surface) {
-        PyErr_SetString(pysdl_Error, IMG_GetError());
-        return NULL;
-    }
-
-    return (PyObject *)pysdl_Surface;
+    return _load_surface(arg, 1);
 }
 
 static PyObject * PySDL_ShowCursor(PyObject *self, PyObject *args) {
@@ -343,6 +385,7 @@ static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObjec
 
     pysdl_Surface->surface = SDL_CreateRGBSurface(0, w, h, d, rmask, gmask, bmask, amask);
     if(NULL == pysdl_Surface->surface) {
+        Py_DECREF(pysdl_Surface);
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
@@ -351,37 +394,161 @@ static PyObject * PySDL_CreateRGBSurface(PyObject *self, PyObject *args, PyObjec
 }
 
 static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyObject *kwds) {
-    const uint8_t *pixels;
-    Py_ssize_t pixelsSize;
+    Py_buffer pixels;
     int w = 0;
     int h = 0;
     int d = 32;
+    int pitch = 0;
     uint32_t rmask = 0xff000000;
     uint32_t gmask = 0x00ff0000;
     uint32_t bmask = 0x0000ff00;
     uint32_t amask = 0x000000ff;
 
-    static char *kwlist[] = {"pixels","size", "depth", "rmask", "gmask", "bmask", "amask", NULL};
+    static char *kwlist[] = {"pixels", "size", "depth", "rmask", "gmask", "bmask", "amask", "pitch", NULL};
 
-    int ok = PyArg_ParseTupleAndKeywords(args, kwds, "s#(ii)|iIIII", kwlist,
-        &pixels, &pixelsSize, &w, &h, &d, &rmask, &gmask, &bmask, &amask);
+    int ok = PyArg_ParseTupleAndKeywords(args, kwds, "y*(ii)|iIIIIi", kwlist,
+        &pixels, &w, &h, &d, &rmask, &gmask, &bmask, &amask, &pitch);
     if(!ok) {
         return NULL;
     }
 
-    PySDL_Surface * pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
+    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
+    if(NULL == pysdl_Surface) {
+        PyBuffer_Release(&pixels);
+        return NULL;
+    }
+
+    if(pitch <= 0) {
+        pitch = w * (d >> 3);
+    }
+    pysdl_Surface->surface = SDL_CreateRGBSurfaceFrom(pixels.buf, w, h, d, pitch, rmask, gmask, bmask, amask);
+    if(NULL == pysdl_Surface->surface) {
+        Py_DECREF(pysdl_Surface);
+        PyBuffer_Release(&pixels);
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    // Keep the buffer alive for the life of the surface (SDL does not copy it).
+    pysdl_Surface->pixels = pixels;
+    return (PyObject *)pysdl_Surface;
+}
+
+static PyObject * PySDL_CreateRGBSurfaceWithFormat(PyObject *self, PyObject *args, PyObject *kwds) {
+    int w = 0;
+    int h = 0;
+    int depth = 0;
+    unsigned int format;
+
+    static char *kwlist[] = {"size", "format", "depth", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "(ii)I|i", kwlist, &w, &h, &format, &depth)) {
+        return NULL;
+    }
+    if(depth <= 0) {
+        depth = SDL_BITSPERPIXEL(format);
+    }
+
+    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == pysdl_Surface) {
         return NULL;
     }
 
-    int pitch = w * (d >> 3);
-    pysdl_Surface->surface = SDL_CreateRGBSurfaceFrom((void *)pixels, w, h, d, pitch, rmask, gmask, bmask, amask);
+    pysdl_Surface->surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, depth, format);
     if(NULL == pysdl_Surface->surface) {
+        Py_DECREF(pysdl_Surface);
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
 
     return (PyObject *)pysdl_Surface;
+}
+
+static PyObject * PySDL_CreateRGBSurfaceWithFormatFrom(PyObject *self, PyObject *args, PyObject *kwds) {
+    Py_buffer pixels;
+    int w = 0;
+    int h = 0;
+    int depth = 0;
+    int pitch = 0;
+    unsigned int format;
+
+    static char *kwlist[] = {"pixels", "size", "format", "depth", "pitch", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "y*(ii)I|ii", kwlist,
+        &pixels, &w, &h, &format, &depth, &pitch)) {
+        return NULL;
+    }
+    if(depth <= 0) {
+        depth = SDL_BITSPERPIXEL(format);
+    }
+    if(pitch <= 0) {
+        pitch = w * SDL_BYTESPERPIXEL(format);
+    }
+
+    PySDL_Surface *pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
+    if(NULL == pysdl_Surface) {
+        PyBuffer_Release(&pixels);
+        return NULL;
+    }
+
+    pysdl_Surface->surface = SDL_CreateRGBSurfaceWithFormatFrom(pixels.buf, w, h, depth, pitch, format);
+    if(NULL == pysdl_Surface->surface) {
+        Py_DECREF(pysdl_Surface);
+        PyBuffer_Release(&pixels);
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    pysdl_Surface->pixels = pixels;
+    return (PyObject *)pysdl_Surface;
+}
+
+static PyObject * PySDL_GetPixelFormatName(PyObject *self, PyObject *arg) {
+    unsigned long format = PyLong_AsUnsignedLong(arg);
+    if((unsigned long)-1 == format && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyUnicode_FromString(SDL_GetPixelFormatName((Uint32)format));
+}
+
+static PyObject * PySDL_PixelFormatEnumToMasks(PyObject *self, PyObject *arg) {
+    unsigned long format = PyLong_AsUnsignedLong(arg);
+    if((unsigned long)-1 == format && PyErr_Occurred()) {
+        return NULL;
+    }
+
+    int bpp = 0;
+    Uint32 rmask, gmask, bmask, amask;
+    if(SDL_FALSE == SDL_PixelFormatEnumToMasks((Uint32)format, &bpp, &rmask, &gmask, &bmask, &amask)) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return Py_BuildValue("(iIIII)", bpp, rmask, gmask, bmask, amask);
+}
+
+static PyObject * PySDL_MasksToPixelFormatEnum(PyObject *self, PyObject *args) {
+    int bpp;
+    uint32_t rmask, gmask, bmask, amask;
+    if(!PyArg_ParseTuple(args, "iIIII", &bpp, &rmask, &gmask, &bmask, &amask)) {
+        return NULL;
+    }
+    return PyLong_FromUnsignedLong(SDL_MasksToPixelFormatEnum(bpp, rmask, gmask, bmask, amask));
+}
+
+static PyObject * PySDL_IMG_Init(PyObject *self, PyObject *args) {
+    int flags = IMG_INIT_JPG | IMG_INIT_PNG;
+    if(!PyArg_ParseTuple(args, "|i", &flags)) {
+        return NULL;
+    }
+    int got = IMG_Init(flags);
+    if(flags && (got & flags) != flags) {
+        PyErr_SetString(pysdl_Error, IMG_GetError());
+        return NULL;
+    }
+    return PyLong_FromLong(got);
+}
+
+static PyObject * PySDL_IMG_Quit(PyObject *self, PyObject *ign) {
+    IMG_Quit();
+    Py_RETURN_NONE;
 }
 
 static PyObject * PySDL_CreateSoftwareRenderer(PyObject *self, PyObject *arg) {

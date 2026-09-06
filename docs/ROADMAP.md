@@ -80,19 +80,31 @@ now in the module namespace and constructible. Tests: `tests/test_renderer.py`,
 - Constants: `TEXTUREACCESS_*`, `TEXTUREMODULATE_*`, `BLENDMODE_*`,
   `BLENDOPERATION_*`, `BLENDFACTOR_*`, `SCALEMODE_*`.
 
-## Phase 2 - Surfaces & pixels
+## Phase 2 - Surfaces & pixels  — DONE
 
-- `pysdl_Surface.c`: `BlitSurface`, `BlitScaled`, `FillRect(s)`,
-  `Set/GetColorKey`, `SetSurfaceBlendMode` / `ColorMod` / `AlphaMod` (+ getters),
-  `Set/GetClipRect`, `ConvertSurface`, `ConvertSurfaceFormat`,
-  `DuplicateSurface`, `SoftStretch`, `SetSurfaceRLE`, `SetSurfacePalette`;
-  constructors `CreateRGBSurfaceWithFormat[From]`, `LoadBMP` from bytes.
-- New `src/pysdl_PixelFormat.c` -> `SDL2.PixelFormat`: `AllocFormat` /
-  `FreeFormat`, `MapRGB(A)`, `GetRGB(A)`, name/masks; module helpers
-  `GetPixelFormatName`, `PixelFormatEnumToMasks`, `MasksToPixelFormatEnum`.
-- New `src/pysdl_Palette.c` -> `SDL2.Palette`: `AllocPalette`,
-  `SetPaletteColors`, `FreePalette`.
-- SDL2_image: `IMG_Init` / `IMG_Quit`, `Surface.SavePNG` / `SaveJPG`.
+Tests: `tests/test_surface.py`, `tests/test_pixelformat.py`; example:
+`example/surface.py`.
+
+- **`Surface`** methods (short names, like `Texture`): `Blit`, `BlitScaled`,
+  `SoftStretch`, `FillRect` / `FillRects` (colour is an int or `(r,g,b[,a])`),
+  `SetColorKey` / `GetColorKey`, `SetBlendMode` / `GetBlendMode`,
+  `SetColorMod` / `GetColorMod`, `SetAlphaMod` / `GetAlphaMod`,
+  `SetClipRect` / `GetClipRect`, `SetRLE`, `SetPalette`, `Convert` (enum int
+  *or* `PixelFormat`), `Duplicate`, `MapRGB` / `MapRGBA`, `GetPixelFormat`,
+  `SavePNG`, `SaveJPG`. New `pitch` attribute.
+- New **`SDL2.PixelFormat(format_enum)`** (`src/pysdl_PixelFormat.c`):
+  `MapRGB` / `MapRGBA` / `GetRGB` / `GetRGBA`, `SetPalette`; attrs `format`,
+  `bpp`, `bytes`, `R/G/B/Amask`.
+- New **`SDL2.Palette(ncolors)`** (`src/pysdl_Palette.c`): `SetColors(colors,
+  first=0)`, `GetColors()`, `ncolors`.
+- Module: `CreateRGBSurfaceWithFormat` / `…WithFormatFrom`, `GetPixelFormatName`,
+  `PixelFormatEnumToMasks`, `MasksToPixelFormatEnum`, `IMG_Init` / `IMG_Quit`.
+- `LoadBMP` / `LoadImage` now also take the file's `bytes` (RWops built
+  internally); `…SurfaceFrom` keeps the caller's buffer alive via
+  `Surface.pixels` (`Py_buffer`) — fixes a pre-existing dangling-pointer bug.
+- New converter `PyToPixel`. Constants: `PIXELFORMAT_{RGBA,ARGB,BGRA,ABGR}32`,
+  `PIXELFORMAT_X{RGB,BGR}8888`, `SWSURFACE`/`PREALLOC`/`RLEACCEL`/`DONTFREE`,
+  `IMG_INIT_*`.
 
 ## Phase 3 - Keyboard, mouse, text input
 

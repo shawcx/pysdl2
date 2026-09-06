@@ -45,6 +45,7 @@ tests/test_audio.py`.
 a display:
 - `python3 example/info.py` — prints CPU/display/renderer info, no window
 - `python3 example/draw.py` — primitives, blend modes, render-to-texture, geometry
+- `python3 example/surface.py [out.png]` — software-surface compositing, no window
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
@@ -60,13 +61,14 @@ a display:
   queries, timers, error/clipboard/screensaver) and the `_event()` helper that
   flattens an `SDL_Event` into a `(type, data_tuple)` pair for
   `PollEvent`/`WaitEvent`.
-- `src/pysdl_Window.c`, `pysdl_Renderer.c`, `pysdl_Surface.c`,
-  `pysdl_Texture.c`, `pysdl_Audio.c` — one wrapped SDL object per file, each a
-  full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
+- `src/pysdl_Window.c`, `pysdl_Renderer.c`, `pysdl_Surface.c`, `pysdl_Texture.c`,
+  `pysdl_Audio.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c` — one wrapped SDL
+  object per file, each a full `PyTypeObject` with `PySDL_<Type>_<Method>`
+  functions.
 - `src/pysdl_util.c` — `PySDL_New()` (wrapper allocation), `PySDL_ThreadEnter` /
   `PySDL_ThreadLeave` (GIL handling for SDL-owned threads), and the
   `PyToRect` / `PyToPoint` / `PyToColor` / `PyToFRect` / `PyToFPoint` /
-  `RectToPy` / `PointToPy` converters.
+  `PyToPixel` / `RectToPy` / `PointToPy` converters.
 - `src/_constants.c` — `_constants(module)` bulk-registers ~700 SDL enum/#define
   values as module int constants. Add new constants here; some are wrapped in
   `#ifdef` for SDL version portability.
@@ -79,17 +81,21 @@ couple of tracking fields: `Surface.shouldFree`, `Renderer.target`,
 construction) or afterwards by the C code that allocated the wrapper with
 `PySDL_New(&PySDL_X_Type)`; it is released in `tp_dealloc`.
 
-`Window`, `Audio`, `Renderer`, and `Texture` are in the module namespace and
-constructible: `SDL2.Renderer(window, index=-1, flags=0)`,
-`SDL2.Texture(renderer, format=PIXELFORMAT_RGBA8888, access=TEXTUREACCESS_STATIC,
-size=(0,0))`. Their `tp_init` takes the primary arg as *optional* — with no
-window/renderer it just nulls the pointer, which is the path `PySDL_New` and
-`Window.CreateRenderer()` / `Renderer.CreateTextureFromSurface()` use. `Surface`
-is still constructed only via module/Window/Renderer functions.
+`Window`, `Audio`, `Renderer`, `Texture`, `PixelFormat`, and `Palette` are in
+the module namespace and constructible: `SDL2.Renderer(window, index=-1,
+flags=0)`, `SDL2.Texture(renderer, format=…, access=…, size=(0,0))`,
+`SDL2.PixelFormat(format_enum)`, `SDL2.Palette(ncolors)`. Their `tp_init` takes
+the primary arg as *optional* — with none given it just nulls the pointer, the
+path `PySDL_New` and the C-side factory functions use. `Renderer`/`Texture` lean
+on SDL's NULL-pointer tolerance; `PixelFormat`/`Palette` methods and getters go
+through a `_fmt()`/`_pal()` guard that raises on an uninitialised instance.
+`Surface` is still constructed only via module/Window/Renderer functions.
 
 `PySDL_Surface` carries a `shouldFree` flag: surfaces it owns (loaded images,
 `CreateRGBSurface`) are `SDL_FreeSurface`d on dealloc; a borrowed surface like
-`Window.GetWindowSurface()` sets `shouldFree = 0`.
+`Window.GetWindowSurface()` sets `shouldFree = 0`. It also holds a `Py_buffer
+pixels` (`pixels.obj == NULL` unless it is a `…SurfaceFrom` surface) that keeps
+the caller's buffer alive for the surface's lifetime — SDL does not copy it.
 
 ### Threading
 
@@ -113,13 +119,15 @@ New off-main-thread callbacks (timers, event filters) must follow the same
 ### Conventions
 
 - Errors: set `pysdl_Error` (exposed as `SDL2.error`) with `SDL_GetError()` /
-  `IMG_GetError()` and return `NULL`. `pysdl_Renderer.c` / `pysdl_Texture.c` have
-  a local `_raise()` helper that does exactly this.
+  `IMG_GetError()` and return `NULL`. `pysdl_Renderer.c` / `pysdl_Texture.c` /
+  `pysdl_Surface.c` have a local `_raise()` helper that does exactly this.
 - Create wrapper objects with `PySDL_New(&PySDL_X_Type)`; `Py_DECREF` the wrapper
   on the SDL-failure path (it owns nothing yet, but the wrapper itself leaks).
 - Method names drop `SDL_`. `Renderer` keeps the rest verbatim
-  (`RenderSetViewport`, `GetRendererInfo`); `Texture` also drops the type word
-  (`SDL_UpdateTexture` → `Update`, `SDL_SetTextureBlendMode` → `SetBlendMode`).
+  (`RenderSetViewport`, `GetRendererInfo`); `Texture` and `Surface` also drop the
+  type word (`SDL_UpdateTexture` → `Update`, `SDL_SetSurfaceBlendMode` →
+  `SetBlendMode`, `SDL_BlitSurface` → `Blit`) — except the pre-existing
+  `Surface.LockSurface` / `UnlockSurface` / `SaveBMP`, kept for compatibility.
 - Take a `PySDL_<Type> *` argument with `O!` + `&PySDL_<Type>_Type`, or check
   with `PyObject_TypeCheck` before casting — never cast an unchecked `O`.
 - Rect/point/colour args go through `PyToRect` / `PyToPoint` / `PyToColor` /
@@ -127,6 +135,8 @@ New off-main-thread callbacks (timers, event filters) must follow the same
   `-1`, a 3-item colour sets `a = 255`). Check the return — they raise and
   return 0 on bad input. Pass `None` for optional rect args; guard with
   `if (arg && arg != Py_None)` since an omitted optional stays `NULL`.
+- `PyToPixel(obj, format, &Uint32)` accepts an already-mapped int verbatim or
+  maps an `(r,g,b[,a])` sequence through `format` — used for fill/colour-key.
 - Renderer draw primitives (`DrawPoint(s)`, `DrawLine(s)`, `DrawRect(s)`,
   `FillRect(s)`) call the SDL `*F` float functions internally and accept int or
   float coordinates. `Copy`/`CopyEx` take integer rects; `CopyF`/`CopyExF` take a
