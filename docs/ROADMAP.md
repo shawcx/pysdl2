@@ -160,16 +160,29 @@ Tests: `tests/test_joystick.py` (driven by a virtual joystick); example:
   `CONTROLLER_BUTTON_*`, `CONTROLLER_TYPE_*`, the joystick/controller event
   types.
 
-## Phase 5 - Events subsystem completeness
+## Phase 5 - Events subsystem completeness  — DONE
 
-- Module: `PushEvent`, `PumpEvents`, `PeepEvents`, `FlushEvent(s)`,
-  `HasEvent(s)`, `WaitEventTimeout`, `RegisterEvents`, `EventState` /
-  `GetEventState`, `QuitRequested`.
-- Remaining `_event()` structs: `DROPFILE/DROPTEXT/DROPBEGIN/DROPCOMPLETE`,
-  `AUDIODEVICEADDED/REMOVED`, `USEREVENT`, `DISPLAYEVENT`, `SENSORUPDATE`,
-  `FINGERDOWN/UP/MOTION`, `MULTIGESTURE`, `DOLLARGESTURE`, `CLIPBOARDUPDATE`,
-  `KEYMAPCHANGED`; window-event subtype decode.
-- Optional/advanced: `SetEventFilter` / `AddEventWatch` via the trampoline.
+`_event()` and all the queue functions moved to the new `src/pysdl_events.c`
+(`pysdl_events_methods` merged via `PyModule_AddFunctions`). `GetKeyState` /
+`GetModState` moved from `pysdl.c` to `pysdl_input.c`. Tests:
+`tests/test_events.py`; example: `example/events.py`.
+
+- Module: `PumpEvents`, `PushEvent(type, code=0, windowID=0)`, `PeepEvents(count,
+  action=PEEKEVENT, minType, maxType)` -> list, `FlushEvent` / `FlushEvents`,
+  `HasEvent` / `HasEvents`, `WaitEventTimeout(ms)`, `RegisterEvents(n)`,
+  `EventState(type, state)` / `GetEventState(type)`, `QuitRequested`.
+- `_event()` now decodes `JOYDEVICE*` / `CONTROLLER*` (from phase 4) plus
+  `DROPFILE` / `DROPTEXT` (frees `drop.file`) / `DROPBEGIN` / `DROPCOMPLETE`,
+  `AUDIODEVICEADDED` / `REMOVED`, `FINGERDOWN` / `UP` / `MOTION`, `MULTIGESTURE`,
+  `DOLLARGESTURE` / `DOLLARRECORD`, `DISPLAYEVENT`, `SENSORUPDATE` (≥2.0.9);
+  any type `>= USEREVENT` yields `(code, windowID)`.
+- Event filter (advanced): `SetEventFilter(callable | None)` / `GetEventFilter`
+  (one global filter; callback returns truthy to keep the event) and
+  `FilterEvents(callable)` (run once over the queue) — both through the
+  `PySDL_ThreadEnter` trampoline.
+- Constants: `DROP*`, `FINGER*`, `MULTIGESTURE`, `DOLLAR*`, `CLIPBOARDUPDATE`,
+  `SENSORUPDATE`, `RENDER_TARGETS_RESET` / `RENDER_DEVICE_RESET`, `FIRSTEVENT` /
+  `LASTEVENT` / `ADDEVENT` / `PEEKEVENT` / `GETEVENT`.
 
 ## Phase 6 - Timers, haptics, sensors, touch, power
 

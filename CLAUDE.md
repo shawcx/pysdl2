@@ -48,6 +48,7 @@ a display:
 - `python3 example/surface.py [out.png]` — software-surface compositing, no window
 - `python3 example/keyboard.py` — keyboard / text-input / mouse event echo, cursors
 - `python3 example/gamepad.py [--virtual]` — game controller / joystick monitor
+- `python3 example/events.py` — dump every event, custom + cross-thread events, filter
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
@@ -58,22 +59,26 @@ a display:
 `PyTypeObject`, the module-wide `pysdl_Error` exception, and the helpers in
 `pysdl_util.c`. Every `.c` file includes only this.
 
-- `src/pysdl.c` — module definition and `PyInit_SDL2`. Holds most module-level
-  functions (`Init`, `PollEvent`, `LoadImage`, display/GL/CPU/audio-device
-  queries, timers, error/clipboard/screensaver) and the `_event()` helper that
-  flattens an `SDL_Event` into a `(type, data)` pair for `PollEvent`/`WaitEvent`
-  (`data` is a tuple for structured events, a bare `str` for `TEXTINPUT`, `None`
-  for `QUIT`).
+- `src/pysdl.c` — module definition and `PyInit_SDL2`. Holds `Init` /
+  `InitSubSystem` / `Quit`, `LoadImage`, display / GL / CPU / audio-device
+  queries, timers, error / clipboard / screensaver, surface & blend-mode
+  factories.
+- `src/pysdl_events.c` — the event queue: `_event()` (an `SDL_Event` ->
+  `(type, data)` converter; `data` is a tuple for structured events, a bare
+  `str` for `TEXTINPUT`, `None` for `QUIT` and unknown types), plus
+  `PollEvent` / `WaitEvent` / `PushEvent` / `PeepEvents` / filters etc. `_event`
+  takes a `consume` flag — 1 frees the `drop.file` string SDL handed us, 0 when
+  the event still belongs to SDL (event filter, `SDL_PEEKEVENT`).
 - `src/pysdl_Window.c`, `pysdl_Renderer.c`, `pysdl_Surface.c`, `pysdl_Texture.c`,
   `pysdl_Audio.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c`, `pysdl_Cursor.c`,
   `pysdl_Joystick.c`, `pysdl_GameController.c` — one wrapped SDL object per file,
   each a full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
 - `src/pysdl_input.c` — module-level keyboard / mouse / text-input functions.
   Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into the module
-  in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_Cursor.c`,
-  `pysdl_Joystick.c`, `pysdl_GameController.c` do the same for their factory /
-  subsystem functions. Use this pattern to add a batch of module functions from
-  a new file.
+  in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_events.c`,
+  `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c` do the same for
+  their functions. Use this pattern to add a batch of module functions from a
+  new file.
 - `src/pysdl_util.c` — `PySDL_New()` (wrapper allocation), `PySDL_ThreadEnter` /
   `PySDL_ThreadLeave` (GIL handling for SDL-owned threads), and the
   `PyToRect` / `PyToPoint` / `PyToColor` / `PyToFRect` / `PyToFPoint` /

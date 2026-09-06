@@ -186,7 +186,30 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "CONTROLLERDEVICEADDED",    SDL_CONTROLLERDEVICEADDED    );
     PyModule_AddIntConstant( module, "CONTROLLERDEVICEREMOVED",  SDL_CONTROLLERDEVICEREMOVED  );
     PyModule_AddIntConstant( module, "CONTROLLERDEVICEREMAPPED", SDL_CONTROLLERDEVICEREMAPPED );
-    PyModule_AddIntConstant( module, "USEREVENT",       SDL_USEREVENT       );
+
+    PyModule_AddIntConstant( module, "FINGERDOWN",       SDL_FINGERDOWN       );
+    PyModule_AddIntConstant( module, "FINGERUP",         SDL_FINGERUP         );
+    PyModule_AddIntConstant( module, "FINGERMOTION",     SDL_FINGERMOTION     );
+    PyModule_AddIntConstant( module, "MULTIGESTURE",     SDL_MULTIGESTURE     );
+    PyModule_AddIntConstant( module, "DOLLARGESTURE",    SDL_DOLLARGESTURE    );
+    PyModule_AddIntConstant( module, "DOLLARRECORD",     SDL_DOLLARRECORD     );
+    PyModule_AddIntConstant( module, "CLIPBOARDUPDATE",  SDL_CLIPBOARDUPDATE  );
+    PyModule_AddIntConstant( module, "DROPFILE",         SDL_DROPFILE         );
+    PyModule_AddIntConstant( module, "DROPTEXT",         SDL_DROPTEXT         );
+    PyModule_AddIntConstant( module, "DROPBEGIN",        SDL_DROPBEGIN        );
+    PyModule_AddIntConstant( module, "DROPCOMPLETE",     SDL_DROPCOMPLETE     );
+#if SDL_VERSION_ATLEAST(2,0,9)
+    PyModule_AddIntConstant( module, "SENSORUPDATE",     SDL_SENSORUPDATE     );
+#endif
+    PyModule_AddIntConstant( module, "RENDER_TARGETS_RESET", SDL_RENDER_TARGETS_RESET );
+    PyModule_AddIntConstant( module, "RENDER_DEVICE_RESET",  SDL_RENDER_DEVICE_RESET  );
+
+    PyModule_AddIntConstant( module, "USEREVENT",   SDL_USEREVENT   );
+    PyModule_AddIntConstant( module, "FIRSTEVENT",  SDL_FIRSTEVENT  );
+    PyModule_AddIntConstant( module, "LASTEVENT",   SDL_LASTEVENT   );
+    PyModule_AddIntConstant( module, "ADDEVENT",    SDL_ADDEVENT    );
+    PyModule_AddIntConstant( module, "PEEKEVENT",   SDL_PEEKEVENT   );
+    PyModule_AddIntConstant( module, "GETEVENT",    SDL_GETEVENT    );
 
     PyModule_AddIntConstant( module, "HAT_CENTERED",  SDL_HAT_CENTERED  );
     PyModule_AddIntConstant( module, "HAT_UP",        SDL_HAT_UP        );

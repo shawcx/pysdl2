@@ -64,6 +64,23 @@ static PyObject * PySDL_SetModState(PyObject *self, PyObject *arg) {
     Py_RETURN_NONE;
 }
 
+static PyObject * PySDL_GetModState(PyObject *self, PyObject *ign) {
+    return PyLong_FromLong(SDL_GetModState());
+}
+
+static PyObject * PySDL_GetKeyState(PyObject *self, PyObject *ign) {
+    int len = 0;
+    const Uint8 *keys = SDL_GetKeyboardState(&len);
+    PyObject *list = PyList_New(len);
+    if(NULL == list) {
+        return NULL;
+    }
+    for(int idx = 0; idx < len; ++idx) {
+        PyList_SET_ITEM(list, idx, PyBool_FromLong(keys[idx]));
+    }
+    return list;
+}
+
 static PyObject * PySDL_GetKeyboardFocus(PyObject *self, PyObject *ign) {
     return PySDL_WrapWindow(SDL_GetKeyboardFocus());
 }
@@ -204,6 +221,8 @@ PyMethodDef pysdl_input_methods[] = {
     { "GetKeyFromScancode",       PySDL_GetKeyFromScancode,       METH_O      },
     { "GetScancodeFromKey",       PySDL_GetScancodeFromKey,       METH_O      },
     { "SetModState",              PySDL_SetModState,              METH_O      },
+    { "GetModState",              PySDL_GetModState,              METH_NOARGS },
+    { "GetKeyState",              PySDL_GetKeyState,              METH_NOARGS },
     { "GetKeyboardFocus",         PySDL_GetKeyboardFocus,         METH_NOARGS },
     { "HasScreenKeyboardSupport", PySDL_HasScreenKeyboardSupport, METH_NOARGS },
     { "IsScreenKeyboardShown",    PySDL_IsScreenKeyboardShown,    METH_O      },

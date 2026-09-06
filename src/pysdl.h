@@ -89,7 +89,8 @@ extern PyTypeObject PySDL_GameController_Type;
 void _constants(PyObject *module);
 
 // Extra module-function tables registered from their own files.
-extern PyMethodDef pysdl_input_methods[];           // pysdl_input.c  (keyboard / mouse / text)
+extern PyMethodDef pysdl_events_methods[];          // pysdl_events.c  (event queue)
+extern PyMethodDef pysdl_input_methods[];           // pysdl_input.c   (keyboard / mouse / text)
 extern PyMethodDef pysdl_cursor_methods[];          // pysdl_Cursor.c
 extern PyMethodDef pysdl_joystick_methods[];        // pysdl_Joystick.c
 extern PyMethodDef pysdl_gamecontroller_methods[];  // pysdl_GameController.c
