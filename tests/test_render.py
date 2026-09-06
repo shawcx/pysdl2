@@ -1,26 +1,6 @@
-'''Renderer draw-colour getter and the tuple/list -> SDL_Rect converters,
-exercised through Renderer.Copy (the only public path to them in phase 0).'''
+'''Phase 0: the tuple/list -> SDL_Rect converters, via Renderer.Copy.'''
 
 import pytest
-
-
-@pytest.fixture
-def renderer(sdl):
-    window = sdl.Window('render-test', (64, 48))
-    try:
-        yield window.CreateRenderer()
-    except sdl.error:
-        pytest.skip('no renderer available under this driver')
-
-
-@pytest.fixture
-def texture(sdl, renderer):
-    return renderer.CreateTextureFromSurface(sdl.CreateRGBSurface((8, 8)))
-
-
-def test_draw_color_roundtrip(renderer):
-    renderer.SetRenderDrawColor(10, 20, 30, 40)
-    assert renderer.GetRenderDrawColor() == (10, 20, 30, 40)
 
 
 def test_copy_without_rects(renderer, texture):
@@ -39,3 +19,8 @@ def test_copy_rejects_malformed_rect(renderer, texture):
         renderer.Copy(texture, (1, 2, 3))
     with pytest.raises(TypeError):
         renderer.Copy(texture, 5)
+
+
+def test_copy_rejects_non_texture(renderer):
+    with pytest.raises(TypeError):
+        renderer.Copy(object())

@@ -103,6 +103,46 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "RENDERER_PRESENTVSYNC",  SDL_RENDERER_PRESENTVSYNC  );
     PyModule_AddIntConstant( module, "RENDERER_TARGETTEXTURE", SDL_RENDERER_TARGETTEXTURE );
 
+    PyModule_AddIntConstant( module, "TEXTUREACCESS_STATIC",    SDL_TEXTUREACCESS_STATIC    );
+    PyModule_AddIntConstant( module, "TEXTUREACCESS_STREAMING", SDL_TEXTUREACCESS_STREAMING );
+    PyModule_AddIntConstant( module, "TEXTUREACCESS_TARGET",    SDL_TEXTUREACCESS_TARGET    );
+
+    PyModule_AddIntConstant( module, "TEXTUREMODULATE_NONE",  SDL_TEXTUREMODULATE_NONE  );
+    PyModule_AddIntConstant( module, "TEXTUREMODULATE_COLOR", SDL_TEXTUREMODULATE_COLOR );
+    PyModule_AddIntConstant( module, "TEXTUREMODULATE_ALPHA", SDL_TEXTUREMODULATE_ALPHA );
+
+    PyModule_AddIntConstant( module, "BLENDMODE_NONE",  SDL_BLENDMODE_NONE  );
+    PyModule_AddIntConstant( module, "BLENDMODE_BLEND", SDL_BLENDMODE_BLEND );
+    PyModule_AddIntConstant( module, "BLENDMODE_ADD",   SDL_BLENDMODE_ADD   );
+    PyModule_AddIntConstant( module, "BLENDMODE_MOD",   SDL_BLENDMODE_MOD   );
+#ifdef SDL_BLENDMODE_MUL
+    PyModule_AddIntConstant( module, "BLENDMODE_MUL",   SDL_BLENDMODE_MUL   );
+#endif
+    PyModule_AddIntConstant( module, "BLENDMODE_INVALID", SDL_BLENDMODE_INVALID );
+
+    PyModule_AddIntConstant( module, "BLENDOPERATION_ADD",          SDL_BLENDOPERATION_ADD          );
+    PyModule_AddIntConstant( module, "BLENDOPERATION_SUBTRACT",     SDL_BLENDOPERATION_SUBTRACT     );
+    PyModule_AddIntConstant( module, "BLENDOPERATION_REV_SUBTRACT", SDL_BLENDOPERATION_REV_SUBTRACT );
+    PyModule_AddIntConstant( module, "BLENDOPERATION_MINIMUM",      SDL_BLENDOPERATION_MINIMUM      );
+    PyModule_AddIntConstant( module, "BLENDOPERATION_MAXIMUM",      SDL_BLENDOPERATION_MAXIMUM      );
+
+    PyModule_AddIntConstant( module, "BLENDFACTOR_ZERO",                SDL_BLENDFACTOR_ZERO                );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_ONE",                 SDL_BLENDFACTOR_ONE                 );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_SRC_COLOR",           SDL_BLENDFACTOR_SRC_COLOR           );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_ONE_MINUS_SRC_COLOR", SDL_BLENDFACTOR_ONE_MINUS_SRC_COLOR );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_SRC_ALPHA",           SDL_BLENDFACTOR_SRC_ALPHA           );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_ONE_MINUS_SRC_ALPHA", SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_DST_COLOR",           SDL_BLENDFACTOR_DST_COLOR           );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_ONE_MINUS_DST_COLOR", SDL_BLENDFACTOR_ONE_MINUS_DST_COLOR );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_DST_ALPHA",           SDL_BLENDFACTOR_DST_ALPHA           );
+    PyModule_AddIntConstant( module, "BLENDFACTOR_ONE_MINUS_DST_ALPHA", SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA );
+
+#if SDL_VERSION_ATLEAST(2,0,12)
+    PyModule_AddIntConstant( module, "SCALEMODE_NEAREST", SDL_ScaleModeNearest );
+    PyModule_AddIntConstant( module, "SCALEMODE_LINEAR",  SDL_ScaleModeLinear  );
+    PyModule_AddIntConstant( module, "SCALEMODE_BEST",    SDL_ScaleModeBest    );
+#endif
+
     PyModule_AddIntConstant( module, "JOYAXISMOTION",   SDL_JOYAXISMOTION   );
     PyModule_AddIntConstant( module, "JOYBALLMOTION",   SDL_JOYBALLMOTION   );
     PyModule_AddIntConstant( module, "JOYHATMOTION",    SDL_JOYHATMOTION    );

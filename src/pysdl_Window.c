@@ -26,7 +26,7 @@ static PyObject * PySDL_Window_RestoreWindow       (PySDL_Window*, PyObject*);
 
 static PyObject * PySDL_Window_UpdateWindowSurface (PySDL_Window*, PyObject*);
 
-static PyObject * PySDL_Window_CreateRenderer      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_CreateRenderer      (PySDL_Window*, PyObject*, PyObject*);
 static PyObject * PySDL_Window_GL_CreateContext    (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_DeleteContext    (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_MakeCurrent      (PySDL_Window*, PyObject*);
@@ -57,7 +57,7 @@ static PyMethodDef PySDL_Window_methods[] = {
 
     { "UpdateWindowSurface", (PyCFunction)PySDL_Window_UpdateWindowSurface, METH_NOARGS  },
 
-    { "CreateRenderer",      (PyCFunction)PySDL_Window_CreateRenderer,      METH_NOARGS  },
+    { "CreateRenderer",      (PyCFunction)PySDL_Window_CreateRenderer,      METH_VARARGS | METH_KEYWORDS },
     { "GL_CreateContext",    (PyCFunction)PySDL_Window_GL_CreateContext,    METH_NOARGS  },
     { "GL_DeleteContext",    (PyCFunction)PySDL_Window_GL_DeleteContext,    METH_NOARGS  },
     { "GL_MakeCurrent",      (PyCFunction)PySDL_Window_GL_MakeCurrent,      METH_NOARGS  },
@@ -263,21 +263,23 @@ static PyObject * PySDL_Window_UpdateWindowSurface(PySDL_Window *self, PyObject 
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *ign) {
-    PySDL_Renderer *pysdl_Renderer;
-
+static PyObject * PySDL_Window_CreateRenderer(PySDL_Window *self, PyObject *args, PyObject *kwds) {
+    unsigned int flags = 0;
     int index = -1;
-    int flags = 0;
 
-    flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+    static char *kwlist[] = {"flags", "index", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|Ii", kwlist, &flags, &index)) {
+        return NULL;
+    }
 
-    pysdl_Renderer = (PySDL_Renderer *)PySDL_New(&PySDL_Renderer_Type);
+    PySDL_Renderer *pysdl_Renderer = (PySDL_Renderer *)PySDL_New(&PySDL_Renderer_Type);
     if(NULL == pysdl_Renderer) {
         return NULL;
     }
 
     pysdl_Renderer->renderer = SDL_CreateRenderer(self->window, index, flags);
     if(NULL == pysdl_Renderer->renderer) {
+        Py_DECREF(pysdl_Renderer);
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }

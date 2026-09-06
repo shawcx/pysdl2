@@ -20,16 +20,16 @@ renderer = window.CreateRenderer()
 #tex2 = renderer.LoadTexture(sys.argv[2])
 #for x in range(0,200,10):
 #    renderer.SetRenderDrawColor(128,128,x)
-#    renderer.RenderClear()
-#    renderer.RenderPresent()
+#    renderer.Clear()
+#    renderer.Present()
 #    time.sleep(0.1)
 
 texture = renderer.CreateTextureFromSurface(surface)
 del surface
 
-renderer.RenderClear()
-renderer.RenderCopy(texture)
-renderer.RenderPresent()
+renderer.Clear()
+renderer.Copy(texture)
+renderer.Present()
 
 quit = False
 while not quit:

@@ -49,24 +49,36 @@ These shape every later phase.
 `SetClipboardText` / `HasClipboardText`, `Renderer.GetRenderDrawColor`, and
 `Texture.GL_Bind` now returns `(w, h)`.
 
-## Phase 1 - Rendering completeness (highest value)
+## Phase 1 - Rendering completeness  — DONE
 
-Currently a texture can be blitted but a single line cannot be drawn. In
-`pysdl_Renderer.c` / `pysdl_Texture.c`:
+`pysdl_Renderer.c` / `pysdl_Texture.c` rewritten; `Renderer` and `Texture` are
+now in the module namespace and constructible. Tests: `tests/test_renderer.py`,
+`tests/test_texture.py`; example: `test/draw.py`.
 
-- Standalone `SDL2.Renderer(window, index=-1, flags=...)`,
-  `CreateSoftwareRenderer(surface)`.
-- Primitives: `DrawPoint(s)`, `DrawLine(s)`, `DrawRect(s)`, `FillRect(s)`,
-  `RenderGeometry`, `+F` float variants, `RenderCopyF` / `RenderCopyExF`.
-- State: `Get/SetRenderDrawBlendMode`, `RenderSet/GetViewport`,
-  `RenderSet/GetClipRect`, `RenderSet/GetScale`, `RenderSet/GetLogicalSize`,
-  `RenderSetIntegerScale`.
-- Targets: `SetRenderTarget`, `GetRenderTarget`, `RenderTargetSupported`,
-  `RenderReadPixels`.
-- Info: `GetRendererInfo`, `GetRendererOutputSize`, `RenderFlush`.
-- Texture: standalone `CreateTexture(...)`, `UpdateTexture(rect, bytes, pitch)`,
-  `UpdateYUVTexture`, `Get/SetTextureColorMod` / `AlphaMod` / `BlendMode` /
-  `ScaleMode`, `LockTexture(rect)` returning a writable buffer + pitch.
+- **Construction**: `SDL2.Renderer(window, index=-1, flags=0)`,
+  `SDL2.Texture(renderer, format, access, size)`,
+  `SDL2.CreateSoftwareRenderer(surface)`. `Window.CreateRenderer(flags=0,
+  index=-1)` now takes args — **behaviour change**: it no longer forces
+  `ACCELERATED | PRESENTVSYNC`; pass the flags you want.
+- **Primitives**: `DrawPoint(s)`, `DrawLine(s)`, `DrawRect(s)`, `FillRect(s)`
+  (all call the SDL `*F` functions internally, accept int or float),
+  `RenderGeometry(texture, vertices, indices=None)` (≥2.0.18), `CopyF` / `CopyExF`.
+- **State**: `Get/SetRenderDrawBlendMode`, `RenderSet/GetViewport`,
+  `RenderSet/GetClipRect`, `RenderIsClipEnabled`, `RenderSet/GetScale`,
+  `RenderSet/GetLogicalSize`, `RenderSet/GetIntegerScale`.
+- **Targets**: `SetRenderTarget` / `GetRenderTarget` (returns the same wrapper
+  object via `Renderer.target`), `RenderTargetSupported`,
+  `RenderReadPixels(rect=None, format=PIXELFORMAT_ARGB8888)` -> bytes.
+- **Info**: `GetRendererInfo`, `GetRendererOutputSize`, `RenderFlush`.
+- **Texture**: `Update(pixels, rect=None, pitch=0)`, `UpdateYUV(...)`,
+  `Set/GetColorMod`, `Set/GetAlphaMod`, `Set/GetBlendMode`, `Set/GetScaleMode`
+  (≥2.0.12), `Lock(rect=None)` -> `(writable memoryview, pitch)` valid until
+  `Unlock()`.
+- `Copy` / `CopyEx` gained `O!` texture type-checking (was an unchecked cast).
+- Module: `SDL2.ComposeCustomBlendMode(...)`.
+- New converters `PyToFRect` / `PyToFPoint` in `pysdl_util.c`.
+- Constants: `TEXTUREACCESS_*`, `TEXTUREMODULATE_*`, `BLENDMODE_*`,
+  `BLENDOPERATION_*`, `BLENDFACTOR_*`, `SCALEMODE_*`.
 
 ## Phase 2 - Surfaces & pixels
 

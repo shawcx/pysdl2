@@ -38,3 +38,21 @@ def sdl():
     SDL2.Init(SDL2.INIT_VIDEO | SDL2.INIT_AUDIO | SDL2.INIT_EVENTS | SDL2.INIT_TIMER)
     yield SDL2
     SDL2.Quit()
+
+
+@pytest.fixture
+def window(sdl):
+    return sdl.Window('pysdl2-test', (64, 48))
+
+
+@pytest.fixture
+def renderer(sdl, window):
+    try:
+        return window.CreateRenderer()
+    except sdl.error:
+        pytest.skip('no renderer available under this driver')
+
+
+@pytest.fixture
+def texture(sdl, renderer):
+    return renderer.CreateTextureFromSurface(sdl.CreateRGBSurface((8, 8)))

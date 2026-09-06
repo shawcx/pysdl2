@@ -27,6 +27,7 @@ extern PyTypeObject PySDL_Window_Type;
 typedef struct {
     PyObject_HEAD
     SDL_Renderer *renderer;
+    PyObject *target;  // Texture currently set as render target, or NULL
 } PySDL_Renderer;
 extern PyTypeObject PySDL_Renderer_Type;
 
@@ -69,11 +70,13 @@ void PySDL_ThreadLeave(PyGILState_STATE state);
 
 // Convert a Python tuple/list to an SDL struct. Return 1 on success, or 0 with
 // an exception set (usable directly as an "O&" converter).
-int PyToRect(PyObject *src, SDL_Rect *dst);    // 2 items -> w/h = -1, or 4 items
-int PyToPoint(PyObject *src, SDL_Point *dst);  // 2 items
-int PyToColor(PyObject *src, SDL_Color *dst);  // 3 items -> a = 255, or 4 items
+int PyToRect(PyObject *src, SDL_Rect *dst);     // 2 items -> w/h = -1, or 4 items
+int PyToPoint(PyObject *src, SDL_Point *dst);   // 2 items
+int PyToColor(PyObject *src, SDL_Color *dst);   // 3 items -> a = 255, or 4 items
+int PyToFRect(PyObject *src, SDL_FRect *dst);   // 2 items -> w/h = -1, or 4 items
+int PyToFPoint(PyObject *src, SDL_FPoint *dst); // 2 items
 
-PyObject * RectToPy(const SDL_Rect *rect);     // -> (x, y, w, h)
-PyObject * PointToPy(const SDL_Point *point);  // -> (x, y)
+PyObject * RectToPy(const SDL_Rect *rect);      // -> (x, y, w, h)
+PyObject * PointToPy(const SDL_Point *point);   // -> (x, y)
 
 #endif // __PYSDL_H__

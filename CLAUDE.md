@@ -44,6 +44,7 @@ tests/test_audio.py`.
 `test/` (singular) holds runnable example programs, most of which open a window
 and need a display:
 - `python3 test/info.py` — prints CPU/display/renderer info, no window
+- `python3 test/draw.py` — primitives, blend modes, render-to-texture, geometry
 - `python3 test/simple.py <image>` — load an image, show it, event loop
 - `python3 test/audio.py` — audio + OpenGL visualizer (also needs a `pygl` module)
 - `test/adjust.py` — fullscreen test pattern on every display
@@ -64,22 +65,27 @@ and need a display:
   full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
 - `src/pysdl_util.c` — `PySDL_New()` (wrapper allocation), `PySDL_ThreadEnter` /
   `PySDL_ThreadLeave` (GIL handling for SDL-owned threads), and the
-  `PyToRect` / `PyToPoint` / `PyToColor` / `RectToPy` / `PointToPy` converters.
+  `PyToRect` / `PyToPoint` / `PyToColor` / `PyToFRect` / `PyToFPoint` /
+  `RectToPy` / `PointToPy` converters.
 - `src/_constants.c` — `_constants(module)` bulk-registers ~700 SDL enum/#define
   values as module int constants. Add new constants here; some are wrapped in
   `#ifdef` for SDL version portability.
 
 ### Object model
 
-Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle. The
-pointer is acquired lazily (not in `tp_init`, which just nulls it) and released
-in `tp_dealloc`. Internally, code creates a wrapper with
-`PySDL_New(&PySDL_X_Type)` and then assigns the SDL pointer.
+Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus a
+couple of tracking fields: `Surface.shouldFree`, `Renderer.target`,
+`Audio.pycallback`). The SDL pointer is filled in either by `tp_init` (public
+construction) or afterwards by the C code that allocated the wrapper with
+`PySDL_New(&PySDL_X_Type)`; it is released in `tp_dealloc`.
 
-Only `Window` and `Audio` are added to the module namespace. `Renderer`,
-`Surface`, and `Texture` have no public constructor — they are only returned
-from methods (`Window.CreateRenderer()`, `SDL2.LoadImage()`,
-`Renderer.CreateTextureFromSurface()`, etc.).
+`Window`, `Audio`, `Renderer`, and `Texture` are in the module namespace and
+constructible: `SDL2.Renderer(window, index=-1, flags=0)`,
+`SDL2.Texture(renderer, format=PIXELFORMAT_RGBA8888, access=TEXTUREACCESS_STATIC,
+size=(0,0))`. Their `tp_init` takes the primary arg as *optional* — with no
+window/renderer it just nulls the pointer, which is the path `PySDL_New` and
+`Window.CreateRenderer()` / `Renderer.CreateTextureFromSurface()` use. `Surface`
+is still constructed only via module/Window/Renderer functions.
 
 `PySDL_Surface` carries a `shouldFree` flag: surfaces it owns (loaded images,
 `CreateRGBSurface`) are `SDL_FreeSurface`d on dealloc; a borrowed surface like
@@ -107,11 +113,22 @@ New off-main-thread callbacks (timers, event filters) must follow the same
 ### Conventions
 
 - Errors: set `pysdl_Error` (exposed as `SDL2.error`) with `SDL_GetError()` /
-  `IMG_GetError()` and return `NULL`.
-- Create wrapper objects with `PySDL_New(&PySDL_X_Type)`.
-- Rect/point/colour args go through `PyToRect` / `PyToPoint` / `PyToColor`
-  (tuple or list; a 2-item rect leaves `w`/`h` as `-1`, a 3-item colour sets
-  `a = 255`). Check the return — they raise and return 0 on bad input. Pass
-  `None` for optional `src`/`dst` rect arguments; guard with
+  `IMG_GetError()` and return `NULL`. `pysdl_Renderer.c` / `pysdl_Texture.c` have
+  a local `_raise()` helper that does exactly this.
+- Create wrapper objects with `PySDL_New(&PySDL_X_Type)`; `Py_DECREF` the wrapper
+  on the SDL-failure path (it owns nothing yet, but the wrapper itself leaks).
+- Method names drop `SDL_`. `Renderer` keeps the rest verbatim
+  (`RenderSetViewport`, `GetRendererInfo`); `Texture` also drops the type word
+  (`SDL_UpdateTexture` → `Update`, `SDL_SetTextureBlendMode` → `SetBlendMode`).
+- Take a `PySDL_<Type> *` argument with `O!` + `&PySDL_<Type>_Type`, or check
+  with `PyObject_TypeCheck` before casting — never cast an unchecked `O`.
+- Rect/point/colour args go through `PyToRect` / `PyToPoint` / `PyToColor` /
+  `PyToFRect` / `PyToFPoint` (tuple or list; a 2-item rect leaves `w`/`h` as
+  `-1`, a 3-item colour sets `a = 255`). Check the return — they raise and
+  return 0 on bad input. Pass `None` for optional rect args; guard with
   `if (arg && arg != Py_None)` since an omitted optional stays `NULL`.
+- Renderer draw primitives (`DrawPoint(s)`, `DrawLine(s)`, `DrawRect(s)`,
+  `FillRect(s)`) call the SDL `*F` float functions internally and accept int or
+  float coordinates. `Copy`/`CopyEx` take integer rects; `CopyF`/`CopyExF` take a
+  float dst rect for sub-pixel placement.
 - C99 designated initializers for `PyTypeObject`; `PY_SSIZE_T_CLEAN` is set.

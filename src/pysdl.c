@@ -18,6 +18,9 @@ static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 static PyObject * PySDL_CreateRGBSurface      (PyObject*, PyObject*, PyObject *);
 static PyObject * PySDL_CreateRGBSurfaceFrom  (PyObject*, PyObject*, PyObject *);
 
+static PyObject * PySDL_CreateSoftwareRenderer (PyObject*, PyObject*);
+static PyObject * PySDL_ComposeCustomBlendMode (PyObject*, PyObject*);
+
 static PyObject * PySDL_PollEvent             (PyObject*, PyObject*);
 static PyObject * PySDL_WaitEvent             (PyObject*, PyObject*);
 static PyObject * PySDL_GetKeyState           (PyObject*, PyObject*);
@@ -91,6 +94,9 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
 
     { "CreateRGBSurface",     (PyCFunction)PySDL_CreateRGBSurface,     METH_VARARGS | METH_KEYWORDS },
     { "CreateRGBSurfaceFrom", (PyCFunction)PySDL_CreateRGBSurfaceFrom, METH_VARARGS | METH_KEYWORDS },
+
+    { "CreateSoftwareRenderer", PySDL_CreateSoftwareRenderer, METH_O       },
+    { "ComposeCustomBlendMode", PySDL_ComposeCustomBlendMode, METH_VARARGS },
 
     { "PollEvent",             PySDL_PollEvent,             METH_NOARGS  },
     { "WaitEvent",             PySDL_WaitEvent,             METH_NOARGS  },
@@ -182,6 +188,7 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         return NULL;
     }
     Py_INCREF(&PySDL_Renderer_Type);
+    PyModule_AddObject(module, "Renderer", (PyObject *)&PySDL_Renderer_Type);
 
     if(0 > PyType_Ready(&PySDL_Surface_Type)) {
         return NULL;
@@ -192,6 +199,7 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         return NULL;
     }
     Py_INCREF(&PySDL_Texture_Type);
+    PyModule_AddObject(module, "Texture", (PyObject *)&PySDL_Texture_Type);
 
     if(0 > PyType_Ready(&PySDL_Audio_Type)) {
         return NULL;
@@ -374,6 +382,42 @@ static PyObject * PySDL_CreateRGBSurfaceFrom(PyObject *self, PyObject *args, PyO
     }
 
     return (PyObject *)pysdl_Surface;
+}
+
+static PyObject * PySDL_CreateSoftwareRenderer(PyObject *self, PyObject *arg) {
+    if(!PyObject_TypeCheck(arg, &PySDL_Surface_Type)) {
+        PyErr_SetString(PyExc_TypeError, "expected an SDL2.Surface");
+        return NULL;
+    }
+
+    PySDL_Renderer *pysdl_Renderer = (PySDL_Renderer *)PySDL_New(&PySDL_Renderer_Type);
+    if(NULL == pysdl_Renderer) {
+        return NULL;
+    }
+
+    pysdl_Renderer->renderer = SDL_CreateSoftwareRenderer(((PySDL_Surface *)arg)->surface);
+    if(NULL == pysdl_Renderer->renderer) {
+        Py_DECREF(pysdl_Renderer);
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+
+    return (PyObject *)pysdl_Renderer;
+}
+
+static PyObject * PySDL_ComposeCustomBlendMode(PyObject *self, PyObject *args) {
+    int srcColor, dstColor, colorOp, srcAlpha, dstAlpha, alphaOp;
+
+    if(!PyArg_ParseTuple(args, "iiiiii",
+        &srcColor, &dstColor, &colorOp, &srcAlpha, &dstAlpha, &alphaOp)) {
+        return NULL;
+    }
+
+    SDL_BlendMode mode = SDL_ComposeCustomBlendMode(
+        (SDL_BlendFactor)srcColor, (SDL_BlendFactor)dstColor, (SDL_BlendOperation)colorOp,
+        (SDL_BlendFactor)srcAlpha, (SDL_BlendFactor)dstAlpha, (SDL_BlendOperation)alphaOp);
+
+    return PyLong_FromLong(mode);
 }
 
 static PyObject * _event(SDL_Event *event) {
