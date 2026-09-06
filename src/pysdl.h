@@ -72,12 +72,27 @@ typedef struct {
 } PySDL_Cursor;
 extern PyTypeObject PySDL_Cursor_Type;
 
+typedef struct {
+    PyObject_HEAD
+    SDL_Joystick *joystick;
+    int shouldFree;  // 0 when borrowed (GameController.GetJoystick)
+} PySDL_Joystick;
+extern PyTypeObject PySDL_Joystick_Type;
+
+typedef struct {
+    PyObject_HEAD
+    SDL_GameController *controller;
+} PySDL_GameController;
+extern PyTypeObject PySDL_GameController_Type;
+
 // massive list of SDL2 constants
 void _constants(PyObject *module);
 
 // Extra module-function tables registered from their own files.
-extern PyMethodDef pysdl_input_methods[];   // pysdl_input.c  (keyboard / mouse / text input)
-extern PyMethodDef pysdl_cursor_methods[];  // pysdl_Cursor.c
+extern PyMethodDef pysdl_input_methods[];           // pysdl_input.c  (keyboard / mouse / text)
+extern PyMethodDef pysdl_cursor_methods[];          // pysdl_Cursor.c
+extern PyMethodDef pysdl_joystick_methods[];        // pysdl_Joystick.c
+extern PyMethodDef pysdl_gamecontroller_methods[];  // pysdl_GameController.c
 
 //=========================================================
 // Helpers (pysdl_util.c)

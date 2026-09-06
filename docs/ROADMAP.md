@@ -133,19 +133,32 @@ Tests: `tests/test_input.py`, `tests/test_cursor.py`; example:
 - `Window.tp_init` now takes `title` as optional (borrowed-window path);
   `PySDL_Window` gained `shouldFree`. New helper `PySDL_WrapWindow()`.
 
-## Phase 4 - Game controllers & joysticks
+## Phase 4 - Game controllers & joysticks  — DONE
 
-- New `src/pysdl_Joystick.c` -> `SDL2.Joystick`: `NumJoysticks` (module), open by
-  index, name/GUID/instance-id, `NumAxes/Buttons/Hats/Balls`,
-  `GetAxis/Button/Hat/Ball`, `Rumble`, `RumbleTriggers`, `CurrentPowerLevel`,
-  `SetLED`, `JoystickUpdate` / `JoystickEventState`.
-- New `src/pysdl_GameController.c` -> `SDL2.GameController`: `IsGameController`
-  (module), open, `Name`, `GetAxis`, `GetButton`, `Mapping`, `AddMapping` /
-  `AddMappingsFromFile`, `Rumble`, `GetJoystick` (borrowed), `Update`, `SetLED`,
-  `GetType`.
-- `_event()`: `CONTROLLERAXISMOTION`, `CONTROLLERBUTTONDOWN/UP`,
-  `CONTROLLERDEVICEADDED/REMOVED/REMAPPED`, `JOYDEVICEADDED/REMOVED`,
-  `JOYHATMOTION`, `JOYBALLMOTION`.
+Tests: `tests/test_joystick.py` (driven by a virtual joystick); example:
+`example/gamepad.py`.
+
+- New **`SDL2.Joystick(device_index)`** (`src/pysdl_Joystick.c`): `Name`,
+  `GetGUID`, `InstanceID`, `Attached`, `NumAxes` / `NumButtons` / `NumHats` /
+  `NumBalls`, `GetAxis` / `GetButton` / `GetHat` / `GetBall`, `Rumble`,
+  `RumbleTriggers` / `SetLED` / `HasLED` (≥2.0.14), `CurrentPowerLevel`,
+  `SetVirtualAxis` / `SetVirtualButton` / `SetVirtualHat` (≥2.0.14), `Close`.
+  Module: `NumJoysticks`, `JoystickNameForIndex`, `JoystickUpdate`,
+  `JoystickEventState`, `JoystickAttachVirtual` / `JoystickDetachVirtual` /
+  `JoystickIsVirtual` (≥2.0.14).
+- New **`SDL2.GameController(device_index)`** (`src/pysdl_GameController.c`):
+  `Name`, `Attached`, `GetAxis`, `GetButton`, `Mapping`, `GetJoystick`
+  (borrowed), `Rumble`, `RumbleTriggers` / `SetLED` (≥2.0.14), `GetType`
+  (≥2.0.12), `Close`. Module: `IsGameController`, `GameControllerNameForIndex`,
+  `GameControllerAddMapping` / `…AddMappingsFromFile`, `GameControllerUpdate`,
+  `GameControllerEventState`.
+- `_event()`: `JOYBALLMOTION`, `JOYHATMOTION`, `JOYDEVICEADDED/REMOVED`,
+  `CONTROLLERAXISMOTION`, `CONTROLLERBUTTONDOWN/UP`,
+  `CONTROLLERDEVICEADDED/REMOVED/REMAPPED`.
+- Module: `InitSubSystem` / `QuitSubSystem` (were missing). Constants:
+  `HAT_*`, `JOYSTICK_POWER_*`, `JOYSTICK_TYPE_*`, `CONTROLLER_AXIS_*`,
+  `CONTROLLER_BUTTON_*`, `CONTROLLER_TYPE_*`, the joystick/controller event
+  types.
 
 ## Phase 5 - Events subsystem completeness
 

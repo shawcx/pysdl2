@@ -178,7 +178,91 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "JOYHATMOTION",    SDL_JOYHATMOTION    );
     PyModule_AddIntConstant( module, "JOYBUTTONDOWN",   SDL_JOYBUTTONDOWN   );
     PyModule_AddIntConstant( module, "JOYBUTTONUP",     SDL_JOYBUTTONUP     );
+    PyModule_AddIntConstant( module, "JOYDEVICEADDED",   SDL_JOYDEVICEADDED   );
+    PyModule_AddIntConstant( module, "JOYDEVICEREMOVED", SDL_JOYDEVICEREMOVED );
+    PyModule_AddIntConstant( module, "CONTROLLERAXISMOTION",     SDL_CONTROLLERAXISMOTION     );
+    PyModule_AddIntConstant( module, "CONTROLLERBUTTONDOWN",     SDL_CONTROLLERBUTTONDOWN     );
+    PyModule_AddIntConstant( module, "CONTROLLERBUTTONUP",       SDL_CONTROLLERBUTTONUP       );
+    PyModule_AddIntConstant( module, "CONTROLLERDEVICEADDED",    SDL_CONTROLLERDEVICEADDED    );
+    PyModule_AddIntConstant( module, "CONTROLLERDEVICEREMOVED",  SDL_CONTROLLERDEVICEREMOVED  );
+    PyModule_AddIntConstant( module, "CONTROLLERDEVICEREMAPPED", SDL_CONTROLLERDEVICEREMAPPED );
     PyModule_AddIntConstant( module, "USEREVENT",       SDL_USEREVENT       );
+
+    PyModule_AddIntConstant( module, "HAT_CENTERED",  SDL_HAT_CENTERED  );
+    PyModule_AddIntConstant( module, "HAT_UP",        SDL_HAT_UP        );
+    PyModule_AddIntConstant( module, "HAT_RIGHT",     SDL_HAT_RIGHT     );
+    PyModule_AddIntConstant( module, "HAT_DOWN",      SDL_HAT_DOWN      );
+    PyModule_AddIntConstant( module, "HAT_LEFT",      SDL_HAT_LEFT      );
+    PyModule_AddIntConstant( module, "HAT_RIGHTUP",   SDL_HAT_RIGHTUP   );
+    PyModule_AddIntConstant( module, "HAT_RIGHTDOWN", SDL_HAT_RIGHTDOWN );
+    PyModule_AddIntConstant( module, "HAT_LEFTUP",    SDL_HAT_LEFTUP    );
+    PyModule_AddIntConstant( module, "HAT_LEFTDOWN",  SDL_HAT_LEFTDOWN  );
+
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_UNKNOWN", SDL_JOYSTICK_POWER_UNKNOWN );
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_EMPTY",   SDL_JOYSTICK_POWER_EMPTY   );
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_LOW",     SDL_JOYSTICK_POWER_LOW     );
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_MEDIUM",  SDL_JOYSTICK_POWER_MEDIUM  );
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_FULL",    SDL_JOYSTICK_POWER_FULL    );
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_WIRED",   SDL_JOYSTICK_POWER_WIRED   );
+    PyModule_AddIntConstant( module, "JOYSTICK_POWER_MAX",     SDL_JOYSTICK_POWER_MAX     );
+
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_UNKNOWN",        SDL_JOYSTICK_TYPE_UNKNOWN        );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_GAMECONTROLLER", SDL_JOYSTICK_TYPE_GAMECONTROLLER );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_WHEEL",          SDL_JOYSTICK_TYPE_WHEEL          );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_ARCADE_STICK",   SDL_JOYSTICK_TYPE_ARCADE_STICK   );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_FLIGHT_STICK",   SDL_JOYSTICK_TYPE_FLIGHT_STICK   );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_DANCE_PAD",      SDL_JOYSTICK_TYPE_DANCE_PAD      );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_GUITAR",         SDL_JOYSTICK_TYPE_GUITAR         );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_DRUM_KIT",       SDL_JOYSTICK_TYPE_DRUM_KIT       );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_ARCADE_PAD",     SDL_JOYSTICK_TYPE_ARCADE_PAD     );
+    PyModule_AddIntConstant( module, "JOYSTICK_TYPE_THROTTLE",       SDL_JOYSTICK_TYPE_THROTTLE       );
+
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_INVALID",      SDL_CONTROLLER_AXIS_INVALID      );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_LEFTX",        SDL_CONTROLLER_AXIS_LEFTX        );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_LEFTY",        SDL_CONTROLLER_AXIS_LEFTY        );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_RIGHTX",       SDL_CONTROLLER_AXIS_RIGHTX       );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_RIGHTY",       SDL_CONTROLLER_AXIS_RIGHTY       );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_TRIGGERLEFT",  SDL_CONTROLLER_AXIS_TRIGGERLEFT  );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_TRIGGERRIGHT", SDL_CONTROLLER_AXIS_TRIGGERRIGHT );
+    PyModule_AddIntConstant( module, "CONTROLLER_AXIS_MAX",          SDL_CONTROLLER_AXIS_MAX          );
+
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_INVALID",       SDL_CONTROLLER_BUTTON_INVALID       );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_A",             SDL_CONTROLLER_BUTTON_A             );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_B",             SDL_CONTROLLER_BUTTON_B             );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_X",             SDL_CONTROLLER_BUTTON_X             );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_Y",             SDL_CONTROLLER_BUTTON_Y             );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_BACK",          SDL_CONTROLLER_BUTTON_BACK          );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_GUIDE",         SDL_CONTROLLER_BUTTON_GUIDE         );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_START",         SDL_CONTROLLER_BUTTON_START         );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_LEFTSTICK",     SDL_CONTROLLER_BUTTON_LEFTSTICK     );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_RIGHTSTICK",    SDL_CONTROLLER_BUTTON_RIGHTSTICK    );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_LEFTSHOULDER",  SDL_CONTROLLER_BUTTON_LEFTSHOULDER  );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_RIGHTSHOULDER", SDL_CONTROLLER_BUTTON_RIGHTSHOULDER );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_DPAD_UP",       SDL_CONTROLLER_BUTTON_DPAD_UP       );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_DPAD_DOWN",     SDL_CONTROLLER_BUTTON_DPAD_DOWN     );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_DPAD_LEFT",     SDL_CONTROLLER_BUTTON_DPAD_LEFT     );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_DPAD_RIGHT",    SDL_CONTROLLER_BUTTON_DPAD_RIGHT    );
+#if SDL_VERSION_ATLEAST(2,0,14)
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_MISC1",         SDL_CONTROLLER_BUTTON_MISC1         );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_PADDLE1",       SDL_CONTROLLER_BUTTON_PADDLE1       );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_PADDLE2",       SDL_CONTROLLER_BUTTON_PADDLE2       );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_PADDLE3",       SDL_CONTROLLER_BUTTON_PADDLE3       );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_PADDLE4",       SDL_CONTROLLER_BUTTON_PADDLE4       );
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_TOUCHPAD",      SDL_CONTROLLER_BUTTON_TOUCHPAD      );
+#endif
+    PyModule_AddIntConstant( module, "CONTROLLER_BUTTON_MAX",           SDL_CONTROLLER_BUTTON_MAX           );
+
+#if SDL_VERSION_ATLEAST(2,0,12)
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_UNKNOWN",             SDL_CONTROLLER_TYPE_UNKNOWN             );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_XBOX360",             SDL_CONTROLLER_TYPE_XBOX360             );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_XBOXONE",             SDL_CONTROLLER_TYPE_XBOXONE             );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_PS3",                 SDL_CONTROLLER_TYPE_PS3                 );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_PS4",                 SDL_CONTROLLER_TYPE_PS4                 );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_PRO", SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO );
+#endif
+#if SDL_VERSION_ATLEAST(2,0,14)
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_PS5",                 SDL_CONTROLLER_TYPE_PS5                 );
+#endif
 
     PyModule_AddIntConstant( module, "FLIP_NONE",       SDL_FLIP_NONE       );
     PyModule_AddIntConstant( module, "FLIP_HORIZONTAL", SDL_FLIP_HORIZONTAL );

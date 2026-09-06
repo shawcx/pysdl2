@@ -3,6 +3,8 @@
 PyObject *pysdl_Error;
 
 static PyObject * PySDL_Init                  (PyObject*, PyObject*);
+static PyObject * PySDL_InitSubSystem         (PyObject*, PyObject*);
+static PyObject * PySDL_QuitSubSystem         (PyObject*, PyObject*);
 static PyObject * PySDL_WasInit               (PyObject*, PyObject*);
 static PyObject * PySDL_Quit                  (PyObject*, PyObject*);
 static PyObject * PySDL_GetError              (PyObject*, PyObject*);
@@ -89,6 +91,8 @@ static PyObject * PySDL_HasClipboardText         (PyObject*, PyObject*);
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Init",                  PySDL_Init,                  METH_VARARGS },
+    { "InitSubSystem",         PySDL_InitSubSystem,         METH_O       },
+    { "QuitSubSystem",         PySDL_QuitSubSystem,         METH_O       },
     { "WasInit",               PySDL_WasInit,               METH_VARARGS },
     { "Quit",                  PySDL_Quit,                  METH_NOARGS  },
     { "GetError",              PySDL_GetError,              METH_NOARGS  },
@@ -243,10 +247,22 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     Py_INCREF(&PySDL_Cursor_Type);
     PyModule_AddObject(module, "Cursor", (PyObject *)&PySDL_Cursor_Type);
 
-    if(0 > PyModule_AddFunctions(module, pysdl_input_methods)) {
+    if(0 > PyType_Ready(&PySDL_Joystick_Type)) {
         return NULL;
     }
-    if(0 > PyModule_AddFunctions(module, pysdl_cursor_methods)) {
+    Py_INCREF(&PySDL_Joystick_Type);
+    PyModule_AddObject(module, "Joystick", (PyObject *)&PySDL_Joystick_Type);
+
+    if(0 > PyType_Ready(&PySDL_GameController_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_GameController_Type);
+    PyModule_AddObject(module, "GameController", (PyObject *)&PySDL_GameController_Type);
+
+    if(0 > PyModule_AddFunctions(module, pysdl_input_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_cursor_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_joystick_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_gamecontroller_methods)) {
         return NULL;
     }
 
@@ -277,6 +293,27 @@ static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
     }
     uint32_t subsystems = SDL_WasInit(flags);
     return PyLong_FromLong(subsystems);
+}
+
+static PyObject * PySDL_InitSubSystem(PyObject *self, PyObject *arg) {
+    long flags = PyLong_AsLong(arg);
+    if(-1 == flags && PyErr_Occurred()) {
+        return NULL;
+    }
+    if(0 > SDL_InitSubSystem((Uint32)flags)) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_QuitSubSystem(PyObject *self, PyObject *arg) {
+    long flags = PyLong_AsLong(arg);
+    if(-1 == flags && PyErr_Occurred()) {
+        return NULL;
+    }
+    SDL_QuitSubSystem((Uint32)flags);
+    Py_RETURN_NONE;
 }
 
 static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
@@ -672,12 +709,23 @@ static PyObject * _event(SDL_Event *event) {
             PyTuple_SetItem(data, 3, PyLong_FromLong(mousewheel->direction));
         }
         break;
-    //case SDL_JOYBALLMOTION:
-    //    data = PyTuple_New(1);
-    //    break;
-    //case SDL_JOYHATMOTION:
-    //    data = PyTuple_New(1);
-    //    break;
+    case SDL_JOYBALLMOTION: {
+            data = PyTuple_New(4);
+            SDL_JoyBallEvent *joyball = (SDL_JoyBallEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(joyball->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(joyball->ball));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(joyball->xrel));
+            PyTuple_SetItem(data, 3, PyLong_FromLong(joyball->yrel));
+        }
+        break;
+    case SDL_JOYHATMOTION: {
+            data = PyTuple_New(3);
+            SDL_JoyHatEvent *joyhat = (SDL_JoyHatEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(joyhat->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(joyhat->hat));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(joyhat->value));
+        }
+        break;
     case SDL_JOYBUTTONDOWN:
     case SDL_JOYBUTTONUP: {
             data = PyTuple_New(3);
@@ -686,6 +734,32 @@ static PyObject * _event(SDL_Event *event) {
             PyTuple_SetItem(data, 1, PyLong_FromLong(joybutton->button));
             PyTuple_SetItem(data, 2, PyLong_FromLong(joybutton->state));
         }
+        break;
+    case SDL_JOYDEVICEADDED:
+    case SDL_JOYDEVICEREMOVED:
+        data = Py_BuildValue("(i)", event->jdevice.which);
+        break;
+    case SDL_CONTROLLERAXISMOTION: {
+            data = PyTuple_New(3);
+            SDL_ControllerAxisEvent *caxis = (SDL_ControllerAxisEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(caxis->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(caxis->axis));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(caxis->value));
+        }
+        break;
+    case SDL_CONTROLLERBUTTONDOWN:
+    case SDL_CONTROLLERBUTTONUP: {
+            data = PyTuple_New(3);
+            SDL_ControllerButtonEvent *cbutton = (SDL_ControllerButtonEvent *)event;
+            PyTuple_SetItem(data, 0, PyLong_FromLong(cbutton->which));
+            PyTuple_SetItem(data, 1, PyLong_FromLong(cbutton->button));
+            PyTuple_SetItem(data, 2, PyLong_FromLong(cbutton->state));
+        }
+        break;
+    case SDL_CONTROLLERDEVICEADDED:
+    case SDL_CONTROLLERDEVICEREMOVED:
+    case SDL_CONTROLLERDEVICEREMAPPED:
+        data = Py_BuildValue("(i)", event->cdevice.which);
         break;
     case SDL_WINDOWEVENT: {
             data = PyTuple_New(4);
