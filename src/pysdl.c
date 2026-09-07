@@ -319,6 +319,14 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     return module;
 }
 
+PyObject * PySDL_New(PyTypeObject *type) {
+    PyObject *obj = PyObject_CallObject((PyObject *)type, NULL);
+    if(NULL == obj) {
+        PyErr_Format(PyExc_TypeError, "Could not create %s object", type->tp_name);
+    }
+    return obj;
+}
+
 static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
     int flags = SDL_INIT_EVERYTHING;
     int ok = PyArg_ParseTuple(args, "|i", &flags);

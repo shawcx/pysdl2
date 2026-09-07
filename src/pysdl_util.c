@@ -1,13 +1,5 @@
 #include "pysdl.h"
 
-PyObject * PySDL_New(PyTypeObject *type) {
-    PyObject *obj = PyObject_CallObject((PyObject *)type, NULL);
-    if(NULL == obj) {
-        PyErr_Format(PyExc_TypeError, "Could not create %s object", type->tp_name);
-    }
-    return obj;
-}
-
 int PySDL_ThreadEnter(PyGILState_STATE *state) {
     // Checked before acquiring: once finalization has run, PyGILState_Ensure
     // is no longer safe to call.

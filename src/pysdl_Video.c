@@ -450,15 +450,8 @@ PyMethodDef pysdl_video_methods[] = {
     { "GetDisplayOrientation",    PySDL_GetDisplayOrientation,    METH_O       },
     { "GetNumDisplayModes",       PySDL_GetNumDisplayModes,       METH_O       },
     { "GetClosestDisplayMode",    PySDL_GetClosestDisplayMode,    METH_VARARGS },
-#if SDL_VERSION_ATLEAST(2,24,0)
-    { "GetPointDisplayIndex",     PySDL_GetPointDisplayIndex,     METH_O       },
-    { "GetRectDisplayIndex",      PySDL_GetRectDisplayIndex,      METH_O       },
-#endif
 
     { "GetWindowFromID",          PySDL_GetWindowFromID,          METH_O       },
-#if SDL_VERSION_ATLEAST(2,0,16)
-    { "GetGrabbedWindow",         PySDL_GetGrabbedWindow,         METH_NOARGS  },
-#endif
 
     { "ShowSimpleMessageBox",     (PyCFunction)PySDL_ShowSimpleMessageBox, METH_VARARGS | METH_KEYWORDS },
     { "ShowMessageBox",           PySDL_ShowMessageBox,           METH_O       },
@@ -467,16 +460,23 @@ PyMethodDef pysdl_video_methods[] = {
     { "SetHintWithPriority",      PySDL_SetHintWithPriority,      METH_VARARGS },
     { "GetHint",                  PySDL_GetHint,                  METH_O       },
     { "GetHintBoolean",           PySDL_GetHintBoolean,           METH_VARARGS },
-#if SDL_VERSION_ATLEAST(2,24,0)
-    { "ResetHint",                PySDL_ResetHint,                METH_O       },
-#endif
     { "ClearHints",               PySDL_ClearHints,               METH_NOARGS  },
-
+#if SDL_VERSION_ATLEAST(2,0,11)
+    { "Metal_GetLayer",           PySDL_Metal_GetLayer,           METH_O       },
+    { "Metal_DestroyView",        PySDL_Metal_DestroyView,        METH_O       },
+#endif
 #if SDL_VERSION_ATLEAST(2,0,14)
     { "OpenURL",                  PySDL_OpenURL,                  METH_O       },
     { "GetPreferredLocales",      PySDL_GetPreferredLocales,      METH_NOARGS  },
 #endif
-
+#if SDL_VERSION_ATLEAST(2,0,16)
+    { "GetGrabbedWindow",         PySDL_GetGrabbedWindow,         METH_NOARGS  },
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+    { "GetPointDisplayIndex",     PySDL_GetPointDisplayIndex,     METH_O       },
+    { "GetRectDisplayIndex",      PySDL_GetRectDisplayIndex,      METH_O       },
+    { "ResetHint",                PySDL_ResetHint,                METH_O       },
+#endif
     { "GL_LoadLibrary",           PySDL_GL_LoadLibrary,           METH_VARARGS },
     { "GL_UnloadLibrary",         PySDL_GL_UnloadLibrary,         METH_NOARGS  },
     { "GL_GetProcAddress",        PySDL_GL_GetProcAddress,        METH_O       },
@@ -487,10 +487,6 @@ PyMethodDef pysdl_video_methods[] = {
     { "Vulkan_UnloadLibrary",     PySDL_Vulkan_UnloadLibrary,     METH_NOARGS  },
     { "Vulkan_GetVkGetInstanceProcAddr", PySDL_Vulkan_GetVkGetInstanceProcAddr, METH_NOARGS },
     { "Vulkan_GetInstanceExtensions",    PySDL_Vulkan_GetInstanceExtensions,    METH_VARARGS },
-#if SDL_VERSION_ATLEAST(2,0,11)
-    { "Metal_GetLayer",           PySDL_Metal_GetLayer,           METH_O       },
-    { "Metal_DestroyView",        PySDL_Metal_DestroyView,        METH_O       },
-#endif
 
     { NULL }
 };
