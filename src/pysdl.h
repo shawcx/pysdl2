@@ -12,6 +12,10 @@
 
 #define  DOC_MOD  "Python wrapper for SDL."
 
+#if PY_VERSION_HEX < 0x030D0000
+    #define Py_IsFinalizing _Py_IsFinalizing
+#endif
+
 extern PyObject *pysdl_Error;
 
 //=========================================================
