@@ -5,7 +5,7 @@ static void       PySDL_Surface_Type_dealloc (PySDL_Surface*);
 
 static PyObject * PySDL_Surface_LockSurface   (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_UnlockSurface (PySDL_Surface*, PyObject*);
-static PyObject * PySDL_Surface_SaveBMP       (PySDL_Surface*, PyObject*);
+static PyObject * PySDL_Surface_SaveBMP       (PySDL_Surface*, PyObject*, PyObject*);
 static PyObject * PySDL_Surface_SavePNG       (PySDL_Surface*, PyObject*, PyObject*);
 static PyObject * PySDL_Surface_SaveJPG       (PySDL_Surface*, PyObject*, PyObject*);
 
@@ -31,6 +31,15 @@ static PyObject * PySDL_Surface_SetClipRect   (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_GetClipRect   (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_SetRLE        (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_SetPalette    (PySDL_Surface*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,9)
+static PyObject * PySDL_Surface_HasColorKey   (PySDL_Surface*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,0,14)
+static PyObject * PySDL_Surface_HasRLE        (PySDL_Surface*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,0,16)
+static PyObject * PySDL_Surface_SoftStretchLinear (PySDL_Surface*, PyObject*, PyObject*);
+#endif
 
 static PyObject * PySDL_Surface_Convert       (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_Duplicate     (PySDL_Surface*, PyObject*);
@@ -38,7 +47,7 @@ static PyObject * PySDL_Surface_Duplicate     (PySDL_Surface*, PyObject*);
 static PyMethodDef PySDL_Surface_methods[] = {
     { "LockSurface",    (PyCFunction)PySDL_Surface_LockSurface,    METH_NOARGS  },
     { "UnlockSurface",  (PyCFunction)PySDL_Surface_UnlockSurface,  METH_NOARGS  },
-    { "SaveBMP",        (PyCFunction)PySDL_Surface_SaveBMP,        METH_O       },
+    { "SaveBMP",        (PyCFunction)PySDL_Surface_SaveBMP,        METH_VARARGS | METH_KEYWORDS },
     { "SavePNG",        (PyCFunction)PySDL_Surface_SavePNG,        METH_VARARGS | METH_KEYWORDS },
     { "SaveJPG",        (PyCFunction)PySDL_Surface_SaveJPG,        METH_VARARGS | METH_KEYWORDS },
 
@@ -64,6 +73,15 @@ static PyMethodDef PySDL_Surface_methods[] = {
     { "GetClipRect",    (PyCFunction)PySDL_Surface_GetClipRect,    METH_NOARGS  },
     { "SetRLE",         (PyCFunction)PySDL_Surface_SetRLE,         METH_O       },
     { "SetPalette",     (PyCFunction)PySDL_Surface_SetPalette,     METH_O       },
+#if SDL_VERSION_ATLEAST(2,0,9)
+    { "HasColorKey",    (PyCFunction)PySDL_Surface_HasColorKey,    METH_NOARGS  },
+#endif
+#if SDL_VERSION_ATLEAST(2,0,14)
+    { "HasRLE",         (PyCFunction)PySDL_Surface_HasRLE,         METH_NOARGS  },
+#endif
+#if SDL_VERSION_ATLEAST(2,0,16)
+    { "SoftStretchLinear", (PyCFunction)PySDL_Surface_SoftStretchLinear, METH_VARARGS | METH_KEYWORDS },
+#endif
 
     { "Convert",        (PyCFunction)PySDL_Surface_Convert,        METH_VARARGS },
     { "Duplicate",      (PyCFunction)PySDL_Surface_Duplicate,      METH_NOARGS  },
@@ -148,6 +166,10 @@ static PyObject * _wrap(SDL_Surface *surface) {
 
 static PyObject * PySDL_Surface_getter(PyObject *self, void *param) {
     SDL_Surface *surface = ((PySDL_Surface *)self)->surface;
+    if(NULL == surface) {
+        PyErr_SetString(pysdl_Error, "Surface is not initialised");
+        return NULL;
+    }
 
     switch((long)param) {
     case PySDL_SURFACE_WIDTH:  return PyLong_FromLong(surface->w);
@@ -203,28 +225,20 @@ static PyObject * PySDL_Surface_UnlockSurface(PySDL_Surface *self, PyObject *ign
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Surface_SaveBMP(PySDL_Surface *self, PyObject *arg) {
-    const char *path = PyUnicode_AsUTF8(arg);
-    if(NULL == path) {
-        return NULL;
-    }
-    if(0 > SDL_SaveBMP(self->surface, path)) {
-        return _raise();
-    }
-    Py_RETURN_NONE;
-}
+// SaveBMP(path=None) / SavePNG(path=None) / SaveJPG(path=None, quality=90):
+// write the file, or with no path return the encoded image as bytes.
+enum { SAVE_PNG, SAVE_JPG, SAVE_BMP };
 
-// SavePNG(path=None) / SaveJPG(path=None, quality=90): write the file, or with
-// no path return the encoded image as bytes.
-static PyObject * _save_image(PySDL_Surface *self, const char *path, int jpg, int quality) {
+static PyObject * _save_image(PySDL_Surface *self, const char *path, int kind, int quality) {
     SDL_RWops *rw = path ? SDL_RWFromFile(path, "wb") : PySDL_RWBuffer();
     if(NULL == rw) {
         return PyErr_Occurred() ? NULL : _raise();
     }
-    int rc = jpg ? IMG_SaveJPG_RW(self->surface, rw, 0, quality)
-                 : IMG_SavePNG_RW(self->surface, rw, 0);
+    int rc = (SAVE_JPG == kind) ? IMG_SaveJPG_RW(self->surface, rw, 0, quality)
+           : (SAVE_BMP == kind) ? SDL_SaveBMP_RW(self->surface, rw, 0)
+           : IMG_SavePNG_RW(self->surface, rw, 0);
     if(0 > rc) {
-        PyErr_SetString(pysdl_Error, IMG_GetError());
+        PyErr_SetString(pysdl_Error, SDL_GetError());  // IMG_GetError is SDL_GetError
         SDL_RWclose(rw);
         return NULL;
     }
@@ -243,7 +257,16 @@ static PyObject * PySDL_Surface_SavePNG(PySDL_Surface *self, PyObject *args, PyO
     if(!PyArg_ParseTupleAndKeywords(args, kwds, "|z", kwlist, &path)) {
         return NULL;
     }
-    return _save_image(self, path, 0, 0);
+    return _save_image(self, path, SAVE_PNG, 0);
+}
+
+static PyObject * PySDL_Surface_SaveBMP(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
+    const char *path = NULL;
+    static char *kwlist[] = {"path", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|z", kwlist, &path)) {
+        return NULL;
+    }
+    return _save_image(self, path, SAVE_BMP, 0);
 }
 
 static PyObject * PySDL_Surface_SaveJPG(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
@@ -253,7 +276,7 @@ static PyObject * PySDL_Surface_SaveJPG(PySDL_Surface *self, PyObject *args, PyO
     if(!PyArg_ParseTupleAndKeywords(args, kwds, "|zi", kwlist, &path, &quality)) {
         return NULL;
     }
-    return _save_image(self, path, 1, quality);
+    return _save_image(self, path, SAVE_JPG, quality);
 }
 
 //=========================================================
@@ -330,6 +353,23 @@ static PyObject * PySDL_Surface_SoftStretch(PySDL_Surface *self, PyObject *args,
     }
     Py_RETURN_NONE;
 }
+
+#if SDL_VERSION_ATLEAST(2,0,16)
+// Bilinear-filtered SoftStretch; both surfaces must share a 32-bit format.
+static PyObject * PySDL_Surface_SoftStretchLinear(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
+    PySDL_Surface *src;
+    SDL_Rect srcrect, dstrect;
+    SDL_Rect *sr, *dr;
+
+    if(!_blit_args(args, kwds, &src, &srcrect, &sr, &dstrect, &dr)) {
+        return NULL;
+    }
+    if(0 > SDL_SoftStretchLinear(src->surface, sr, self->surface, dr)) {
+        return _raise();
+    }
+    Py_RETURN_NONE;
+}
+#endif
 
 static PyObject * PySDL_Surface_FillRect(PySDL_Surface *self, PyObject *args) {
     PyObject *rect_py;
@@ -464,6 +504,12 @@ static PyObject * PySDL_Surface_GetColorKey(PySDL_Surface *self, PyObject *ign) 
     return PyLong_FromUnsignedLong(key);
 }
 
+#if SDL_VERSION_ATLEAST(2,0,9)
+static PyObject * PySDL_Surface_HasColorKey(PySDL_Surface *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasColorKey(self->surface));
+}
+#endif
+
 static PyObject * PySDL_Surface_SetBlendMode(PySDL_Surface *self, PyObject *arg) {
     long mode = PyLong_AsLong(arg);
     if(-1 == mode && PyErr_Occurred()) {
@@ -538,6 +584,12 @@ static PyObject * PySDL_Surface_GetClipRect(PySDL_Surface *self, PyObject *ign) 
     SDL_GetClipRect(self->surface, &rect);
     return RectToPy(&rect);
 }
+
+#if SDL_VERSION_ATLEAST(2,0,14)
+static PyObject * PySDL_Surface_HasRLE(PySDL_Surface *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasSurfaceRLE(self->surface));
+}
+#endif
 
 static PyObject * PySDL_Surface_SetRLE(PySDL_Surface *self, PyObject *arg) {
     int enable = PyObject_IsTrue(arg);

@@ -20,6 +20,12 @@ static PyObject * PySDL_Texture_GetScaleMode (PySDL_Texture*, PyObject*);
 #endif
 static PyObject * PySDL_Texture_GL_Bind      (PySDL_Texture*, PyObject*);
 static PyObject * PySDL_Texture_GL_Unbind    (PySDL_Texture*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,12)
+static PyObject * PySDL_Texture_LockToSurface (PySDL_Texture*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,0,16)
+static PyObject * PySDL_Texture_UpdateNV      (PySDL_Texture*, PyObject*, PyObject*);
+#endif
 
 static PyMethodDef PySDL_Texture_methods[] = {
     { "Query",        (PyCFunction)PySDL_Texture_Query,        METH_NOARGS  },
@@ -39,6 +45,12 @@ static PyMethodDef PySDL_Texture_methods[] = {
 #endif
     { "GL_Bind",      (PyCFunction)PySDL_Texture_GL_Bind,      METH_NOARGS  },
     { "GL_Unbind",    (PyCFunction)PySDL_Texture_GL_Unbind,    METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,0,12)
+    { "LockToSurface", (PyCFunction)PySDL_Texture_LockToSurface, METH_VARARGS },
+#endif
+#if SDL_VERSION_ATLEAST(2,0,16)
+    { "UpdateNV",     (PyCFunction)PySDL_Texture_UpdateNV,     METH_VARARGS | METH_KEYWORDS },
+#endif
     { NULL }
 };
 
@@ -68,6 +80,7 @@ static int PySDL_Texture_Type_init(PySDL_Texture *self, PyObject *args, PyObject
     }
 
     self->texture = NULL;
+    self->locked = NULL;
 
     // No renderer: internal allocation; the caller fills in ->texture.
     if(renderer && renderer != Py_None) {
@@ -85,7 +98,20 @@ static int PySDL_Texture_Type_init(PySDL_Texture *self, PyObject *args, PyObject
     return 0;
 }
 
+// SDL frees the LockToSurface surface on unlock: point the Python Surface at
+// an empty 0x0 surface of its own first, so later use is harmless.
+static void _detach_locked(PySDL_Texture *self) {
+    if(NULL == self->locked) {
+        return;
+    }
+    PySDL_Surface *surface = (PySDL_Surface *)self->locked;
+    surface->surface = SDL_CreateRGBSurfaceWithFormat(0, 0, 0, 32, SDL_PIXELFORMAT_RGBA32);
+    surface->shouldFree = 1;
+    Py_CLEAR(self->locked);
+}
+
 static void PySDL_Texture_Type_dealloc(PySDL_Texture *self) {
+    _detach_locked(self);
     if(NULL != self->texture) {
         SDL_DestroyTexture(self->texture);
         self->texture = NULL;
@@ -225,6 +251,7 @@ static PyObject * PySDL_Texture_Lock(PySDL_Texture *self, PyObject *args) {
 }
 
 static PyObject * PySDL_Texture_Unlock(PySDL_Texture *self, PyObject *ign) {
+    _detach_locked(self);
     SDL_UnlockTexture(self->texture);
     Py_RETURN_NONE;
 }
@@ -322,3 +349,90 @@ static PyObject * PySDL_Texture_GL_Unbind(PySDL_Texture *self, PyObject *ign) {
     }
     Py_RETURN_NONE;
 }
+
+#if SDL_VERSION_ATLEAST(2,0,12)
+// LockToSurface(rect=None) -> Surface over the locked (write-only) region of a
+// TEXTUREACCESS_STREAMING texture. Draw into it, then Unlock() to upload; after
+// that the Surface is empty (0x0) rather than dangling.
+static PyObject * PySDL_Texture_LockToSurface(PySDL_Texture *self, PyObject *args) {
+    PyObject *rect_py = NULL;
+    if(!PyArg_ParseTuple(args, "|O", &rect_py)) {
+        return NULL;
+    }
+    if(NULL != self->locked) {
+        PyErr_SetString(pysdl_Error, "Texture is already locked to a surface");
+        return NULL;
+    }
+
+    SDL_Rect rect;
+    SDL_Rect *rp = NULL;
+    if(rect_py && rect_py != Py_None) {
+        if(!PyToRect(rect_py, &rect)) {
+            return NULL;
+        }
+        rp = &rect;
+    }
+
+    SDL_Surface *locked = NULL;
+    if(0 > SDL_LockTextureToSurface(self->texture, rp, &locked)) {
+        return _raise();
+    }
+    PySDL_Surface *wrapper = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
+    if(NULL == wrapper) {
+        SDL_UnlockTexture(self->texture);
+        return NULL;
+    }
+    wrapper->surface = locked;  // owned by the texture until Unlock
+    wrapper->shouldFree = 0;
+    self->locked = Py_NewRef((PyObject *)wrapper);
+    return (PyObject *)wrapper;
+}
+#endif
+
+#if SDL_VERSION_ATLEAST(2,0,16)
+// UpdateNV(yplane, ypitch, uvplane, uvpitch, rect=None) for NV12 / NV21 textures.
+static PyObject * PySDL_Texture_UpdateNV(PySDL_Texture *self, PyObject *args, PyObject *kwds) {
+    Py_buffer yplane, uvplane;
+    int ypitch, uvpitch;
+    PyObject *rect_py = NULL;
+
+    static char *kwlist[] = {"yplane", "ypitch", "uvplane", "uvpitch", "rect", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "y*iy*i|O", kwlist,
+        &yplane, &ypitch, &uvplane, &uvpitch, &rect_py)) {
+        return NULL;
+    }
+
+    PyObject *result = NULL;
+    SDL_Rect rect;
+    SDL_Rect *rp = NULL;
+    int h = 0;
+    if(rect_py && rect_py != Py_None) {
+        if(!PyToRect(rect_py, &rect)) {
+            goto done;
+        }
+        rp = &rect;
+        h = rect.h;
+    } else if(0 > SDL_QueryTexture(self->texture, NULL, NULL, NULL, &h)) {
+        result = _raise();
+        goto done;
+    }
+
+    // SDL reads h rows of Y and (h+1)/2 rows of interleaved UV.
+    if(ypitch <= 0 || uvpitch <= 0
+        || yplane.len < (Py_ssize_t)ypitch * h
+        || uvplane.len < (Py_ssize_t)uvpitch * ((h + 1) / 2)) {
+        PyErr_SetString(PyExc_ValueError, "plane buffers are too small for the pitches and height");
+        goto done;
+    }
+    if(0 > SDL_UpdateNVTexture(self->texture, rp, yplane.buf, ypitch, uvplane.buf, uvpitch)) {
+        result = _raise();
+        goto done;
+    }
+    result = Py_NewRef(Py_None);
+
+done:
+    PyBuffer_Release(&yplane);
+    PyBuffer_Release(&uvplane);
+    return result;
+}
+#endif

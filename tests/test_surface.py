@@ -126,3 +126,91 @@ def test_save_png_jpg(sdl, surface, tmp_path):
     surface.SaveJPG(str(jpg), quality=75)
     assert png.read_bytes()[:4] == b'\x89PNG'
     assert jpg.read_bytes()[:2] == b'\xff\xd8'
+
+
+# --- phase 12: pixel conversion, gamma, YUV mode, surface queries ---------
+
+def test_convert_pixels(sdl):
+    src = bytes([10, 20, 30, 128]) * 4  # 2x2 RGBA32
+    bgra = sdl.ConvertPixels((2, 2), sdl.PIXELFORMAT_RGBA32, src, sdl.PIXELFORMAT_BGRA32)
+    assert bgra == bytes([30, 20, 10, 128]) * 4
+    assert len(sdl.ConvertPixels((2, 2), sdl.PIXELFORMAT_RGBA32, src, sdl.PIXELFORMAT_RGB24)) == 12
+    padded = sdl.ConvertPixels((2, 2), sdl.PIXELFORMAT_RGBA32, src, sdl.PIXELFORMAT_RGBA32, dst_pitch=12)
+    assert len(padded) == 24 and padded[:8] == src[:8]
+    assert len(sdl.ConvertPixels((2, 2), sdl.PIXELFORMAT_RGBA32, src, sdl.PIXELFORMAT_IYUV)) == 6
+    assert len(sdl.ConvertPixels((2, 2), sdl.PIXELFORMAT_RGBA32, src, sdl.PIXELFORMAT_YUY2)) == 8
+    with pytest.raises(ValueError):
+        sdl.ConvertPixels((2, 2), sdl.PIXELFORMAT_RGBA32, src[:-1], sdl.PIXELFORMAT_BGRA32)
+    with pytest.raises(ValueError):
+        sdl.ConvertPixels((0, 2), sdl.PIXELFORMAT_RGBA32, src, sdl.PIXELFORMAT_BGRA32)
+
+
+def test_premultiply_alpha(sdl):
+    if not hasattr(sdl, 'PremultiplyAlpha'):
+        pytest.skip('needs SDL >= 2.0.18')
+    # ARGB8888 little-endian bytes are B, G, R, A.
+    out = sdl.PremultiplyAlpha((1, 1), sdl.PIXELFORMAT_ARGB8888, bytes([200, 100, 50, 128]),
+                               sdl.PIXELFORMAT_ARGB8888)
+    assert out == bytes([100, 50, 25, 128])
+
+
+def test_calculate_gamma_ramp(sdl, window):
+    linear = sdl.CalculateGammaRamp(1.0)
+    assert len(linear) == 256 and linear[0] == 0 and linear[255] == 65535
+    assert linear[1] == 257
+    brighter = sdl.CalculateGammaRamp(2.2)
+    assert brighter[128] > linear[128]
+    with pytest.raises(ValueError):
+        sdl.CalculateGammaRamp(-1.0)
+
+
+def test_yuv_conversion_mode(sdl):
+    if not hasattr(sdl, 'SetYUVConversionMode'):
+        pytest.skip('needs SDL >= 2.0.8')
+    previous = sdl.GetYUVConversionMode()
+    try:
+        sdl.SetYUVConversionMode(sdl.YUV_CONVERSION_JPEG)
+        assert sdl.GetYUVConversionMode() == sdl.YUV_CONVERSION_JPEG
+        sdl.SetYUVConversionMode(sdl.YUV_CONVERSION_AUTOMATIC)
+        assert sdl.GetYUVConversionModeForResolution(1920, 1080) == sdl.YUV_CONVERSION_BT709
+        assert sdl.GetYUVConversionModeForResolution(320, 240) == sdl.YUV_CONVERSION_BT601
+    finally:
+        sdl.SetYUVConversionMode(previous)
+
+
+def test_has_color_key_and_rle(sdl, surface):
+    assert surface.HasColorKey() is False
+    surface.SetColorKey(True, (0, 0, 0))
+    assert surface.HasColorKey() is True
+    if hasattr(surface, 'HasRLE'):
+        assert surface.HasRLE() is False
+        surface.SetRLE(True)
+        assert surface.HasRLE() is True
+
+
+def test_soft_stretch_linear(sdl):
+    if not hasattr(sdl.CreateRGBSurface((1, 1)), 'SoftStretchLinear'):
+        pytest.skip('needs SDL >= 2.0.16')
+    small = sdl.CreateRGBSurfaceWithFormat((2, 2), sdl.PIXELFORMAT_RGBA32)
+    small.FillRect(None, (0, 200, 0, 255))
+    big = sdl.CreateRGBSurfaceWithFormat((8, 8), sdl.PIXELFORMAT_RGBA32)
+    big.SoftStretchLinear(small)
+    off = 4 * big.pitch + 4 * 4
+    assert tuple(big.pixels[off:off + 4]) == (0, 200, 0, 255)
+    with pytest.raises(sdl.error):
+        sdl.CreateRGBSurfaceWithFormat((8, 8), sdl.PIXELFORMAT_RGB24).SoftStretchLinear(small)
+
+
+def test_save_bmp_to_bytes(sdl, surface, tmp_path):
+    surface.FillRect(None, (1, 2, 3, 255))
+    data = surface.SaveBMP()
+    assert data[:2] == b'BM'
+    assert sdl.LoadBMP(data).w == 16
+    path = tmp_path / 's.bmp'
+    assert surface.SaveBMP(str(path)) is None
+    assert path.read_bytes() == data
+
+
+def test_uninitialised_surface_getters_raise(sdl, surface):
+    with pytest.raises(sdl.error):
+        type(surface)().w

@@ -374,6 +374,47 @@ example: `example/image.py`.
 - Shared `PySDL_RWFromObject` (path or buffer -> RWops) now also backs `LoadBMP`,
   which gains os.PathLike support.
 
+## Phase 12 - Render, surface & window completeness  — DONE
+
+Tests: phase-12 sections in `tests/test_renderer.py`, `test_texture.py`,
+`test_surface.py`, `test_video.py`; example: `example/logical.py`.
+
+- **Renderer**: `RenderSetVSync`, `RenderWindowToLogical((x, y))` -> floats /
+  `RenderLogicalToWindow((fx, fy))` -> ints (≥2.0.18), `RenderGetWindow`
+  (borrowed, ≥2.0.22), `RenderGetMetalLayer` / `RenderGetMetalCommandEncoder`
+  (pointer int or `None`, ≥2.0.8), and **`RenderGeometryRaw(texture, xy, color,
+  uv=None, indices=None, *, num_vertices, xy_stride=8, color_stride=4,
+  uv_stride=8, index_size=4)`** (≥2.0.18): zero-copy from any buffer (bytes,
+  `array`, numpy); sizes, strides and float alignment are validated before SDL
+  sees them, and `color_stride=0` gives every vertex one colour. `Renderer`
+  gained `shouldFree` so `Window.GetRenderer()` can return a borrowed wrapper.
+- Module: `CreateWindowAndRenderer(size, flags=0)` -> `(Window, Renderer)`,
+  `CreateWindowFrom(native_handle)`, `CreateShapedWindow(title, size,
+  position=…, flags=0)`, `VideoInit(driver=None)` / `VideoQuit`.
+- **Texture**: `LockToSurface(rect=None)` (≥2.0.12) -> Surface over the locked
+  region; `Unlock` swaps it for an empty 0x0 surface so it never dangles.
+  `UpdateNV(yplane, ypitch, uvplane, uvpitch, rect=None)` (≥2.0.16), with plane
+  sizes checked against the pitches and height.
+- **Surface**: `HasColorKey` (≥2.0.9), `HasRLE` (≥2.0.14), `SoftStretchLinear`
+  (≥2.0.16), `SaveBMP(path=None)` -> bytes with no path (like `SavePNG` /
+  `SaveJPG`). The `w` / `h` / `pitch` / … getters now raise on an uninitialised
+  Surface instead of dereferencing NULL.
+- Pixels (module): `ConvertPixels(size, src_format, src, dst_format,
+  src_pitch=0, dst_pitch=0)` / `PremultiplyAlpha(…)` (≥2.0.18) -> bytes (pitch 0
+  = tight; planar and packed YUV destinations sized correctly),
+  `CalculateGammaRamp(gamma)` -> 256 ints for `SetWindowGammaRamp`,
+  `Set/GetYUVConversionMode`, `GetYUVConversionModeForResolution` (≥2.0.8).
+- **Window**: `GetWindowSizeInPixels` (≥2.26), `GetWindowICCProfile` -> bytes or
+  `None` (≥2.0.18), `HasWindowSurface` / `DestroyWindowSurface` (≥2.28),
+  `GetWindowBrightness`, `GetRenderer`, `IsShapedWindow`, `SetWindowShape(shape,
+  mode=SHAPEMODE_DEFAULT, param=None)`, `GetShapedWindowMode` -> `(mode,
+  param)`. `GetWindowSurface` no longer leaks its wrapper on failure.
+- Constants: `YUV_CONVERSION_*`, `SHAPEMODE_*`.
+- **Skipped on purpose**: `Get/SetWindowData` and `Get/SetTextureUserData`
+  (opaque `void*` slots; keep a Python dict keyed by the wrapper or window id),
+  `SDL_LowerBlit` / `SDL_LowerBlitScaled` (unclipped fast paths that write out of
+  bounds on bad rects; `Blit` / `BlitScaled` cover them safely).
+
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),

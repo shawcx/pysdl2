@@ -63,3 +63,46 @@ def test_lock_region(sdl, renderer):
         assert len(view) == pitch * 2
     finally:
         tex.Unlock()
+
+
+# --- phase 12: LockToSurface, UpdateNV ------------------------------------
+
+def test_lock_to_surface(sdl, renderer):
+    if not hasattr(sdl.Texture, 'LockToSurface'):
+        pytest.skip('needs SDL >= 2.0.12')
+    tex = sdl.Texture(renderer, sdl.PIXELFORMAT_RGBA32, sdl.TEXTUREACCESS_STREAMING, (8, 4))
+    surface = tex.LockToSurface()
+    assert (surface.w, surface.h) == (8, 4)
+    surface.FillRect(None, (10, 20, 30, 255))
+    with pytest.raises(sdl.error):
+        tex.LockToSurface()  # one locked surface at a time
+    tex.Unlock()
+
+    # SDL freed the locked surface; ours is now an empty stand-in, not dangling.
+    assert (surface.w, surface.h) == (0, 0)
+    surface.FillRect(None, (0, 0, 0, 255))
+
+    part = tex.LockToSurface((2, 1, 4, 2))
+    assert (part.w, part.h) == (4, 2)
+    del tex  # dealloc while locked also detaches the surface
+    assert (part.w, part.h) == (0, 0)
+
+
+def test_lock_to_surface_needs_streaming(sdl, renderer):
+    if not hasattr(sdl.Texture, 'LockToSurface'):
+        pytest.skip('needs SDL >= 2.0.12')
+    tex = sdl.Texture(renderer, sdl.PIXELFORMAT_RGBA32, sdl.TEXTUREACCESS_STATIC, (4, 4))
+    with pytest.raises(sdl.error):
+        tex.LockToSurface()
+
+
+def test_update_nv(sdl, renderer):
+    if not hasattr(sdl.Texture, 'UpdateNV'):
+        pytest.skip('needs SDL >= 2.0.16')
+    tex = sdl.Texture(renderer, sdl.PIXELFORMAT_NV12, sdl.TEXTUREACCESS_STREAMING, (4, 4))
+    tex.UpdateNV(b'\x80' * 16, 4, b'\x80' * 8, 4)
+    tex.UpdateNV(b'\x80' * 8, 4, b'\x80' * 4, 4, rect=(0, 0, 4, 2))
+    with pytest.raises(ValueError):
+        tex.UpdateNV(b'\x80' * 15, 4, b'\x80' * 8, 4)
+    with pytest.raises(ValueError):
+        tex.UpdateNV(b'\x80' * 16, 4, b'\x80' * 7, 4)

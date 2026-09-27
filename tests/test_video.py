@@ -180,3 +180,70 @@ def test_vulkan_functions_present(sdl, window):
             window.Vulkan_CreateSurface('not an int')
     finally:
         sdl.Vulkan_UnloadLibrary()
+
+
+# --- phase 12: pixel size, ICC, window surface, brightness, shapes --------
+
+def test_window_size_in_pixels(sdl, window):
+    if not hasattr(window, 'GetWindowSizeInPixels'):
+        pytest.skip('needs SDL >= 2.26')
+    assert window.GetWindowSizeInPixels() == window.GetWindowSize()  # no high-DPI here
+
+
+def test_window_icc_profile_and_brightness(sdl, window):
+    if hasattr(window, 'GetWindowICCProfile'):
+        profile = window.GetWindowICCProfile()
+        assert profile is None or isinstance(profile, bytes)
+    assert window.GetWindowBrightness() == pytest.approx(1.0)
+
+
+def test_window_surface_lifecycle(sdl):
+    window = sdl.Window('surface', (16, 16))
+    if not hasattr(window, 'HasWindowSurface'):
+        pytest.skip('needs SDL >= 2.28')
+    assert window.HasWindowSurface() is False
+    window.GetWindowSurface()
+    assert window.HasWindowSurface() is True
+    window.DestroyWindowSurface()
+    assert window.HasWindowSurface() is False
+
+
+def test_shaped_windows(sdl, window):
+    assert window.IsShapedWindow() is False
+    with pytest.raises(sdl.error, match='not a shaped window'):
+        window.SetWindowShape(sdl.CreateRGBSurface((64, 48)))
+    with pytest.raises(sdl.error):
+        window.GetShapedWindowMode()
+    try:
+        shaped = sdl.CreateShapedWindow('shaped', (32, 32))
+    except sdl.error:
+        pytest.skip('video driver has no shaped-window support')
+    mask = sdl.CreateRGBSurfaceWithFormat((32, 32), sdl.PIXELFORMAT_RGBA32)
+    shaped.SetWindowShape(mask, sdl.SHAPEMODE_COLOR_KEY, (0, 0, 0))
+    assert shaped.GetShapedWindowMode()[0] == sdl.SHAPEMODE_COLOR_KEY
+
+
+def test_create_window_from_rejects_null(sdl):
+    with pytest.raises(ValueError):
+        sdl.CreateWindowFrom(0)
+
+
+def test_video_init_quit_in_subprocess(sdl):
+    # SDL_VideoInit tears down any running video subsystem first, so keep it
+    # out of this test session's shared SDL state.
+    import os
+    import subprocess
+    import sys
+    code = (
+        'import SDL2\n'
+        'SDL2.VideoInit("dummy")\n'
+        'assert SDL2.GetCurrentVideoDriver() == "dummy"\n'
+        'SDL2.VideoQuit()\n'
+        'try:\n'
+        '    SDL2.VideoInit("no-such-driver")\n'
+        'except SDL2.error:\n'
+        '    print("ok")\n'
+    )
+    env = dict(os.environ, PYTHONPATH=os.path.dirname(sdl.__file__))
+    out = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True)
+    assert out.stdout.strip() == 'ok', out.stderr

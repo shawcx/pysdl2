@@ -212,6 +212,11 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "SCALEMODE_BEST",    SDL_ScaleModeBest    );
 #endif
 
+    PyModule_AddIntConstant( module, "SHAPEMODE_DEFAULT",                ShapeModeDefault              );
+    PyModule_AddIntConstant( module, "SHAPEMODE_BINARIZE_ALPHA",         ShapeModeBinarizeAlpha        );
+    PyModule_AddIntConstant( module, "SHAPEMODE_REVERSE_BINARIZE_ALPHA", ShapeModeReverseBinarizeAlpha );
+    PyModule_AddIntConstant( module, "SHAPEMODE_COLOR_KEY",              ShapeModeColorKey             );
+
     PyModule_AddIntConstant( module, "JOYAXISMOTION",   SDL_JOYAXISMOTION   );
     PyModule_AddIntConstant( module, "JOYBALLMOTION",   SDL_JOYBALLMOTION   );
     PyModule_AddIntConstant( module, "JOYHATMOTION",    SDL_JOYHATMOTION    );
@@ -456,6 +461,13 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "PIXELFORMAT_YVYU",        SDL_PIXELFORMAT_YVYU        );
     PyModule_AddIntConstant( module, "PIXELFORMAT_NV12",        SDL_PIXELFORMAT_NV12        );
     PyModule_AddIntConstant( module, "PIXELFORMAT_NV21",        SDL_PIXELFORMAT_NV21        );
+
+#if SDL_VERSION_ATLEAST(2,0,8)
+    PyModule_AddIntConstant( module, "YUV_CONVERSION_JPEG",      SDL_YUV_CONVERSION_JPEG      );
+    PyModule_AddIntConstant( module, "YUV_CONVERSION_BT601",     SDL_YUV_CONVERSION_BT601     );
+    PyModule_AddIntConstant( module, "YUV_CONVERSION_BT709",     SDL_YUV_CONVERSION_BT709     );
+    PyModule_AddIntConstant( module, "YUV_CONVERSION_AUTOMATIC", SDL_YUV_CONVERSION_AUTOMATIC );
+#endif
 
     // KEYBOARD SYMBOLS
     PyModule_AddIntConstant( module, "K_UNKNOWN",      SDLK_UNKNOWN );

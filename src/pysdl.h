@@ -34,6 +34,7 @@ typedef struct {
     PyObject_HEAD
     SDL_Renderer *renderer;
     PyObject *target;  // Texture currently set as render target, or NULL
+    int shouldFree;    // 0 for a borrowed renderer (Window.GetRenderer)
 } PySDL_Renderer;
 extern PyTypeObject PySDL_Renderer_Type;
 
@@ -48,6 +49,7 @@ extern PyTypeObject PySDL_Surface_Type;
 typedef struct {
     PyObject_HEAD
     SDL_Texture *texture;
+    PyObject *locked;  // Surface from LockToSurface (emptied on Unlock), or NULL
 } PySDL_Texture;
 extern PyTypeObject PySDL_Texture_Type;
 

@@ -444,6 +444,109 @@ static PyObject * PySDL_Vulkan_GetInstanceExtensions(PyObject *self, PyObject *a
     return list;
 }
 
+//=========================================================
+// video subsystem
+//=========================================================
+
+// VideoInit(driver=None): start just the video subsystem, optionally with a
+// named driver (see GetVideoDrivers); VideoQuit() shuts it down.
+static PyObject * PySDL_VideoInit(PyObject *self, PyObject *args) {
+    const char *driver = NULL;
+    if(!PyArg_ParseTuple(args, "|z", &driver)) {
+        return NULL;
+    }
+    if(0 > SDL_VideoInit(driver)) {
+        return _raise();
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_VideoQuit(PyObject *self, PyObject *ign) {
+    SDL_VideoQuit();
+    Py_RETURN_NONE;
+}
+
+//=========================================================
+// window constructors beyond SDL2.Window(...)
+//=========================================================
+
+// An owned SDL2.Window around an SDL_Window*, or raise for NULL.
+static PyObject * _own_window(SDL_Window *window) {
+    if(NULL == window) {
+        return _raise();
+    }
+    PySDL_Window *wrapper = (PySDL_Window *)PySDL_New(&PySDL_Window_Type);
+    if(NULL == wrapper) {
+        SDL_DestroyWindow(window);
+        return NULL;
+    }
+    wrapper->window = window;
+    return (PyObject *)wrapper;
+}
+
+// CreateWindowFrom(native_handle) -> Window around an existing native window
+// (an HWND / NSWindow* / X11 Window id, as an int).
+static PyObject * PySDL_CreateWindowFrom(PyObject *self, PyObject *arg) {
+    void *handle = PyLong_AsVoidPtr(arg);
+    if(NULL == handle) {
+        if(!PyErr_Occurred()) {
+            PyErr_SetString(PyExc_ValueError, "native handle must be non-zero");
+        }
+        return NULL;
+    }
+    return _own_window(SDL_CreateWindowFrom(handle));
+}
+
+// CreateShapedWindow(title, size, position=(CENTERED, CENTERED), flags=0)
+static PyObject * PySDL_CreateShapedWindow(PyObject *self, PyObject *args, PyObject *kwds) {
+    const char *title;
+    int w, h;
+    int x = SDL_WINDOWPOS_CENTERED, y = SDL_WINDOWPOS_CENTERED;
+    unsigned int flags = 0;
+    static char *kwlist[] = {"title", "size", "position", "flags", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "s(ii)|(ii)I", kwlist, &title, &w, &h, &x, &y, &flags)) {
+        return NULL;
+    }
+    SDL_ClearError();
+    SDL_Window *window = SDL_CreateShapedWindow(title, (unsigned)x, (unsigned)y, (unsigned)w, (unsigned)h, flags);
+    if(NULL == window && '\0' == *SDL_GetError()) {
+        // SDL sets no error when the video driver has no shaped-window support.
+        PyErr_SetString(pysdl_Error, "shaped windows are not supported by this video driver");
+        return NULL;
+    }
+    return _own_window(window);
+}
+
+// CreateWindowAndRenderer(size, flags=0) -> (Window, Renderer)
+static PyObject * PySDL_CreateWindowAndRenderer(PyObject *self, PyObject *args, PyObject *kwds) {
+    int w, h;
+    unsigned int flags = 0;
+    static char *kwlist[] = {"size", "flags", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "(ii)|I", kwlist, &w, &h, &flags)) {
+        return NULL;
+    }
+
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    if(0 > SDL_CreateWindowAndRenderer(w, h, flags, &window, &renderer)) {
+        return _raise();
+    }
+
+    PySDL_Renderer *rwrap = (PySDL_Renderer *)PySDL_New(&PySDL_Renderer_Type);
+    if(NULL == rwrap) {
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        return NULL;
+    }
+    rwrap->renderer = renderer;
+    PyObject *wwrap = _own_window(window);
+    if(NULL == wwrap) {
+        Py_DECREF(rwrap);  // destroys the renderer; _own_window destroyed the window
+        return NULL;
+    }
+    return Py_BuildValue("(NN)", wwrap, (PyObject *)rwrap);
+}
+
 PyMethodDef pysdl_video_methods[] = {
     { "GetDisplayName",           PySDL_GetDisplayName,           METH_O       },
     { "GetDisplayUsableBounds",   PySDL_GetDisplayUsableBounds,   METH_O       },
@@ -452,6 +555,11 @@ PyMethodDef pysdl_video_methods[] = {
     { "GetClosestDisplayMode",    PySDL_GetClosestDisplayMode,    METH_VARARGS },
 
     { "GetWindowFromID",          PySDL_GetWindowFromID,          METH_O       },
+    { "VideoInit",                PySDL_VideoInit,                METH_VARARGS },
+    { "VideoQuit",                PySDL_VideoQuit,                METH_NOARGS  },
+    { "CreateWindowFrom",         PySDL_CreateWindowFrom,         METH_O       },
+    { "CreateShapedWindow",       (PyCFunction)PySDL_CreateShapedWindow, METH_VARARGS | METH_KEYWORDS },
+    { "CreateWindowAndRenderer",  (PyCFunction)PySDL_CreateWindowAndRenderer, METH_VARARGS | METH_KEYWORDS },
 
     { "ShowSimpleMessageBox",     (PyCFunction)PySDL_ShowSimpleMessageBox, METH_VARARGS | METH_KEYWORDS },
     { "ShowMessageBox",           PySDL_ShowMessageBox,           METH_O       },

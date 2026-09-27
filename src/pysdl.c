@@ -24,6 +24,16 @@ static PyObject * PySDL_CreateRGBSurfaceWithFormatFrom (PyObject*, PyObject*, Py
 static PyObject * PySDL_GetPixelFormatName     (PyObject*, PyObject*);
 static PyObject * PySDL_PixelFormatEnumToMasks (PyObject*, PyObject*);
 static PyObject * PySDL_MasksToPixelFormatEnum (PyObject*, PyObject*);
+static PyObject * PySDL_ConvertPixels          (PyObject*, PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_PremultiplyAlpha       (PyObject*, PyObject*, PyObject*);
+#endif
+static PyObject * PySDL_CalculateGammaRamp     (PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,8)
+static PyObject * PySDL_SetYUVConversionMode   (PyObject*, PyObject*);
+static PyObject * PySDL_GetYUVConversionMode   (PyObject*, PyObject*);
+static PyObject * PySDL_GetYUVConversionModeForResolution (PyObject*, PyObject*);
+#endif
 
 
 static PyObject * PySDL_CreateSoftwareRenderer (PyObject*, PyObject*);
@@ -118,6 +128,16 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetPixelFormatName",     PySDL_GetPixelFormatName,     METH_O       },
     { "PixelFormatEnumToMasks", PySDL_PixelFormatEnumToMasks, METH_O       },
     { "MasksToPixelFormatEnum", PySDL_MasksToPixelFormatEnum, METH_VARARGS },
+    { "ConvertPixels",          (PyCFunction)PySDL_ConvertPixels, METH_VARARGS | METH_KEYWORDS },
+#if SDL_VERSION_ATLEAST(2,0,18)
+    { "PremultiplyAlpha",       (PyCFunction)PySDL_PremultiplyAlpha, METH_VARARGS | METH_KEYWORDS },
+#endif
+    { "CalculateGammaRamp",     PySDL_CalculateGammaRamp,     METH_O       },
+#if SDL_VERSION_ATLEAST(2,0,8)
+    { "SetYUVConversionMode",   PySDL_SetYUVConversionMode,   METH_O       },
+    { "GetYUVConversionMode",   PySDL_GetYUVConversionMode,   METH_NOARGS  },
+    { "GetYUVConversionModeForResolution", PySDL_GetYUVConversionModeForResolution, METH_VARARGS },
+#endif
 
 
     { "CreateSoftwareRenderer", PySDL_CreateSoftwareRenderer, METH_O       },
@@ -611,6 +631,142 @@ static PyObject * PySDL_MasksToPixelFormatEnum(PyObject *self, PyObject *args) {
     }
     return PyLong_FromUnsignedLong(SDL_MasksToPixelFormatEnum(bpp, rmask, gmask, bmask, amask));
 }
+
+// Pixel-buffer geometry for ConvertPixels / PremultiplyAlpha. A pitch of 0
+// picks the tight default; returns the buffer size in bytes, or -1 with an
+// exception set for an unsupported format.
+static Py_ssize_t _pixels_size(Uint32 format, int w, int h, int *pitch) {
+    if(SDL_ISPIXELFORMAT_FOURCC(format)) {
+        switch(format) {
+        case SDL_PIXELFORMAT_YV12:
+        case SDL_PIXELFORMAT_IYUV:
+        case SDL_PIXELFORMAT_NV12:
+        case SDL_PIXELFORMAT_NV21:
+            if(0 == *pitch) *pitch = w;
+            // Y plane, then 2x2-subsampled chroma (two planes or one interleaved).
+            return (Py_ssize_t)*pitch * h + 2 * (Py_ssize_t)((*pitch + 1) / 2) * ((h + 1) / 2);
+        case SDL_PIXELFORMAT_YUY2:
+        case SDL_PIXELFORMAT_UYVY:
+        case SDL_PIXELFORMAT_YVYU:
+            if(0 == *pitch) *pitch = ((w + 1) / 2) * 4;
+            return (Py_ssize_t)*pitch * h;
+        default:
+            PyErr_SetString(PyExc_ValueError, "unsupported FOURCC pixel format");
+            return -1;
+        }
+    }
+    if(0 == SDL_BYTESPERPIXEL(format)) {
+        PyErr_SetString(PyExc_ValueError, "unsupported pixel format");
+        return -1;
+    }
+    if(0 == *pitch) *pitch = w * SDL_BYTESPERPIXEL(format);
+    return (Py_ssize_t)*pitch * h;
+}
+
+typedef int (SDLCALL *_pixel_op)(int, int, Uint32, const void *, int, Uint32, void *, int);
+
+// (size, src_format, src, dst_format, src_pitch=0, dst_pitch=0) -> bytes
+static PyObject * _convert(PyObject *args, PyObject *kwds, _pixel_op op) {
+    int w, h, src_pitch = 0, dst_pitch = 0;
+    unsigned int src_format, dst_format;
+    Py_buffer src;
+    static char *kwlist[] = {"size", "src_format", "src", "dst_format", "src_pitch", "dst_pitch", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "(ii)Iy*I|ii", kwlist,
+        &w, &h, &src_format, &src, &dst_format, &src_pitch, &dst_pitch)) {
+        return NULL;
+    }
+    if(w <= 0 || h <= 0 || src_pitch < 0 || dst_pitch < 0) {
+        PyBuffer_Release(&src);
+        PyErr_SetString(PyExc_ValueError, "size must be positive and pitches non-negative");
+        return NULL;
+    }
+
+    Py_ssize_t need = _pixels_size(src_format, w, h, &src_pitch);
+    Py_ssize_t size = (need < 0) ? -1 : _pixels_size(dst_format, w, h, &dst_pitch);
+    if(need < 0 || size < 0) {
+        PyBuffer_Release(&src);
+        return NULL;
+    }
+    if(src.len < need) {
+        PyErr_Format(PyExc_ValueError, "src holds %zd bytes, needs %zd", src.len, need);
+        PyBuffer_Release(&src);
+        return NULL;
+    }
+
+    PyObject *dst = PyBytes_FromStringAndSize(NULL, size);
+    if(NULL == dst) {
+        PyBuffer_Release(&src);
+        return NULL;
+    }
+    int rc = op(w, h, src_format, src.buf, src_pitch, dst_format, PyBytes_AS_STRING(dst), dst_pitch);
+    PyBuffer_Release(&src);
+    if(0 > rc) {
+        Py_DECREF(dst);
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    return dst;
+}
+
+static PyObject * PySDL_ConvertPixels(PyObject *self, PyObject *args, PyObject *kwds) {
+    return _convert(args, kwds, SDL_ConvertPixels);
+}
+
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_PremultiplyAlpha(PyObject *self, PyObject *args, PyObject *kwds) {
+    return _convert(args, kwds, SDL_PremultiplyAlpha);
+}
+#endif
+
+// CalculateGammaRamp(gamma) -> tuple of 256 ints, for Window.SetWindowGammaRamp
+static PyObject * PySDL_CalculateGammaRamp(PyObject *self, PyObject *arg) {
+    double gamma = PyFloat_AsDouble(arg);
+    if(-1.0 == gamma && PyErr_Occurred()) {
+        return NULL;
+    }
+    if(gamma < 0.0) {
+        PyErr_SetString(PyExc_ValueError, "gamma must be >= 0");
+        return NULL;
+    }
+    Uint16 ramp[256];
+    SDL_CalculateGammaRamp((float)gamma, ramp);
+    PyObject *tuple = PyTuple_New(256);
+    if(NULL == tuple) {
+        return NULL;
+    }
+    for(int idx = 0; idx < 256; ++idx) {
+        PyObject *value = PyLong_FromLong(ramp[idx]);
+        if(NULL == value) {
+            Py_DECREF(tuple);
+            return NULL;
+        }
+        PyTuple_SET_ITEM(tuple, idx, value);
+    }
+    return tuple;
+}
+
+#if SDL_VERSION_ATLEAST(2,0,8)
+static PyObject * PySDL_SetYUVConversionMode(PyObject *self, PyObject *arg) {
+    long mode = PyLong_AsLong(arg);
+    if(-1 == mode && PyErr_Occurred()) {
+        return NULL;
+    }
+    SDL_SetYUVConversionMode((SDL_YUV_CONVERSION_MODE)mode);
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_GetYUVConversionMode(PyObject *self, PyObject *ign) {
+    return PyLong_FromLong(SDL_GetYUVConversionMode());
+}
+
+static PyObject * PySDL_GetYUVConversionModeForResolution(PyObject *self, PyObject *args) {
+    int w, h;
+    if(!PyArg_ParseTuple(args, "ii", &w, &h)) {
+        return NULL;
+    }
+    return PyLong_FromLong(SDL_GetYUVConversionModeForResolution(w, h));
+}
+#endif
 
 static PyObject * PySDL_CreateSoftwareRenderer(PyObject *self, PyObject *arg) {
     if(!PyObject_TypeCheck(arg, &PySDL_Surface_Type)) {

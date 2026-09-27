@@ -67,6 +67,21 @@ static PyObject * PySDL_Window_GL_SwapWindow       (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_GL_GetDrawableSize  (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_Vulkan_GetDrawableSize (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_Vulkan_CreateSurface   (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetWindowBrightness  (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_GetRenderer         (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_IsShapedWindow      (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_SetWindowShape      (PySDL_Window*, PyObject*, PyObject*);
+static PyObject * PySDL_Window_GetShapedWindowMode (PySDL_Window*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,18)
+static PyObject * PySDL_Window_GetWindowICCProfile (PySDL_Window*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,26,0)
+static PyObject * PySDL_Window_GetWindowSizeInPixels (PySDL_Window*, PyObject*);
+#endif
+#if SDL_VERSION_ATLEAST(2,28,0)
+static PyObject * PySDL_Window_HasWindowSurface     (PySDL_Window*, PyObject*);
+static PyObject * PySDL_Window_DestroyWindowSurface (PySDL_Window*, PyObject*);
+#endif
 #if SDL_VERSION_ATLEAST(2,0,11)
 static PyObject * PySDL_Window_Metal_CreateView      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_Metal_GetDrawableSize (PySDL_Window*, PyObject*);
@@ -134,6 +149,22 @@ static PyMethodDef PySDL_Window_methods[] = {
 #if SDL_VERSION_ATLEAST(2,0,18)
     { "SetWindowMouseRect",    (PyCFunction)PySDL_Window_SetWindowMouseRect,    METH_O       },
     { "GetWindowMouseRect",    (PyCFunction)PySDL_Window_GetWindowMouseRect,    METH_NOARGS  },
+#endif
+
+    { "GetWindowBrightness",   (PyCFunction)PySDL_Window_GetWindowBrightness,   METH_NOARGS  },
+    { "GetRenderer",           (PyCFunction)PySDL_Window_GetRenderer,           METH_NOARGS  },
+    { "IsShapedWindow",        (PyCFunction)PySDL_Window_IsShapedWindow,        METH_NOARGS  },
+    { "SetWindowShape",        (PyCFunction)PySDL_Window_SetWindowShape,        METH_VARARGS | METH_KEYWORDS },
+    { "GetShapedWindowMode",   (PyCFunction)PySDL_Window_GetShapedWindowMode,   METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,0,18)
+    { "GetWindowICCProfile",   (PyCFunction)PySDL_Window_GetWindowICCProfile,   METH_NOARGS  },
+#endif
+#if SDL_VERSION_ATLEAST(2,26,0)
+    { "GetWindowSizeInPixels", (PyCFunction)PySDL_Window_GetWindowSizeInPixels, METH_NOARGS  },
+#endif
+#if SDL_VERSION_ATLEAST(2,28,0)
+    { "HasWindowSurface",      (PyCFunction)PySDL_Window_HasWindowSurface,      METH_NOARGS  },
+    { "DestroyWindowSurface",  (PyCFunction)PySDL_Window_DestroyWindowSurface,  METH_NOARGS  },
 #endif
 
     { "Vulkan_GetDrawableSize", (PyCFunction)PySDL_Window_Vulkan_GetDrawableSize, METH_NOARGS },
@@ -239,6 +270,7 @@ static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *ig
 
     pysdl_Surface->surface = SDL_GetWindowSurface(self->window);
     if(NULL == pysdl_Surface->surface) {
+        Py_DECREF(pysdl_Surface);
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
@@ -755,3 +787,143 @@ static PyObject * PySDL_Window_Metal_GetDrawableSize(PySDL_Window *self, PyObjec
     return Py_BuildValue("(ii)", w, h);
 }
 #endif
+
+//=========================================================
+// brightness, renderer, pixel size, ICC, window surface
+//=========================================================
+
+static PyObject * PySDL_Window_GetWindowBrightness(PySDL_Window *self, PyObject *ign) {
+    return PyFloat_FromDouble(SDL_GetWindowBrightness(self->window));
+}
+
+// The renderer created for this window (borrowed: the window owns it), or None.
+static PyObject * PySDL_Window_GetRenderer(PySDL_Window *self, PyObject *ign) {
+    SDL_Renderer *renderer = SDL_GetRenderer(self->window);
+    if(NULL == renderer) {
+        SDL_ClearError();
+        Py_RETURN_NONE;
+    }
+    PySDL_Renderer *wrapper = (PySDL_Renderer *)PySDL_New(&PySDL_Renderer_Type);
+    if(NULL == wrapper) {
+        return NULL;
+    }
+    wrapper->renderer = renderer;
+    wrapper->shouldFree = 0;
+    return (PyObject *)wrapper;
+}
+
+#if SDL_VERSION_ATLEAST(2,0,18)
+// The display's ICC profile as bytes, or None if the platform has none.
+static PyObject * PySDL_Window_GetWindowICCProfile(PySDL_Window *self, PyObject *ign) {
+    size_t size = 0;
+    void *data = SDL_GetWindowICCProfile(self->window, &size);
+    if(NULL == data) {
+        SDL_ClearError();
+        Py_RETURN_NONE;
+    }
+    PyObject *result = PyBytes_FromStringAndSize(data, (Py_ssize_t)size);
+    SDL_free(data);
+    return result;
+}
+#endif
+
+#if SDL_VERSION_ATLEAST(2,26,0)
+// Size in pixels (differs from GetWindowSize on high-DPI displays).
+static PyObject * PySDL_Window_GetWindowSizeInPixels(PySDL_Window *self, PyObject *ign) {
+    int w = 0, h = 0;
+    SDL_GetWindowSizeInPixels(self->window, &w, &h);
+    return Py_BuildValue("(ii)", w, h);
+}
+#endif
+
+#if SDL_VERSION_ATLEAST(2,28,0)
+static PyObject * PySDL_Window_HasWindowSurface(PySDL_Window *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasWindowSurface(self->window));
+}
+
+// Frees the window surface: Surface objects from GetWindowSurface() must not
+// be used afterwards.
+static PyObject * PySDL_Window_DestroyWindowSurface(PySDL_Window *self, PyObject *ign) {
+    if(0 > SDL_DestroyWindowSurface(self->window)) {
+        return _wraise();
+    }
+    Py_RETURN_NONE;
+}
+#endif
+
+//=========================================================
+// shaped windows (SDL2.CreateShapedWindow)
+//=========================================================
+
+static PyObject * PySDL_Window_IsShapedWindow(PySDL_Window *self, PyObject *ign) {
+    return PyBool_FromLong(self->window && SDL_IsShapedWindow(self->window));
+}
+
+static PyObject * _shape_raise(int rc) {
+    switch(rc) {
+    case SDL_NONSHAPEABLE_WINDOW:
+        PyErr_SetString(pysdl_Error, "not a shaped window (use SDL2.CreateShapedWindow)");
+        break;
+    case SDL_INVALID_SHAPE_ARGUMENT:
+        PyErr_SetString(pysdl_Error, "invalid shape argument");
+        break;
+    case SDL_WINDOW_LACKS_SHAPE:
+        PyErr_SetString(pysdl_Error, "window has no shape set yet");
+        break;
+    default:
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+    }
+    return NULL;
+}
+
+// SetWindowShape(shape, mode=SHAPEMODE_DEFAULT, param=None): `shape` is a
+// Surface the size of the window; `param` is the alpha cutoff (int) for the
+// BINARIZE modes or the (r, g, b[, a]) key for SHAPEMODE_COLOR_KEY.
+static PyObject * PySDL_Window_SetWindowShape(PySDL_Window *self, PyObject *args, PyObject *kwds) {
+    PySDL_Surface *shape;
+    int mode = ShapeModeDefault;
+    PyObject *param = Py_None;
+    static char *kwlist[] = {"shape", "mode", "param", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "O!|iO", kwlist,
+        &PySDL_Surface_Type, &shape, &mode, &param)) {
+        return NULL;
+    }
+
+    SDL_WindowShapeMode shape_mode;
+    SDL_zero(shape_mode);
+    shape_mode.mode = (WindowShapeMode)mode;
+    if(ShapeModeColorKey == mode) {
+        if(!PyToColor(param, &shape_mode.parameters.colorKey)) {
+            return NULL;
+        }
+    } else if(param != Py_None) {
+        long cutoff = PyLong_AsLong(param);
+        if(-1 == cutoff && PyErr_Occurred()) {
+            return NULL;
+        }
+        shape_mode.parameters.binarizationCutoff = (Uint8)cutoff;
+    } else {
+        shape_mode.parameters.binarizationCutoff = 1;
+    }
+
+    int rc = SDL_SetWindowShape(self->window, shape->surface, &shape_mode);
+    if(0 != rc) {
+        return _shape_raise(rc);
+    }
+    Py_RETURN_NONE;
+}
+
+// -> (mode, param) as accepted by SetWindowShape
+static PyObject * PySDL_Window_GetShapedWindowMode(PySDL_Window *self, PyObject *ign) {
+    SDL_WindowShapeMode shape_mode;
+    SDL_zero(shape_mode);
+    int rc = SDL_GetShapedWindowMode(self->window, &shape_mode);
+    if(0 != rc) {
+        return _shape_raise(rc);
+    }
+    if(ShapeModeColorKey == shape_mode.mode) {
+        SDL_Color c = shape_mode.parameters.colorKey;
+        return Py_BuildValue("(i(iiii))", shape_mode.mode, c.r, c.g, c.b, c.a);
+    }
+    return Py_BuildValue("(ii)", shape_mode.mode, shape_mode.parameters.binarizationCutoff);
+}

@@ -57,6 +57,7 @@ a display:
 - `python3 example/wav.py [file.wav]` — LoadWAV + AudioStream resample + queue playback
 - `python3 example/rects.py` — live rect intersection / union / enclose / line-clip
 - `python3 example/image.py [file]` — SDL_image: format probes, animations, SVG / XPM, encode to bytes; no window
+- `python3 example/logical.py [--frames N]` — logical-size canvas: mouse picking, RenderGeometryRaw, LockToSurface, vsync toggle
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio callback + OpenGL visualizer (also needs a `pygl` module)
 - `example/adjust.py` — fullscreen test pattern on every display
@@ -114,14 +115,19 @@ helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
 ### Object model
 
 Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus
-tracking fields where needed: `Surface`/`Window`/`Cursor`/`Joystick`.`shouldFree`,
-`Renderer.target`, `Audio.pycallback`, `Surface.pixels`). The SDL pointer is
+tracking fields where needed: `Surface`/`Window`/`Renderer`/`Cursor`/`Joystick`.`shouldFree`,
+`Renderer.target`, `Texture.locked`, `Audio.pycallback`, `Surface.pixels`). The SDL pointer is
 filled in either by `tp_init` (public construction) or afterwards by the C code
 that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `tp_dealloc` unless `shouldFree` is 0 (a *borrowed* pointer SDL still owns —
 `Window.GetWindowSurface()`, `GetKeyboardFocus()`/`GetMouseFocus()` via
 `PySDL_WrapWindow()`, `GetCursor()`/`GetDefaultCursor()`,
-`GameController.GetJoystick()`). Joystick/controller lookups
+`GameController.GetJoystick()`, `Window.GetRenderer()`,
+`Texture.LockToSurface()`). A borrowed pointer SDL frees while Python may still
+hold it gets swapped out rather than left dangling: `Texture.Unlock` (and the
+texture's dealloc) points the `LockToSurface` Surface at a fresh empty 0x0
+surface, since Surface methods dereference `->surface` without checks.
+Joystick/controller lookups
 (`JoystickFromInstanceID`, `GameControllerFromPlayerIndex`, …) avoid borrowing:
 they re-open the device by index (`PySDL_JoystickIndexForInstance`), which bumps
 SDL's refcount and yields an owned wrapper.

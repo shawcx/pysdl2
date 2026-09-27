@@ -122,3 +122,91 @@ def test_compose_custom_blend_mode(sdl):
         sdl.BLENDFACTOR_ONE, sdl.BLENDFACTOR_ONE, sdl.BLENDOPERATION_ADD)
     assert isinstance(mode, int)
     assert mode != sdl.BLENDMODE_INVALID
+
+
+# --- phase 12: vsync, coordinate mapping, raw geometry, window links ------
+
+import struct  # noqa: E402
+
+TRIANGLE = struct.pack('6f', 0, 0, 10, 0, 0, 10)
+RED = bytes([255, 0, 0, 255])
+
+
+def _needs(obj, name):
+    if not hasattr(obj, name):
+        pytest.skip(f'{name} needs a newer SDL')
+
+
+def test_create_window_and_renderer(sdl):
+    window, renderer = sdl.CreateWindowAndRenderer((40, 30))
+    assert type(window).__name__ == 'Window' and type(renderer).__name__ == 'Renderer'
+    assert renderer.GetRendererOutputSize() == (40, 30)
+
+
+def test_window_get_renderer_is_borrowed(sdl, window, renderer):
+    assert sdl.Window('no renderer', (8, 8)).GetRenderer() is None
+    borrowed = window.GetRenderer()
+    assert borrowed.GetRendererOutputSize() == renderer.GetRendererOutputSize()
+    del borrowed  # must not destroy the window's renderer
+    renderer.Clear()
+    renderer.Present()
+
+
+def test_render_get_window(sdl, window, renderer):
+    _needs(renderer, 'RenderGetWindow')
+    assert renderer.RenderGetWindow().GetWindowID() == window.GetWindowID()
+    software = sdl.CreateSoftwareRenderer(sdl.CreateRGBSurface((4, 4)))
+    assert software.RenderGetWindow() is None
+
+
+def test_vsync_and_metal(sdl, renderer):
+    _needs(renderer, 'RenderSetVSync')
+    try:
+        renderer.RenderSetVSync(True)
+        renderer.RenderSetVSync(False)
+    except sdl.error:
+        pass  # a renderer may not support toggling
+    assert renderer.RenderGetMetalLayer() is None  # not a Metal renderer here
+    assert renderer.RenderGetMetalCommandEncoder() is None
+
+
+def test_window_logical_mapping(renderer):
+    _needs(renderer, 'RenderWindowToLogical')
+    w, h = renderer.GetRendererOutputSize()
+    renderer.RenderSetLogicalSize(w // 2, h // 2)
+    try:
+        assert renderer.RenderWindowToLogical((w // 2, h // 2)) == (w // 4, h // 4)
+        assert renderer.RenderLogicalToWindow((w / 4, h / 4)) == (w // 2, h // 2)
+    finally:
+        renderer.RenderSetLogicalSize(0, 0)
+
+
+def test_render_geometry_raw(sdl, renderer):
+    _needs(renderer, 'RenderGeometryRaw')
+    renderer.RenderGeometryRaw(None, TRIANGLE, RED, color_stride=0)          # one colour
+    renderer.RenderGeometryRaw(None, TRIANGLE, RED * 3)                      # per vertex
+    renderer.RenderGeometryRaw(None, TRIANGLE, RED * 3, indices=bytes([0, 1, 2]), index_size=1)
+    renderer.RenderGeometryRaw(None, TRIANGLE, RED * 3,
+                               indices=struct.pack('3H', 2, 1, 0), index_size=2)
+    renderer.RenderGeometryRaw(None, bytearray(TRIANGLE), memoryview(RED * 3), num_vertices=3)
+    renderer.Present()
+
+
+def test_render_geometry_raw_with_texture(sdl, renderer, texture):
+    _needs(renderer, 'RenderGeometryRaw')
+    uv = struct.pack('6f', 0, 0, 1, 0, 0, 1)
+    renderer.RenderGeometryRaw(texture, TRIANGLE, RED * 3, uv)
+
+
+def test_render_geometry_raw_validation(sdl, renderer):
+    _needs(renderer, 'RenderGeometryRaw')
+    with pytest.raises(ValueError):
+        renderer.RenderGeometryRaw(None, TRIANGLE, RED)  # 3 vertices, 1 colour
+    with pytest.raises(ValueError):
+        renderer.RenderGeometryRaw(None, TRIANGLE, RED * 3, xy_stride=6)
+    with pytest.raises(ValueError):
+        renderer.RenderGeometryRaw(None, TRIANGLE, RED * 3, indices=b'\0', index_size=3)
+    with pytest.raises(sdl.error):
+        renderer.RenderGeometryRaw(None, TRIANGLE, RED * 3, indices=bytes([0, 1, 9]), index_size=1)
+    with pytest.raises(TypeError):
+        renderer.RenderGeometryRaw('nope', TRIANGLE, RED * 3)
