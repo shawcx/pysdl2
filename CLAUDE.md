@@ -128,8 +128,8 @@ helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
 
 Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus
 tracking fields where needed: `Surface`/`Window`/`Renderer`/`Cursor`/`Joystick`.`shouldFree`,
-`Renderer.target`, `Texture.locked`, `Audio.pycallback`, `Surface.pixels`,
-`Surface.window_id`). The SDL pointer is
+`Renderer.target`, `Texture.locked`, `Texture.renderer`, `Audio.pycallback`,
+`Surface.pixels`, `Surface.window_id`). The SDL pointer is
 filled in either by `tp_init` (public construction) or afterwards by the C code
 that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `tp_dealloc` unless `shouldFree` is 0 (a *borrowed* pointer SDL still owns —
@@ -161,6 +161,17 @@ to and removes in `tp_dealloc`):
   `SDL_Window` that may already be freed.
 - Renderers and textures are **not** freed by video shutdown (SDL keeps them
   until `SDL_DestroyRenderer`), so they need no invalidation for `Quit`.
+
+**Renderer / texture invalidation** (`pysdl_Renderer.c`): `SDL_DestroyRenderer`
+frees every texture of that renderer. Every `Renderer` wrapper registers in
+`tp_init`; every Texture wrapper records its owning `SDL_Renderer` and registers
+via `PySDL_TextureTrack()` at each creation site (`Texture(...)`,
+`CreateTextureFromSurface`, `LoadTexture` — a new site must call it too). The
+owning Renderer's dealloc invalidates that renderer's textures
+(`PySDL_TextureInvalidate`: pointer nulled, `LockToSurface` Surface emptied) and
+its borrowed wrappers before `SDL_DestroyRenderer`. SDL calls that read a NULL
+texture as "none" (`SetRenderTarget`, `RenderGeometry`, `RenderGeometryRaw`)
+take Texture args through `_texture_arg()`, which raises instead.
 Joystick/controller lookups
 (`JoystickFromInstanceID`, `GameControllerFromPlayerIndex`, …) avoid borrowing:
 they re-open the device by index (`PySDL_JoystickIndexForInstance`), which bumps

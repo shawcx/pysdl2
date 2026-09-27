@@ -119,3 +119,87 @@ def test_update_yuv_checks_plane_sizes(sdl, renderer):
         tex.UpdateYUV(y, 4, u, 2, v[:3], 2)
     with pytest.raises(ValueError):
         tex.UpdateYUV(y, 0, u, 2, v, 2)
+
+
+# --- renderer teardown invalidates its textures ----------------------------
+
+def _software_renderer(sdl):
+    return sdl.CreateSoftwareRenderer(sdl.CreateRGBSurface((8, 8)))
+
+
+def test_textures_invalidated_with_renderer(sdl):
+    import gc
+    renderer = _software_renderer(sdl)
+    made = [
+        sdl.Texture(renderer, sdl.PIXELFORMAT_RGBA32, sdl.TEXTUREACCESS_STATIC, (4, 4)),
+        renderer.CreateTextureFromSurface(sdl.CreateRGBSurface((4, 4))),
+        renderer.LoadTexture(sdl.CreateRGBSurface((4, 4)).SavePNG()),
+    ]
+    del renderer
+    gc.collect()
+    for texture in made:
+        with pytest.raises(sdl.error):
+            texture.Query()
+    del made
+    gc.collect()  # freeing invalidated textures must not touch the freed ones
+
+
+def test_invalidated_texture_rejected_by_other_renderer(sdl):
+    import gc
+    renderer = _software_renderer(sdl)
+    texture = sdl.Texture(renderer, sdl.PIXELFORMAT_RGBA32, sdl.TEXTUREACCESS_TARGET, (4, 4))
+    other = _software_renderer(sdl)
+    survivor = sdl.Texture(other, sdl.PIXELFORMAT_RGBA32, sdl.TEXTUREACCESS_STATIC, (2, 2))
+    del renderer
+    gc.collect()
+    # A NULL texture means "none" to these SDL calls: they must raise instead.
+    with pytest.raises(sdl.error, match='Renderer was destroyed'):
+        other.SetRenderTarget(texture)
+    with pytest.raises(sdl.error, match='Renderer was destroyed'):
+        other.RenderGeometry(texture, [((0, 0), (255, 255, 255, 255), (0, 0))])
+    with pytest.raises(sdl.error):
+        other.Copy(texture)
+    assert survivor.Query()[2:] == (2, 2)  # other renderers' textures untouched
+
+
+def test_locked_surface_emptied_with_renderer(sdl):
+    import gc
+    if not hasattr(sdl.Texture, 'LockToSurface'):
+        pytest.skip('needs SDL >= 2.0.12')
+    renderer = _software_renderer(sdl)
+    texture = sdl.Texture(renderer, sdl.PIXELFORMAT_RGBA32, sdl.TEXTUREACCESS_STREAMING, (4, 4))
+    surface = texture.LockToSurface()
+    del renderer
+    gc.collect()
+    assert (surface.w, surface.h) == (0, 0)
+
+
+def test_borrowed_renderer_invalidated_with_owner(sdl):
+    import gc
+    window = sdl.Window('renderer-owner', (16, 16))
+    renderer = window.CreateRenderer()
+    borrowed = window.GetRenderer()
+    del renderer
+    gc.collect()
+    with pytest.raises(sdl.error):
+        borrowed.Clear()
+
+
+def test_module_teardown_order_is_safe(sdl):
+    # At interpreter exit module globals are cleared in no particular order;
+    # a renderer freed before its textures must not leave them dangling.
+    import os
+    import subprocess
+    import sys
+    code = (
+        'import SDL2\n'
+        'SDL2.Init(SDL2.INIT_VIDEO)\n'
+        'renderer = SDL2.CreateSoftwareRenderer(SDL2.CreateRGBSurface((8, 8)))\n'
+        'textures = [SDL2.Texture(renderer, SDL2.PIXELFORMAT_RGBA32, SDL2.TEXTUREACCESS_STATIC, (2, 2))\n'
+        '            for _ in range(100)]\n'
+        'del renderer\n'
+        'print("ok")\n'
+    )
+    env = dict(os.environ, PYTHONPATH=os.path.dirname(sdl.__file__))
+    out = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True)
+    assert out.returncode == 0 and out.stdout.strip() == 'ok', out.stderr

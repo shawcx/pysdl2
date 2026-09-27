@@ -81,6 +81,7 @@ static int PySDL_Texture_Type_init(PySDL_Texture *self, PyObject *args, PyObject
 
     self->texture = NULL;
     self->locked = NULL;
+    self->renderer = NULL;
 
     // No renderer: internal allocation; the caller fills in ->texture.
     if(renderer && renderer != Py_None) {
@@ -88,7 +89,11 @@ static int PySDL_Texture_Type_init(PySDL_Texture *self, PyObject *args, PyObject
             PyErr_SetString(PyExc_TypeError, "renderer must be an SDL2.Renderer");
             return -1;
         }
-        self->texture = SDL_CreateTexture(((PySDL_Renderer *)renderer)->renderer, format, access, w, h);
+        SDL_Renderer *owner = ((PySDL_Renderer *)renderer)->renderer;
+        self->texture = SDL_CreateTexture(owner, format, access, w, h);
+        if(NULL != self->texture && 0 > PySDL_TextureTrack(self, owner)) {
+            return -1;  // dealloc destroys the texture
+        }
         if(NULL == self->texture) {
             PyErr_SetString(pysdl_Error, SDL_GetError());
             return -1;
@@ -108,7 +113,16 @@ static void _detach_locked(PySDL_Texture *self) {
     Py_CLEAR(self->locked);
 }
 
+// The owning renderer is being destroyed and will free this texture: drop the
+// pointer (methods then raise "Invalid texture") and empty any locked Surface.
+void PySDL_TextureInvalidate(PySDL_Texture *self) {
+    _detach_locked(self);
+    self->texture = NULL;
+    self->renderer = NULL;
+}
+
 static void PySDL_Texture_Type_dealloc(PySDL_Texture *self) {
+    PySDL_TextureForget(self);
     _detach_locked(self);
     if(NULL != self->texture) {
         SDL_DestroyTexture(self->texture);

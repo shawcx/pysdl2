@@ -141,6 +141,54 @@ PyTypeObject PySDL_Renderer_Type = {
     .tp_new       = PyType_GenericNew,
 };
 
+//=========================================================
+// renderer / texture tracking
+//=========================================================
+
+// Every live Renderer wrapper (owned or borrowed) and every Texture wrapper
+// holding a texture, as borrowed pointers. SDL_DestroyRenderer frees all of a
+// renderer's textures, so before the owning Renderer destroys it, every
+// Texture of it and every other (borrowed) wrapper of it is invalidated.
+static PySDL_Registry _renderers;
+static PySDL_Registry _textures;
+
+int PySDL_TextureTrack(PySDL_Texture *texture, SDL_Renderer *renderer) {
+    texture->renderer = renderer;
+    return PySDL_RegistryAdd(&_textures, (PyObject *)texture);
+}
+
+void PySDL_TextureForget(PySDL_Texture *texture) {
+    PySDL_RegistryRemove(&_textures, (PyObject *)texture);
+}
+
+static void _invalidate_renderer(SDL_Renderer *renderer, PySDL_Renderer *owner) {
+    for(Py_ssize_t idx = _textures.len - 1; idx >= 0; --idx) {
+        PySDL_Texture *texture = (PySDL_Texture *)_textures.items[idx];
+        if(texture->renderer == renderer) {
+            PySDL_RegistryRemove(&_textures, (PyObject *)texture);
+            PySDL_TextureInvalidate(texture);
+        }
+    }
+    for(Py_ssize_t idx = 0; idx < _renderers.len; ++idx) {
+        PySDL_Renderer *other = (PySDL_Renderer *)_renderers.items[idx];
+        if(other != owner && other->renderer == renderer) {
+            other->renderer = NULL;
+        }
+    }
+}
+
+// A Texture argument's SDL texture, raising if its renderer has been destroyed
+// (a NULL texture would otherwise mean "none" to some SDL calls).
+static int _texture_arg(PyObject *obj, SDL_Texture **out) {
+    SDL_Texture *texture = ((PySDL_Texture *)obj)->texture;
+    if(NULL == texture) {
+        PyErr_SetString(pysdl_Error, "Texture is no longer valid: its Renderer was destroyed");
+        return 0;
+    }
+    *out = texture;
+    return 1;
+}
+
 static int PySDL_Renderer_Type_init(PySDL_Renderer *self, PyObject *args, PyObject *kwds) {
     PyObject *window = NULL;
     int index = -1;
@@ -154,6 +202,9 @@ static int PySDL_Renderer_Type_init(PySDL_Renderer *self, PyObject *args, PyObje
     self->renderer = NULL;
     self->target = NULL;
     self->shouldFree = 1;
+    if(0 > PySDL_RegistryAdd(&_renderers, (PyObject *)self)) {
+        return -1;
+    }
 
     // No window: internal allocation (Window.CreateRenderer, CreateSoftwareRenderer)
     // fills in ->renderer afterwards.
@@ -173,9 +224,11 @@ static int PySDL_Renderer_Type_init(PySDL_Renderer *self, PyObject *args, PyObje
 }
 
 static void PySDL_Renderer_Type_dealloc(PySDL_Renderer *self) {
+    PySDL_RegistryRemove(&_renderers, (PyObject *)self);
     Py_XDECREF(self->target);
     if(NULL != self->renderer) {
         if(self->shouldFree) {
+            _invalidate_renderer(self->renderer, self);  // SDL frees its textures
             SDL_DestroyRenderer(self->renderer);
         }
         self->renderer = NULL;
@@ -258,6 +311,10 @@ static PyObject * PySDL_Renderer_CreateTextureFromSurface(PySDL_Renderer *self, 
     }
 
     pysdl_Texture->texture = SDL_CreateTextureFromSurface(self->renderer, ((PySDL_Surface *)arg)->surface);
+    if(NULL != pysdl_Texture->texture && 0 > PySDL_TextureTrack(pysdl_Texture, self->renderer)) {
+        Py_DECREF(pysdl_Texture);
+        return NULL;
+    }
     if(NULL == pysdl_Texture->texture) {
         Py_DECREF(pysdl_Texture);
         return _raise();
@@ -307,6 +364,10 @@ static PyObject * PySDL_Renderer_LoadTexture(PySDL_Renderer *self, PyObject *arg
         return NULL;
     }
     wrapper->texture = texture;
+    if(0 > PySDL_TextureTrack(wrapper, self->renderer)) {
+        Py_DECREF(wrapper);
+        return NULL;
+    }
     return (PyObject *)wrapper;
 }
 
@@ -634,7 +695,9 @@ static PyObject * PySDL_Renderer_RenderGeometry(PySDL_Renderer *self, PyObject *
             PyErr_SetString(PyExc_TypeError, "texture must be an SDL2.Texture or None");
             return NULL;
         }
-        texture = ((PySDL_Texture *)texture_py)->texture;
+        if(!_texture_arg(texture_py, &texture)) {
+            return NULL;
+        }
     }
 
     PyObject *vfast = PySequence_Fast(vertices_py, "vertices must be a list");
@@ -866,7 +929,9 @@ static PyObject * PySDL_Renderer_SetRenderTarget(PySDL_Renderer *self, PyObject 
             PyErr_SetString(PyExc_TypeError, "expected an SDL2.Texture or None");
             return NULL;
         }
-        texture = ((PySDL_Texture *)arg)->texture;
+        if(!_texture_arg(arg, &texture)) {
+            return NULL;
+        }
     }
 
     if(0 > SDL_SetRenderTarget(self->renderer, texture)) {
@@ -1074,7 +1139,9 @@ static PyObject * PySDL_Renderer_RenderGeometryRaw(PySDL_Renderer *self, PyObjec
             PyErr_SetString(PyExc_TypeError, "texture must be an SDL2.Texture or None");
             return NULL;
         }
-        texture = ((PySDL_Texture *)texture_py)->texture;
+        if(!_texture_arg(texture_py, &texture)) {
+            return NULL;
+        }
     }
     if(1 != index_size && 2 != index_size && 4 != index_size) {
         PyErr_SetString(PyExc_ValueError, "index_size must be 1, 2 or 4");

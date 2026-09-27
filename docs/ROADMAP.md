@@ -520,11 +520,15 @@ run in a subprocess).
   `SetWindowSize` tested `PyArg_ParseTuple`'s result as `0 > ok` (it returns 0
   on failure), so bad arguments ran SDL on uninitialised values and surfaced as
   `SystemError`; they now raise `TypeError`.
-- **Known remaining**: `SDL_DestroyRenderer` frees every texture of that
-  renderer, so a `Texture` object that outlives its `Renderer` object (e.g.
-  `del renderer`, or module teardown order at exit) still dangles. The same
-  registry pattern (textures keyed by renderer, invalidated in the renderer's
-  dealloc) would fix it.
+- **Textures outliving their renderer.** `SDL_DestroyRenderer` frees every
+  texture of that renderer, so a `Texture` kept past its `Renderer` (`del
+  renderer`, or module teardown order at interpreter exit) used to dangle and
+  its dealloc called `SDL_DestroyTexture` on freed memory. Texture wrappers now
+  record their renderer (`PySDL_TextureTrack`); the owning Renderer's dealloc
+  invalidates them (methods raise "Invalid texture", a `LockToSurface` Surface
+  is emptied) and its borrowed wrappers (`Window.GetRenderer()`) before
+  destroying. `SetRenderTarget` / `RenderGeometry` / `RenderGeometryRaw` raise
+  on an invalidated texture rather than treating it as "no texture".
 
 ## Explicitly out of scope
 

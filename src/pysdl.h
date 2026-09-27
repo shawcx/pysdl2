@@ -63,7 +63,8 @@ extern PyTypeObject PySDL_Surface_Type;
 typedef struct {
     PyObject_HEAD
     SDL_Texture *texture;
-    PyObject *locked;  // Surface from LockToSurface (emptied on Unlock), or NULL
+    PyObject *locked;        // Surface from LockToSurface (emptied on Unlock), or NULL
+    SDL_Renderer *renderer;  // the renderer that owns `texture` (see PySDL_TextureTrack)
 } PySDL_Texture;
 extern PyTypeObject PySDL_Texture_Type;
 
@@ -220,6 +221,13 @@ void PySDL_SurfaceDetach(PySDL_Surface *surface);
 void PySDL_WindowSurfaceForget(PySDL_Surface *surface);  // from Surface tp_dealloc
 void PySDL_InvalidateWindows(void);   // video is gone: null every Window, empty every window surface
 void PySDL_CheckVideoGone(void);      // PySDL_InvalidateWindows() if video is no longer running
+
+// Texture / renderer tracking (pysdl_Renderer.c). SDL_DestroyRenderer frees
+// every texture of that renderer, so each Texture wrapper records its renderer
+// and is invalidated when the owning Renderer wrapper destroys it.
+int  PySDL_TextureTrack(PySDL_Texture *texture, SDL_Renderer *renderer);  // after creating ->texture
+void PySDL_TextureForget(PySDL_Texture *texture);                         // from Texture tp_dealloc
+void PySDL_TextureInvalidate(PySDL_Texture *texture);                     // pysdl_Texture.c
 
 // A readable SDL_RWops over `src`: a str / os.PathLike is opened as a file,
 // anything else must support the buffer protocol and is read in place. `view`
