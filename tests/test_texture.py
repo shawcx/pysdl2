@@ -106,3 +106,16 @@ def test_update_nv(sdl, renderer):
         tex.UpdateNV(b'\x80' * 15, 4, b'\x80' * 8, 4)
     with pytest.raises(ValueError):
         tex.UpdateNV(b'\x80' * 16, 4, b'\x80' * 7, 4)
+
+
+def test_update_yuv_checks_plane_sizes(sdl, renderer):
+    tex = sdl.Texture(renderer, sdl.PIXELFORMAT_IYUV, sdl.TEXTUREACCESS_STREAMING, (4, 4))
+    y, u, v = b'\x80' * 16, b'\x80' * 4, b'\x80' * 4  # 4x4 luma, 2x2 chroma
+    tex.UpdateYUV(y, 4, u, 2, v, 2)
+    tex.UpdateYUV(y[:8], 4, u[:2], 2, v[:2], 2, rect=(0, 0, 4, 2))
+    with pytest.raises(ValueError):
+        tex.UpdateYUV(y[:15], 4, u, 2, v, 2)
+    with pytest.raises(ValueError):
+        tex.UpdateYUV(y, 4, u, 2, v[:3], 2)
+    with pytest.raises(ValueError):
+        tex.UpdateYUV(y, 0, u, 2, v, 2)

@@ -490,12 +490,21 @@ Tests: `tests/test_ttf.py` (skips without SDL2_ttf or a system font); example:
   not thread-safe.
 - Constants: `TTF_STYLE_*`, `TTF_HINTING_*`, `TTF_WRAPPED_ALIGN_*`,
   `TTF_DIRECTION_*`.
+- **Bug fix**: `Texture.UpdateYUV` now checks each plane buffer against its
+  pitch and the update height (as `UpdateNV` does) instead of letting SDL read
+  past the end of a short buffer.
+
+With this phase every in-scope SDL2 header is covered; what remains unwrapped is
+listed in the phase notes above ("skipped on purpose" / "not wrapped,
+deliberately") or below.
 
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),
 `SDL_Log*`, assertions, `SDL_main` / main callbacks, platform-specific APIs
-(Android / iOS / WinRT), `GetWindowWMInfo`, stdinc shims. The other satellite
+(Android / iOS / WinRT), `GetWindowWMInfo`, stdinc shims, `SDL_hid_*` (HIDAPI:
+use a Python `hid` package), `SDL_LoadObject` / `SDL_LoadFunction` /
+`SDL_UnloadObject` (use `ctypes`). The other satellite
 libraries (`SDL2_mixer`, `SDL2_net`, `SDL2_gfx`) remain a separate effort; if
 added, follow the Phase 14 pattern (optional, probed by `setup.py`, one
 `#ifdef PYSDL_HAVE_<LIB>` file).

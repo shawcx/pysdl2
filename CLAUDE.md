@@ -5,13 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A CPython C extension that exposes SDL2 (plus SDL2_image, and SDL2_ttf when
-available) to Python 3 as a single module named `SDL2`. It is a thin, hand-written binding: only the subset of SDL
-the author needed is wrapped, and wrapped functions/methods drop the `SDL_`
-prefix (`SDL_GetPlatform` → `SDL2.GetPlatform`, `SDL_RenderPresent` →
+available) to Python 3 as a single module named `SDL2`. It is a thin,
+hand-written binding that covers essentially the whole SDL2 API (deliberate
+omissions are listed in `docs/ROADMAP.md`); wrapped functions/methods drop the
+`SDL_` prefix (`SDL_GetPlatform` → `SDL2.GetPlatform`, `SDL_RenderPresent` →
 `Renderer.Present`).
 
-`docs/ROADMAP.md` is the phased plan for expanding coverage toward the full SDL2
-API in this same style — consult it before adding a new subsystem.
+`docs/ROADMAP.md` records the phased build-out, what was deliberately left
+unwrapped and why, and the pattern for adding another satellite library —
+consult it before adding a new subsystem.
 
 ## Build & install
 

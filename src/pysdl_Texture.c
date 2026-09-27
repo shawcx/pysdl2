@@ -184,31 +184,42 @@ static PyObject * PySDL_Texture_UpdateYUV(PySDL_Texture *self, PyObject *args, P
         return NULL;
     }
 
+    PyObject *result = NULL;
     SDL_Rect rect;
     SDL_Rect *rp = NULL;
-    int ok = 1;
+    int h = 0;
     if(rect_py && rect_py != Py_None) {
-        ok = PyToRect(rect_py, &rect);
-        rp = ok ? &rect : NULL;
+        if(!PyToRect(rect_py, &rect)) {
+            goto done;
+        }
+        rp = &rect;
+        h = rect.h;
+    } else if(0 > SDL_QueryTexture(self->texture, NULL, NULL, NULL, &h)) {
+        result = _raise();
+        goto done;
     }
 
-    int rc = -1;
-    if(ok) {
-        rc = SDL_UpdateYUVTexture(self->texture, rp,
-            yplane.buf, ypitch, uplane.buf, upitch, vplane.buf, vpitch);
+    // SDL reads h rows of Y and (h+1)/2 rows of each chroma plane: check the
+    // buffers hold that much rather than let it read past their end.
+    if(ypitch <= 0 || upitch <= 0 || vpitch <= 0
+        || yplane.len < (Py_ssize_t)ypitch * h
+        || uplane.len < (Py_ssize_t)upitch * ((h + 1) / 2)
+        || vplane.len < (Py_ssize_t)vpitch * ((h + 1) / 2)) {
+        PyErr_SetString(PyExc_ValueError, "plane buffers are too small for the pitches and height");
+        goto done;
     }
+    if(0 > SDL_UpdateYUVTexture(self->texture, rp,
+            yplane.buf, ypitch, uplane.buf, upitch, vplane.buf, vpitch)) {
+        result = _raise();
+        goto done;
+    }
+    result = Py_NewRef(Py_None);
 
+done:
     PyBuffer_Release(&yplane);
     PyBuffer_Release(&uplane);
     PyBuffer_Release(&vplane);
-
-    if(!ok) {
-        return NULL;
-    }
-    if(0 > rc) {
-        return _raise();
-    }
-    Py_RETURN_NONE;
+    return result;
 }
 
 static PyObject * PySDL_Texture_Lock(PySDL_Texture *self, PyObject *args) {
