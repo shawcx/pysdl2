@@ -1,0 +1,109 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Oldest supported stack: SDL 2.0.20, SDL_image 2.0.5, SDL_ttf 2.0.18,
+          # SDL_mixer 2.0.4, Python 3.10 - exercises the version guards.
+          - os: ubuntu-22.04
+            python: '3.10'
+          - os: ubuntu-24.04
+            python: '3.12'
+          - os: ubuntu-24.04
+            python: '3.13'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install SDL and optional libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libsdl2-dev libsdl2-image-dev \
+            libsdl2-ttf-dev libsdl2-mixer-dev fonts-dejavu-core
+      - run: python -m pip install --upgrade pip setuptools pytest
+      - name: Build
+        run: python setup.py build
+      - name: Test (dummy video / audio drivers)
+        run: python -m pytest -q -rs
+
+  version-guards:
+    # Every symbol inside `#if *_VERSION_ATLEAST(x, y, z)` must exist in that
+    # release; a guard that is too early only breaks on in-between releases.
+    name: SDL version guards
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pysdl2-headers
+          key: sdl-headers-v1
+      - run: python3 tools/check_version_guards.py
+
+  minimal:
+    # Only the required libraries: SDL2.Font / SDL2.Chunk must be absent and
+    # their tests must skip cleanly.
+    name: ubuntu-24.04 / without SDL2_ttf and SDL2_mixer
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libsdl2-dev libsdl2-image-dev
+      - run: python -m pip install --upgrade pip setuptools pytest
+      - run: python setup.py build
+      - name: Optional features are absent
+        run: |
+          PYTHONPATH=$(ls -d build/lib*) python -c "
+          import SDL2
+          assert not hasattr(SDL2, 'Font') and not hasattr(SDL2, 'Chunk'), 'optional libs leaked in'
+          "
+      - run: python -m pytest -q -rs
+
+  macos:
+    name: macOS / Python 3.12 (Homebrew SDL)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: brew install pkg-config sdl2 sdl2_image sdl2_ttf sdl2_mixer
+      - run: python -m pip install --upgrade pip setuptools pytest
+      - run: python setup.py build
+      - run: python -m pytest -q -rs
+
+  debian-package:
+    # The stdeb build behind `make`, with Build-Depends from stdeb.cfg.
+    name: Debian package (stdeb)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip python3-all-dev python3-setuptools dh-python \
+            debhelper pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev
+          # Ubuntu 24.04's python3-stdeb breaks on Python 3.12 (SafeConfigParser); 0.11 fixes it.
+          sudo pip install --break-system-packages 'stdeb>=0.11'
+      - run: make
+      - name: Package contents and dependencies
+        run: |
+          deb=$(ls deb_dist/python3-sdl2_*.deb)
+          dpkg-deb --info "$deb" | grep -E 'Version|Depends'
+          dpkg-deb --info "$deb" | grep -q 'libsdl2-ttf' && dpkg-deb --info "$deb" | grep -q 'libsdl2-mixer'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python3-sdl2-deb
+          path: deb_dist/*.deb

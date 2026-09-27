@@ -12,6 +12,9 @@ module named ``SDL2``. Wrapped functions drop the ``SDL_`` prefix:
 Dependencies
 ------------
 
+Python 3.10 or newer and SDL 2.0.20 or newer (older releases may work; see
+``CHANGELOG.rst`` for the tested versions).
+
 Debian / Ubuntu
 	* apt install libsdl2-dev libsdl2-image-dev
 	* optional text rendering: apt install libsdl2-ttf-dev

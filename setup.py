@@ -66,13 +66,15 @@ for pkg, header, lib, define, env in OPTIONAL:
 
 setuptools.setup(
     name             = 'SDL2',
-    version          = '0.2.1',
+    version          = '0.3.0',
     author           = 'Matthew Shaw',
     author_email     = 'mshaw.cx@gmail.com',
     url              = 'https://github.com/shawcx/pysdl2',
     license          = 'MIT',
     description      = 'Python3 bindings for SDL2',
     long_description = open('README.rst').read(),
+    long_description_content_type = 'text/x-rst',
+    python_requires  = '>=3.10',
     ext_modules = [
         setuptools.Extension(
             'SDL2',
@@ -87,6 +89,14 @@ setuptools.setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: POSIX :: Linux',
+        'Operating System :: MacOS',
+        'Programming Language :: C',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Topic :: Multimedia :: Graphics',
+        'Topic :: Multimedia :: Sound/Audio',
+        'Topic :: Software Development :: Libraries',
         ]
     )

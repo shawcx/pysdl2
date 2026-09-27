@@ -34,12 +34,20 @@ Then:
 - `python3 setup.py build` — compile in place under `build/` without installing
 - `python3 setup.py sdist` — source tarball; `MANIFEST.in` bundles `src/` so the
   Debian package build can compile from it
-- `make` — build a `.deb` into `deb_dist/` via stdeb (`pip install stdeb`;
-  maintainer set in `stdeb.cfg`)
+- `make` — build a `.deb` into `deb_dist/` via stdeb (`pip install 'stdeb>=0.11'`:
+  Ubuntu 24.04's packaged 0.10 breaks on Python 3.12). `stdeb.cfg` sets the
+  maintainer and Build-Depends (all four SDL dev packages, so the package always
+  has SDL2_ttf / SDL2_mixer); runtime Depends come from `${shlibs:Depends}`.
 
 `setup.py` asks `sdl2-config` / `pkg-config` where SDL2 is and always appends
 `/usr/local` and `/opt/homebrew` as a fallback. All of `src/*.c` is globbed into
 one `Extension`, so a new `.c` file is picked up automatically.
+
+`tools/check_version_guards.py` checks that every SDL symbol used inside an
+`#if *_VERSION_ATLEAST(x,y,z)` block exists in release x.y.z (headers are
+fetched from GitHub and cached in `~/.cache/pysdl2-headers`). Run it after adding
+guarded code: a guard that is too early compiles on newer SDL and on older SDL
+alike, and only breaks on the releases in between. CI runs it.
 
 `tools/gen_constants.py` reports SDL enum/#define symbols not yet in
 `src/_constants.c` (`--emit <substr>` prints pasteable `PyModule_AddIntConstant`
@@ -48,7 +56,13 @@ lines). Run it when wiring up a new subsystem.
 ## Tests
 
 `tests/` is a headless pytest suite (`pip install pytest`, then `python3 -m
-pytest`). `tests/conftest.py` forces the `dummy` video/audio drivers, runs
+pytest`). Python 3.10+ is required (the C code uses `Py_NewRef`). CI
+(`.github/workflows/tests.yml`) runs it on Ubuntu 22.04 (the oldest stack:
+SDL 2.0.20, SDL_image 2.0.5, SDL_ttf 2.0.18, SDL_mixer 2.0.4, Python 3.10),
+Ubuntu 24.04 (Python 3.12 / 3.13), without the optional libraries, and on macOS
+(Homebrew), plus the version-guard check and a `.deb` build. Tests that depend on
+behaviour that changed between SDL releases must accept both (see the touchpad,
+window-grab and `Measure` tests). `tests/conftest.py` forces the `dummy` video/audio drivers, runs
 `setup.py build` (a no-op when nothing changed) and puts the `build/lib*` dir for
 the running interpreter on `sys.path`; the `sdl` fixture
 does one `Init`/`Quit` per session. Run one file with `python3 -m pytest
@@ -161,7 +175,9 @@ to and removes in `tp_dealloc`):
   (`Surface.window_id`), so every wrapper of a window shares one Surface object.
   SDL frees a window surface on the next `SDL_GetWindowSurface` after a resize,
   on `SDL_DestroyWindowSurface` and with the window; each of those paths empties
-  the registered Surface first (`_drop_surface`).
+  the registered Surface first (`_drop_surface`). A replacement that happens to
+  get the same address keeps the same Surface object (the pointer is valid
+  again), so tests must not assume a new object after a resize.
 - The owning `Window`'s dealloc nulls every other wrapper of that window
   (`_forget_window`) before `SDL_DestroyWindow`.
 - `Quit`, `VideoQuit`, `VideoInit` (which restarts video) and `QuitSubSystem`
