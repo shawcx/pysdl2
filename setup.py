@@ -9,6 +9,7 @@ import setuptools
 defines = [('_REENTRANT', None), ('_GNU_SOURCE', '1')]
 libs = ['SDL2', 'SDL2_image']
 source_files = glob.glob('./src/*.c')
+header_files = glob.glob('./src/*.h')
 
 
 def _probe_sdl():
@@ -48,6 +49,7 @@ setuptools.setup(
         setuptools.Extension(
             'SDL2',
             source_files,
+            depends       = header_files,
             define_macros = defines,
             include_dirs  = include_dirs,
             library_dirs  = library_dirs,

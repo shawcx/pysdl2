@@ -4,7 +4,8 @@
 # move sticks and press buttons to see live events. Ctrl-C to quit.
 #
 # With no real device, pass --virtual to attach a virtual joystick and drive it
-# with the number keys 0-5 (needs SDL >= 2.0.14).
+# with the number keys 0-5 (needs SDL >= 2.0.14). On SDL >= 2.24 the virtual pad
+# also reports the rumble / LED requests it receives.
 
 import sys
 import SDL2
@@ -30,7 +31,18 @@ def add_device(device_index):
         if iid in controllers:
             return
         controllers[iid] = gc
-        print(f'+ controller {iid}: {gc.Name()!r}')
+        gc.SetPlayerIndex(len(controllers) - 1)
+        print(f'+ controller {iid}: {gc.Name()!r}  '
+              f'{gc.GetVendor():04x}:{gc.GetProduct():04x}  type {gc.GetType()}  '
+              f'player {gc.GetPlayerIndex()}  touchpads {gc.GetNumTouchpads()}')
+        for button in range(SDL2.CONTROLLER_BUTTON_MAX):
+            if gc.HasButton(button):
+                bind = gc.GetBindForButton(button)
+                print(f'    {SDL2.GameControllerGetStringForButton(button):>13} <- {bind}')
+        if gc.HasSensor(SDL2.SENSOR_GYRO):
+            gc.SetSensorEnabled(SDL2.SENSOR_GYRO, True)
+        if gc.HasLED():
+            gc.SetLED(0, 64, 255)
     else:
         js = SDL2.Joystick(device_index)
         if js.InstanceID() in joysticks:
@@ -42,7 +54,13 @@ def add_device(device_index):
 
 virtual_index = None
 if '--virtual' in sys.argv and hasattr(SDL2, 'JoystickAttachVirtual'):
-    virtual_index = SDL2.JoystickAttachVirtual(SDL2.JOYSTICK_TYPE_GAMECONTROLLER, 6, 8, 1)
+    if hasattr(SDL2, 'JoystickAttachVirtualEx'):
+        virtual_index = SDL2.JoystickAttachVirtualEx(
+            SDL2.JOYSTICK_TYPE_GAMECONTROLLER, 6, 8, 1, name='pysdl2 virtual pad',
+            rumble=lambda low, high: print(f'    (virtual pad rumble {low}/{high})'),
+            set_led=lambda r, g, b: print(f'    (virtual pad LED {r},{g},{b})'))
+    else:
+        virtual_index = SDL2.JoystickAttachVirtual(SDL2.JOYSTICK_TYPE_GAMECONTROLLER, 6, 8, 1)
     vjs = SDL2.Joystick(virtual_index)
     print('attached virtual joystick; press number keys 0-5 to nudge its axes')
 
@@ -76,6 +94,17 @@ while running:
         if gc:
             gc.Rumble(0x8000, 0x8000, 120) if state else None
         print(f'  [{which}] button {button} {"down" if state else "up"}')
+
+    elif kind in (getattr(SDL2, 'CONTROLLERTOUCHPADDOWN', None),
+                  getattr(SDL2, 'CONTROLLERTOUCHPADUP', None)):
+        which, pad, finger, x, y, pressure = data
+        print(f'  [{which}] touchpad {pad} finger {finger} at ({x:.2f}, {y:.2f})')
+    elif kind == getattr(SDL2, 'CONTROLLERSENSORUPDATE', None):
+        which, sensor, (x, y, z) = data
+        if max(abs(x), abs(y), abs(z)) > 1.0:
+            print(f'  [{which}] gyro {x:+.1f} {y:+.1f} {z:+.1f}')
+    elif kind == getattr(SDL2, 'JOYBATTERYUPDATED', None):
+        print(f'  [{data[0]}] battery level {data[1]}')
 
     elif kind == SDL2.JOYHATMOTION:
         print(f'  [{data[0]}] hat {data[1]} -> {data[2]}')

@@ -71,8 +71,30 @@ static PyObject * _event(SDL_Event *event, int consume) {
     case SDL_CONTROLLERDEVICEADDED:
     case SDL_CONTROLLERDEVICEREMOVED:
     case SDL_CONTROLLERDEVICEREMAPPED:
+#if SDL_VERSION_ATLEAST(2,30,0)
+    case SDL_CONTROLLERSTEAMHANDLEUPDATED:
+#endif
         data = Py_BuildValue("(i)", event->cdevice.which);
         break;
+#if SDL_VERSION_ATLEAST(2,0,14)
+    case SDL_CONTROLLERTOUCHPADDOWN:
+    case SDL_CONTROLLERTOUCHPADMOTION:
+    case SDL_CONTROLLERTOUCHPADUP: {
+            SDL_ControllerTouchpadEvent *e = &event->ctouchpad;
+            data = Py_BuildValue("(iiifff)", e->which, e->touchpad, e->finger, e->x, e->y, e->pressure);
+        }
+        break;
+    case SDL_CONTROLLERSENSORUPDATE: {
+            SDL_ControllerSensorEvent *e = &event->csensor;
+            data = Py_BuildValue("(ii(fff))", e->which, e->sensor, e->data[0], e->data[1], e->data[2]);
+        }
+        break;
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+    case SDL_JOYBATTERYUPDATED:
+        data = Py_BuildValue("(ii)", event->jbattery.which, event->jbattery.level);
+        break;
+#endif
     case SDL_WINDOWEVENT:
         data = Py_BuildValue("(iiiI)", event->window.event, event->window.data1,
             event->window.data2, event->window.windowID);

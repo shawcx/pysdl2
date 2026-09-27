@@ -108,7 +108,7 @@ Tests: `tests/test_surface.py`, `tests/test_pixelformat.py`; example:
 
 ## Phase 3 - Keyboard, mouse, text input  — DONE
 
-New `src/pysdl_input.c` holds the module-level keyboard/mouse/text functions
+New `src/pysdl_Input.c` holds the module-level keyboard/mouse/text functions
 (its `PyMethodDef` array is merged in `PyInit_SDL2` via `PyModule_AddFunctions`).
 Tests: `tests/test_input.py`, `tests/test_cursor.py`; example:
 `example/keyboard.py`.
@@ -162,9 +162,9 @@ Tests: `tests/test_joystick.py` (driven by a virtual joystick); example:
 
 ## Phase 5 - Events subsystem completeness  — DONE
 
-`_event()` and all the queue functions moved to the new `src/pysdl_events.c`
+`_event()` and all the queue functions moved to the new `src/pysdl_Events.c`
 (`pysdl_events_methods` merged via `PyModule_AddFunctions`). `GetKeyState` /
-`GetModState` moved from `pysdl.c` to `pysdl_input.c`. Tests:
+`GetModState` moved from `pysdl.c` to `pysdl_Input.c`. Tests:
 `tests/test_events.py`; example: `example/events.py`.
 
 - Module: `PumpEvents`, `PushEvent(type, code=0, windowID=0)`, `PeepEvents(count,
@@ -206,7 +206,7 @@ Tests: `tests/test_timer.py`, `tests/test_system.py`; example: `example/timer.py
   `GetType`, `GetNonPortableType`, `GetInstanceID`, `GetData(count=6)`, `Close`.
   Module: `NumSensors`, `SensorGetDeviceName` / `…Type` / `…InstanceID`,
   `SensorUpdate`.
-- Touch (module, in `pysdl_input.c`): `GetNumTouchDevices`, `GetTouchDevice`,
+- Touch (module, in `pysdl_Input.c`): `GetNumTouchDevices`, `GetTouchDevice`,
   `GetTouchDeviceType`, `GetTouchName` (≥2.0.22), `GetNumTouchFingers`,
   `GetTouchFinger` -> `(id, x, y, pressure)`, `RecordGesture`,
   `LoadDollarTemplates` / `SaveDollarTemplate` / `SaveAllDollarTemplates` (path).
@@ -218,7 +218,7 @@ Tests: `tests/test_timer.py`, `tests/test_system.py`; example: `example/timer.py
 
 ## Phase 7 - Video/window completeness & system integration  — DONE
 
-New `src/pysdl_video.c` for the module-level video functions. Tests:
+New `src/pysdl_Video.c` for the module-level video functions. Tests:
 `tests/test_video.py`; example: `example/window.py`.
 
 - **Window** methods added (`pysdl_Window.c`): `GetWindowFlags`,
@@ -277,7 +277,7 @@ Tests: `tests/test_audio.py` (extended); example: `example/wav.py`.
 
 Tests: `tests/test_rect.py`; example: `example/rects.py`.
 
-- New `src/pysdl_rect.c` (`pysdl_rect_methods`): `HasIntersection`,
+- New `src/pysdl_Rect.c` (`pysdl_rect_methods`): `HasIntersection`,
   `IntersectRect` (-> rect or `None`), `UnionRect`, `EnclosePoints(points,
   clip=None)`, `IntersectRectAndLine(rect, (x1,y1,x2,y2))` (-> clipped line or
   `None`), `PointInRect`, `RectEmpty`, `RectEquals`; float variants
@@ -294,6 +294,60 @@ Tests: `tests/test_rect.py`; example: `example/rects.py`.
 - Filesystem / RWops: covered by the "accept bytes / take a path" decision
   throughout (`LoadBMP` / `LoadImage` / `LoadWAV`, the `…SurfaceFrom` keepalive,
   dollar-template save/load).
+
+## Phase 10 - Joystick & game-controller completeness  — DONE
+
+Tests: `tests/test_joystick.py` (virtual pads, incl. `AttachVirtualEx`
+callbacks); example: `example/gamepad.py` (device info, binds, sensors,
+touchpad/sensor/battery events, `--virtual` pad reporting rumble/LED).
+
+- **Joystick** methods: `GetVendor` / `GetProduct` / `GetProductVersion` /
+  `GetType` / `GetAxisInitialState` (-> value or `None`), `GetPlayerIndex`
+  (≥2.0.9), `SetPlayerIndex` (≥2.0.12), `GetSerial` (≥2.0.14), `SendEffect(bytes)`
+  (≥2.0.16), `HasRumble` / `HasRumbleTriggers` (≥2.0.18), `GetFirmwareVersion` /
+  `Path` (≥2.24). Module: `JoystickGetDevice{GUID,InstanceID,Vendor,Product,
+  ProductVersion,Type}`, `JoystickGetDevicePlayerIndex` (≥2.0.9),
+  `JoystickPathForIndex` (≥2.24), `JoystickFromInstanceID`,
+  `JoystickFromPlayerIndex` (≥2.0.12), `Lock/UnlockJoysticks` (≥2.0.7).
+- **GUIDs** stay 32-char hex strings; anything taking a GUID also accepts the raw
+  16 bytes (`PyToGUID` / `GUIDToPy` in `pysdl_Joystick.c`).
+  `JoystickGetGUIDFromString` / `GUIDFromString` (≥2.24) -> 16 bytes,
+  `JoystickGetGUIDString` / `GUIDToString` (≥2.24) -> str, `GetJoystickGUIDInfo`
+  (≥2.26) -> `(vendor, product, version, crc16)`.
+- **`JoystickAttachVirtualEx(type, naxes, nbuttons, nhats, *, vendor_id,
+  product_id, button_mask, axis_mask, name, update, set_player_index, rumble,
+  rumble_triggers, set_led, send_effect)`** (≥2.24). Callbacks go through
+  `PySDL_ThreadEnter`; returning `None`/truthy reports success, falsy or an
+  exception reports failure. Only the given callbacks are wired, so e.g.
+  `HasRumble()` reflects whether `rumble=` was passed. The callback tuple is kept
+  in a module dict keyed by instance id and released by `JoystickDetachVirtual`.
+- **GameController** methods: `GetBindForAxis` / `GetBindForButton` (-> `None`,
+  `(BINDTYPE_BUTTON|AXIS, n)` or `(BINDTYPE_HAT, hat, mask)`), `GetVendor` /
+  `GetProduct` / `GetProductVersion`, `GetPlayerIndex` (≥2.0.9),
+  `SetPlayerIndex` (≥2.0.12); ≥2.0.14: `HasLED`, `HasAxis`, `HasButton`,
+  `GetSerial`, `HasSensor`, `SetSensorEnabled`, `IsSensorEnabled`,
+  `GetSensorData(type, count=3)`, `GetNumTouchpads`, `GetNumTouchpadFingers`,
+  `GetTouchpadFinger` (-> `(state, x, y, pressure)`); ≥2.0.16:
+  `GetSensorDataRate`, `SendEffect`; ≥2.0.18: `HasRumble`, `HasRumbleTriggers`,
+  `GetAppleSFSymbolsNameFor{Button,Axis}` (`None` off Apple); ≥2.24:
+  `GetFirmwareVersion`, `Path`; `GetSensorDataWithTimestamp` (≥2.26) ->
+  `(timestamp_us, values)`; `GetSteamHandle` (≥2.30).
+- GameController module: `GameControllerFromInstanceID`,
+  `GameControllerFromPlayerIndex` / `…TypeForIndex` (≥2.0.12),
+  `GameControllerNumMappings` / `…MappingForIndex` / `…MappingForGUID`,
+  `…MappingForDeviceIndex` (≥2.0.9), `…PathForIndex` (≥2.24),
+  `GameControllerGet{Axis,Button}FromString`, `GameControllerGetStringFor{Axis,Button}`.
+  `GameControllerAddMappingsFromFile` now also takes the file's bytes (covers
+  `AddMappingsFromRW`).
+- `*FromInstanceID` / `*FromPlayerIndex` return a new **owned** wrapper: they
+  re-open the device by index, which bumps SDL's refcount, so closing one handle
+  never invalidates another. `None` when nothing matching is open.
+- `_event()`: `CONTROLLERTOUCHPADDOWN/MOTION/UP` -> `(which, touchpad, finger, x,
+  y, pressure)`, `CONTROLLERSENSORUPDATE` -> `(which, sensor, (x, y, z))`
+  (≥2.0.14); `JOYBATTERYUPDATED` -> `(which, level)` (≥2.24);
+  `CONTROLLERSTEAMHANDLEUPDATED` -> `(which,)` (≥2.30). Constants: those event
+  types, `CONTROLLER_BINDTYPE_*`, the remaining `CONTROLLER_TYPE_*`,
+  `JOYSTICK_AXIS_MIN/MAX`.
 
 ## Explicitly out of scope
 

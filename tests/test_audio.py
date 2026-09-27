@@ -135,6 +135,7 @@ def test_audio_stream_resamples(sdl):
 
     stream.Clear()
     stream.Put(src)
+    stream.Flush()  # SDL >= 2.30 holds short input back until flushed
     assert stream.Available() > 0
     stream.Clear()
     assert stream.Available() == 0

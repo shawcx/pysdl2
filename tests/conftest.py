@@ -5,6 +5,7 @@ import os
 import pathlib
 import subprocess
 import sys
+import sysconfig
 
 import pytest
 
@@ -16,16 +17,19 @@ _ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _built_module_dir():
+    '''The build/lib* dir holding an extension for *this* interpreter.'''
+    suffix = sysconfig.get_config_var('EXT_SUFFIX')
     for path in sorted(glob.glob(str(_ROOT / 'build' / 'lib*'))):
-        if glob.glob(os.path.join(path, 'SDL2*')):
+        if os.path.exists(os.path.join(path, 'SDL2' + suffix)):
             return path
     return None
 
 
+# Always build: setup.py only recompiles when a source changed, and skipping
+# this would silently test a stale .so after editing the C code.
+subprocess.run([sys.executable, 'setup.py', '-q', 'build'], cwd=_ROOT, check=True,
+               stdout=subprocess.DEVNULL)
 _moddir = _built_module_dir()
-if _moddir is None:
-    subprocess.run([sys.executable, 'setup.py', 'build'], cwd=_ROOT, check=True)
-    _moddir = _built_module_dir()
 
 if _moddir is not None and _moddir not in sys.path:
     sys.path.insert(0, _moddir)

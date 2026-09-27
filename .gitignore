@@ -2,8 +2,6 @@
 /deb_dist
 /*.tar.gz
 /dist
-/deb_dist
 /*.egg-info
-/*.tar.gz
 __pycache__/
 .pytest_cache/

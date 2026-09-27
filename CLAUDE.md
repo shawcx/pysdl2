@@ -23,7 +23,9 @@ Then:
 - `pip install .` — build and install the extension
 - `python3 setup.py build` — compile in place under `build/` without installing
 - `python3 setup.py sdist` — source tarball; `MANIFEST.in` bundles `src/` so the
-  Debian package build (`stdeb`/`deb_dist`, see `.gitignore`) can compile from it
+  Debian package build can compile from it
+- `make` — build a `.deb` into `deb_dist/` via stdeb (`pip install stdeb`;
+  maintainer set in `stdeb.cfg`)
 
 `setup.py` asks `sdl2-config` / `pkg-config` where SDL2 is and always appends
 `/usr/local` and `/opt/homebrew` as a fallback. All of `src/*.c` is globbed into
@@ -36,8 +38,9 @@ lines). Run it when wiring up a new subsystem.
 ## Tests
 
 `tests/` is a headless pytest suite (`pip install pytest`, then `python3 -m
-pytest`). `tests/conftest.py` forces the `dummy` video/audio drivers, builds the
-extension if `build/` is missing, and puts it on `sys.path`; the `sdl` fixture
+pytest`). `tests/conftest.py` forces the `dummy` video/audio drivers, runs
+`setup.py build` (a no-op when nothing changed) and puts the `build/lib*` dir for
+the running interpreter on `sys.path`; the `sdl` fixture
 does one `Init`/`Quit` per session. Run one file with `python3 -m pytest
 tests/test_audio.py`.
 
@@ -60,14 +63,14 @@ a display:
 ## Architecture
 
 `src/pysdl.h` is the shared header: it declares every wrapper struct, its
-`PyTypeObject`, the module-wide `pysdl_Error` exception, and the helpers in
-`pysdl_util.c`. Every `.c` file includes only this.
+`PyTypeObject`, the module-wide `pysdl_Error` exception, and the shared
+helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
 
 - `src/pysdl.c` — module definition and `PyInit_SDL2`. Holds `Init` /
   `InitSubSystem` / `Quit`, `LoadImage`, display / GL / CPU / audio-device
   queries, timers, error / clipboard / screensaver, surface & blend-mode
-  factories.
-- `src/pysdl_events.c` — the event queue: `_event()` (an `SDL_Event` ->
+  factories. Also defines `PySDL_New()` (wrapper allocation).
+- `src/pysdl_Events.c` — the event queue: `_event()` (an `SDL_Event` ->
   `(type, data)` converter; `data` is a tuple for structured events, a bare
   `str` for `TEXTINPUT`, `None` for `QUIT` and unknown types), plus
   `PollEvent` / `WaitEvent` / `PushEvent` / `PeepEvents` / filters etc. `_event`
@@ -78,17 +81,20 @@ a display:
   `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Timer.c`,
   `pysdl_Haptic.c`, `pysdl_Sensor.c` — one wrapped SDL object per file, each a
   full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
-- `src/pysdl_input.c` — module-level keyboard / mouse / touch / text-input
+- `src/pysdl_Input.c` — module-level keyboard / mouse / touch / text-input
   functions. Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into
-  the module in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_events.c`,
-  `pysdl_video.c` (extra display queries, message boxes, hints, `OpenURL` /
+  the module in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_Events.c`,
+  `pysdl_Video.c` (extra display queries, message boxes, hints, `OpenURL` /
   locales, GL / Vulkan loaders, `GetWindowFromID` / `GetGrabbedWindow`),
   `pysdl_Audio.c` (drivers, `LoadWAV`, `MixAudioFormat`, device-spec queries),
-  `pysdl_rect.c` (rect / point geometry), `pysdl_Cursor.c`, `pysdl_Joystick.c`,
+  `pysdl_Rect.c` (rect / point geometry), `pysdl_Cursor.c`, `pysdl_Joystick.c`,
   `pysdl_GameController.c`, `pysdl_Haptic.c`, `pysdl_Sensor.c` do the same for
   their functions. Use this pattern to add a batch of module functions from a
   new file.
-- `src/pysdl_util.c` — `PySDL_New()` (wrapper allocation), `PySDL_ThreadEnter` /
+- Joystick GUIDs are 32-char hex strings in Python; `GUIDToPy` / `PyToGUID`
+  (in `pysdl_Joystick.c`, declared in `pysdl.h`) convert, and `PyToGUID` also
+  takes the raw 16 bytes.
+- `src/pysdl_util.c` — `PySDL_ThreadEnter` /
   `PySDL_ThreadLeave` (GIL handling for SDL-owned threads), and the
   `PyToRect` / `PyToPoint` / `PyToColor` / `PyToFRect` / `PyToFPoint` /
   `PyToPixel` / `RectToPy` / `PointToPy` converters.
@@ -109,7 +115,10 @@ that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `tp_dealloc` unless `shouldFree` is 0 (a *borrowed* pointer SDL still owns —
 `Window.GetWindowSurface()`, `GetKeyboardFocus()`/`GetMouseFocus()` via
 `PySDL_WrapWindow()`, `GetCursor()`/`GetDefaultCursor()`,
-`GameController.GetJoystick()`).
+`GameController.GetJoystick()`). Joystick/controller lookups
+(`JoystickFromInstanceID`, `GameControllerFromPlayerIndex`, …) avoid borrowing:
+they re-open the device by index (`PySDL_JoystickIndexForInstance`), which bumps
+SDL's refcount and yields an owned wrapper.
 
 `Window`, `Audio`, `AudioStream`, `Renderer`, `Texture`, `PixelFormat`,
 `Palette`, `Cursor`, `Joystick`, `GameController`, `Timer`, `Haptic`, and
@@ -156,7 +165,9 @@ callable, and report any exception with `PyErr_Print()`. A playback callback
 returning a non-`bytes` or short buffer yields silence, not a crash.
 
 New off-main-thread callbacks (timers, event filters) must follow the same
-`PySDL_ThreadEnter` / `PySDL_ThreadLeave` pattern.
+`PySDL_ThreadEnter` / `PySDL_ThreadLeave` pattern. `JoystickAttachVirtualEx`
+callbacks do too; their tuple of callables lives in a module dict keyed by
+instance id until `JoystickDetachVirtual` drops it.
 
 ### Conventions
 
@@ -166,10 +177,12 @@ New off-main-thread callbacks (timers, event filters) must follow the same
 - Create wrapper objects with `PySDL_New(&PySDL_X_Type)`; `Py_DECREF` the wrapper
   on the SDL-failure path (it owns nothing yet, but the wrapper itself leaks).
 - Method names drop `SDL_`. `Renderer` keeps the rest verbatim
-  (`RenderSetViewport`, `GetRendererInfo`); `Texture` and `Surface` also drop the
-  type word (`SDL_UpdateTexture` → `Update`, `SDL_SetSurfaceBlendMode` →
-  `SetBlendMode`, `SDL_BlitSurface` → `Blit`) — except the pre-existing
-  `Surface.LockSurface` / `UnlockSurface` / `SaveBMP`, kept for compatibility.
+  (`RenderSetViewport`, `GetRendererInfo`) except the core draw calls, which
+  also drop `Render` (`Clear`, `Present`, `Copy*`, `Draw*`, `Fill*`);
+  `Texture` and `Surface` also drop the type word (`SDL_UpdateTexture` →
+  `Update`, `SDL_SetSurfaceBlendMode` → `SetBlendMode`, `SDL_BlitSurface` →
+  `Blit`) — except the pre-existing `Surface.LockSurface` / `UnlockSurface` /
+  `SaveBMP`, kept for compatibility.
 - Take a `PySDL_<Type> *` argument with `O!` + `&PySDL_<Type>_Type`, or check
   with `PyObject_TypeCheck` before casting — never cast an unchecked `O`.
 - Rect/point/colour args go through `PyToRect` / `PyToPoint` / `PyToColor` /

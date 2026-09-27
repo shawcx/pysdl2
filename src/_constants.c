@@ -225,6 +225,18 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "CONTROLLERDEVICEADDED",    SDL_CONTROLLERDEVICEADDED    );
     PyModule_AddIntConstant( module, "CONTROLLERDEVICEREMOVED",  SDL_CONTROLLERDEVICEREMOVED  );
     PyModule_AddIntConstant( module, "CONTROLLERDEVICEREMAPPED", SDL_CONTROLLERDEVICEREMAPPED );
+#if SDL_VERSION_ATLEAST(2,0,14)
+    PyModule_AddIntConstant( module, "CONTROLLERTOUCHPADDOWN",   SDL_CONTROLLERTOUCHPADDOWN   );
+    PyModule_AddIntConstant( module, "CONTROLLERTOUCHPADMOTION", SDL_CONTROLLERTOUCHPADMOTION );
+    PyModule_AddIntConstant( module, "CONTROLLERTOUCHPADUP",     SDL_CONTROLLERTOUCHPADUP     );
+    PyModule_AddIntConstant( module, "CONTROLLERSENSORUPDATE",   SDL_CONTROLLERSENSORUPDATE   );
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+    PyModule_AddIntConstant( module, "JOYBATTERYUPDATED",        SDL_JOYBATTERYUPDATED        );
+#endif
+#if SDL_VERSION_ATLEAST(2,30,0)
+    PyModule_AddIntConstant( module, "CONTROLLERSTEAMHANDLEUPDATED", SDL_CONTROLLERSTEAMHANDLEUPDATED );
+#endif
 
     PyModule_AddIntConstant( module, "FINGERDOWN",       SDL_FINGERDOWN       );
     PyModule_AddIntConstant( module, "FINGERUP",         SDL_FINGERUP         );
@@ -242,6 +254,9 @@ void _constants(PyObject *module) {
 #endif
     PyModule_AddIntConstant( module, "RENDER_TARGETS_RESET", SDL_RENDER_TARGETS_RESET );
     PyModule_AddIntConstant( module, "RENDER_DEVICE_RESET",  SDL_RENDER_DEVICE_RESET  );
+#if SDL_VERSION_ATLEAST(2,26,0)
+    PyModule_AddIntConstant( module, "POLLSENTINEL",         SDL_POLLSENTINEL         );
+#endif
 
     PyModule_AddIntConstant( module, "USEREVENT",   SDL_USEREVENT   );
     PyModule_AddIntConstant( module, "FIRSTEVENT",  SDL_FIRSTEVENT  );
@@ -324,6 +339,26 @@ void _constants(PyObject *module) {
 #endif
 #if SDL_VERSION_ATLEAST(2,0,14)
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_PS5",                 SDL_CONTROLLER_TYPE_PS5                 );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_VIRTUAL",             SDL_CONTROLLER_TYPE_VIRTUAL             );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_AMAZON_LUNA",         SDL_CONTROLLER_TYPE_AMAZON_LUNA         );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_GOOGLE_STADIA",       SDL_CONTROLLER_TYPE_GOOGLE_STADIA       );
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NVIDIA_SHIELD",       SDL_CONTROLLER_TYPE_NVIDIA_SHIELD       );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT",  SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT  );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT", SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR",  SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR  );
+    PyModule_AddIntConstant( module, "CONTROLLER_TYPE_MAX",                 SDL_CONTROLLER_TYPE_MAX                 );
+#endif
+
+    PyModule_AddIntConstant( module, "CONTROLLER_BINDTYPE_NONE",   SDL_CONTROLLER_BINDTYPE_NONE   );
+    PyModule_AddIntConstant( module, "CONTROLLER_BINDTYPE_BUTTON", SDL_CONTROLLER_BINDTYPE_BUTTON );
+    PyModule_AddIntConstant( module, "CONTROLLER_BINDTYPE_AXIS",   SDL_CONTROLLER_BINDTYPE_AXIS   );
+    PyModule_AddIntConstant( module, "CONTROLLER_BINDTYPE_HAT",    SDL_CONTROLLER_BINDTYPE_HAT    );
+
+#ifdef SDL_JOYSTICK_AXIS_MAX
+    PyModule_AddIntConstant( module, "JOYSTICK_AXIS_MAX", SDL_JOYSTICK_AXIS_MAX );
+    PyModule_AddIntConstant( module, "JOYSTICK_AXIS_MIN", SDL_JOYSTICK_AXIS_MIN );
 #endif
 
     PyModule_AddIntConstant( module, "HAPTIC_CONSTANT",      SDL_HAPTIC_CONSTANT      );
