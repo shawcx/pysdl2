@@ -349,6 +349,31 @@ touchpad/sensor/battery events, `--virtual` pad reporting rumble/LED).
   types, `CONTROLLER_BINDTYPE_*`, the remaining `CONTROLLER_TYPE_*`,
   `JOYSTICK_AXIS_MIN/MAX`.
 
+## Phase 11 - SDL_image completeness  — DONE
+
+Tests: `tests/test_image.py` (hand-built GIF / TGA / SVG / XPM fixtures);
+example: `example/image.py`.
+
+- New `src/pysdl_Image.c` (`pysdl_image_methods`); `IMG_Init` / `IMG_Quit` and
+  `LoadImage` moved there from `pysdl.c`. New module functions keep the `IMG_`
+  prefix: `IMG_Linked_Version`, `IMG_is{BMP,CUR,GIF,ICO,JPG,LBM,PCX,PNG,PNM,TIF,
+  WEBP,XCF,XPM,XV}`, `IMG_isSVG` (≥2.0.2), `IMG_is{AVIF,JXL,QOI}` (≥2.6),
+  `IMG_ReadXPMFromArray(lines)`, `IMG_ReadXPMFromArrayToRGB888` /
+  `IMG_LoadSizedSVG(src, w, h)` (≥2.6).
+- `IMG_LoadAnimation(src, type=None)` (≥2.6) -> `(w, h, [(Surface, delay_ms),
+  …])`. Frames are moved out of the `IMG_Animation` into owned Surfaces before
+  `IMG_FreeAnimation`, so there is no animation type to manage.
+- `LoadImage(src, type=None)` and `Renderer.LoadTexture(src, type=None)` take a
+  path, os.PathLike or bytes. SDL_image detects every format with a magic number
+  from the data, so `type` only matters for magic-less TGA; that makes the
+  per-format `IMG_Load<FMT>_RW` / `IMG_LoadGIFAnimation_RW` /
+  `IMG_LoadWEBPAnimation_RW` equivalent and they are not exposed separately.
+- `Surface.SavePNG(path=None)` / `SaveJPG(path=None, quality=90)`: with no path
+  they return the encoded `bytes` (via `IMG_Save*_RW` into a growable in-memory
+  RWops, `PySDL_RWBuffer` in `pysdl_util.c`).
+- Shared `PySDL_RWFromObject` (path or buffer -> RWops) now also backs `LoadBMP`,
+  which gains os.PathLike support.
+
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),

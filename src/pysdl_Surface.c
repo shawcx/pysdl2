@@ -6,7 +6,7 @@ static void       PySDL_Surface_Type_dealloc (PySDL_Surface*);
 static PyObject * PySDL_Surface_LockSurface   (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_UnlockSurface (PySDL_Surface*, PyObject*);
 static PyObject * PySDL_Surface_SaveBMP       (PySDL_Surface*, PyObject*);
-static PyObject * PySDL_Surface_SavePNG       (PySDL_Surface*, PyObject*);
+static PyObject * PySDL_Surface_SavePNG       (PySDL_Surface*, PyObject*, PyObject*);
 static PyObject * PySDL_Surface_SaveJPG       (PySDL_Surface*, PyObject*, PyObject*);
 
 static PyObject * PySDL_Surface_Blit          (PySDL_Surface*, PyObject*, PyObject*);
@@ -39,7 +39,7 @@ static PyMethodDef PySDL_Surface_methods[] = {
     { "LockSurface",    (PyCFunction)PySDL_Surface_LockSurface,    METH_NOARGS  },
     { "UnlockSurface",  (PyCFunction)PySDL_Surface_UnlockSurface,  METH_NOARGS  },
     { "SaveBMP",        (PyCFunction)PySDL_Surface_SaveBMP,        METH_O       },
-    { "SavePNG",        (PyCFunction)PySDL_Surface_SavePNG,        METH_O       },
+    { "SavePNG",        (PyCFunction)PySDL_Surface_SavePNG,        METH_VARARGS | METH_KEYWORDS },
     { "SaveJPG",        (PyCFunction)PySDL_Surface_SaveJPG,        METH_VARARGS | METH_KEYWORDS },
 
     { "Blit",           (PyCFunction)PySDL_Surface_Blit,           METH_VARARGS | METH_KEYWORDS },
@@ -214,31 +214,46 @@ static PyObject * PySDL_Surface_SaveBMP(PySDL_Surface *self, PyObject *arg) {
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Surface_SavePNG(PySDL_Surface *self, PyObject *arg) {
-    const char *path = PyUnicode_AsUTF8(arg);
-    if(NULL == path) {
+// SavePNG(path=None) / SaveJPG(path=None, quality=90): write the file, or with
+// no path return the encoded image as bytes.
+static PyObject * _save_image(PySDL_Surface *self, const char *path, int jpg, int quality) {
+    SDL_RWops *rw = path ? SDL_RWFromFile(path, "wb") : PySDL_RWBuffer();
+    if(NULL == rw) {
+        return PyErr_Occurred() ? NULL : _raise();
+    }
+    int rc = jpg ? IMG_SaveJPG_RW(self->surface, rw, 0, quality)
+                 : IMG_SavePNG_RW(self->surface, rw, 0);
+    if(0 > rc) {
+        PyErr_SetString(pysdl_Error, IMG_GetError());
+        SDL_RWclose(rw);
         return NULL;
     }
-    if(0 > IMG_SavePNG(self->surface, path)) {
-        PyErr_SetString(pysdl_Error, IMG_GetError());
-        return NULL;
+    if(NULL == path) {
+        return PySDL_RWBufferBytes(rw);
+    }
+    if(0 > SDL_RWclose(rw)) {
+        return _raise();
     }
     Py_RETURN_NONE;
 }
 
-static PyObject * PySDL_Surface_SaveJPG(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
-    const char *path;
-    int quality = 90;
+static PyObject * PySDL_Surface_SavePNG(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
+    const char *path = NULL;
+    static char *kwlist[] = {"path", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|z", kwlist, &path)) {
+        return NULL;
+    }
+    return _save_image(self, path, 0, 0);
+}
 
+static PyObject * PySDL_Surface_SaveJPG(PySDL_Surface *self, PyObject *args, PyObject *kwds) {
+    const char *path = NULL;
+    int quality = 90;
     static char *kwlist[] = {"path", "quality", NULL};
-    if(!PyArg_ParseTupleAndKeywords(args, kwds, "s|i", kwlist, &path, &quality)) {
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|zi", kwlist, &path, &quality)) {
         return NULL;
     }
-    if(0 > IMG_SaveJPG(self->surface, path, quality)) {
-        PyErr_SetString(pysdl_Error, IMG_GetError());
-        return NULL;
-    }
-    Py_RETURN_NONE;
+    return _save_image(self, path, 1, quality);
 }
 
 //=========================================================

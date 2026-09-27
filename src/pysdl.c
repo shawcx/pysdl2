@@ -14,7 +14,6 @@ static PyObject * PySDL_GetCurrentVideoDriver (PyObject*, PyObject*);
 static PyObject * PySDL_GetVideoDrivers       (PyObject*, PyObject*);
 static PyObject * PySDL_GetTicks              (PyObject*, PyObject*);
 static PyObject * PySDL_LoadBMP               (PyObject*, PyObject*);
-static PyObject * PySDL_LoadImage             (PyObject*, PyObject*);
 static PyObject * PySDL_ShowCursor            (PyObject*, PyObject*);
 
 static PyObject * PySDL_CreateRGBSurface             (PyObject*, PyObject*, PyObject *);
@@ -26,8 +25,6 @@ static PyObject * PySDL_GetPixelFormatName     (PyObject*, PyObject*);
 static PyObject * PySDL_PixelFormatEnumToMasks (PyObject*, PyObject*);
 static PyObject * PySDL_MasksToPixelFormatEnum (PyObject*, PyObject*);
 
-static PyObject * PySDL_IMG_Init (PyObject*, PyObject*);
-static PyObject * PySDL_IMG_Quit (PyObject*, PyObject*);
 
 static PyObject * PySDL_CreateSoftwareRenderer (PyObject*, PyObject*);
 static PyObject * PySDL_ComposeCustomBlendMode (PyObject*, PyObject*);
@@ -111,7 +108,6 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetVideoDrivers",       PySDL_GetVideoDrivers,       METH_NOARGS  },
     { "GetTicks",              PySDL_GetTicks,              METH_NOARGS  },
     { "LoadBMP",               PySDL_LoadBMP,               METH_O       },
-    { "LoadImage",             PySDL_LoadImage,             METH_O       },
     { "ShowCursor",            PySDL_ShowCursor,            METH_O       },
 
     { "CreateRGBSurface",     (PyCFunction)PySDL_CreateRGBSurface,     METH_VARARGS | METH_KEYWORDS },
@@ -123,8 +119,6 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "PixelFormatEnumToMasks", PySDL_PixelFormatEnumToMasks, METH_O       },
     { "MasksToPixelFormatEnum", PySDL_MasksToPixelFormatEnum, METH_VARARGS },
 
-    { "IMG_Init",             PySDL_IMG_Init,              METH_VARARGS },
-    { "IMG_Quit",             PySDL_IMG_Quit,              METH_NOARGS  },
 
     { "CreateSoftwareRenderer", PySDL_CreateSoftwareRenderer, METH_O       },
     { "ComposeCustomBlendMode", PySDL_ComposeCustomBlendMode, METH_VARARGS },
@@ -310,7 +304,8 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
         || 0 > PyModule_AddFunctions(module, pysdl_sensor_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_video_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_audio_methods)
-        || 0 > PyModule_AddFunctions(module, pysdl_rect_methods)) {
+        || 0 > PyModule_AddFunctions(module, pysdl_rect_methods)
+        || 0 > PyModule_AddFunctions(module, pysdl_image_methods)) {
         return NULL;
     }
 
@@ -413,52 +408,30 @@ static PyObject * PySDL_GetTicks(PyObject *self, PyObject *ign) {
     return PyLong_FromUnsignedLong(SDL_GetTicks());
 }
 
-// Both loaders take a filesystem path (str) or the file's bytes.
-static PyObject * _load_surface(PyObject *arg, int is_image) {
+// Takes a filesystem path (str) or the file's bytes.
+static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
+    Py_buffer view;
+    SDL_RWops *rw = PySDL_RWFromObject(arg, &view);
+    if(NULL == rw) {
+        return NULL;
+    }
+    SDL_Surface *surface;
+    Py_BEGIN_ALLOW_THREADS
+        surface = SDL_LoadBMP_RW(rw, 1);
+    Py_END_ALLOW_THREADS
+    PyBuffer_Release(&view);
+
+    if(NULL == surface) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
     PySDL_Surface *wrapper = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
     if(NULL == wrapper) {
+        SDL_FreeSurface(surface);
         return NULL;
     }
-
-    if(PyBytes_Check(arg) || PyByteArray_Check(arg)) {
-        Py_buffer buffer;
-        if(0 > PyObject_GetBuffer(arg, &buffer, PyBUF_SIMPLE)) {
-            Py_DECREF(wrapper);
-            return NULL;
-        }
-        SDL_RWops *rw = SDL_RWFromConstMem(buffer.buf, (int)buffer.len);
-        if(NULL != rw) {
-            Py_BEGIN_ALLOW_THREADS
-                wrapper->surface = is_image ? IMG_Load_RW(rw, 1) : SDL_LoadBMP_RW(rw, 1);
-            Py_END_ALLOW_THREADS
-        }
-        PyBuffer_Release(&buffer);
-    } else {
-        const char *path = PyUnicode_AsUTF8(arg);
-        if(NULL == path) {
-            Py_DECREF(wrapper);
-            return NULL;
-        }
-        Py_BEGIN_ALLOW_THREADS
-            wrapper->surface = is_image ? IMG_Load(path) : SDL_LoadBMP(path);
-        Py_END_ALLOW_THREADS
-    }
-
-    if(NULL == wrapper->surface) {
-        Py_DECREF(wrapper);
-        PyErr_SetString(pysdl_Error, is_image ? IMG_GetError() : SDL_GetError());
-        return NULL;
-    }
-
+    wrapper->surface = surface;
     return (PyObject *)wrapper;
-}
-
-static PyObject * PySDL_LoadBMP(PyObject *self, PyObject *arg) {
-    return _load_surface(arg, 0);
-}
-
-static PyObject * PySDL_LoadImage(PyObject *self, PyObject *arg) {
-    return _load_surface(arg, 1);
 }
 
 static PyObject * PySDL_ShowCursor(PyObject *self, PyObject *args) {
@@ -637,24 +610,6 @@ static PyObject * PySDL_MasksToPixelFormatEnum(PyObject *self, PyObject *args) {
         return NULL;
     }
     return PyLong_FromUnsignedLong(SDL_MasksToPixelFormatEnum(bpp, rmask, gmask, bmask, amask));
-}
-
-static PyObject * PySDL_IMG_Init(PyObject *self, PyObject *args) {
-    int flags = IMG_INIT_JPG | IMG_INIT_PNG;
-    if(!PyArg_ParseTuple(args, "|i", &flags)) {
-        return NULL;
-    }
-    int got = IMG_Init(flags);
-    if(flags && (got & flags) != flags) {
-        PyErr_SetString(pysdl_Error, IMG_GetError());
-        return NULL;
-    }
-    return PyLong_FromLong(got);
-}
-
-static PyObject * PySDL_IMG_Quit(PyObject *self, PyObject *ign) {
-    IMG_Quit();
-    Py_RETURN_NONE;
 }
 
 static PyObject * PySDL_CreateSoftwareRenderer(PyObject *self, PyObject *arg) {

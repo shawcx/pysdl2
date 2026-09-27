@@ -136,6 +136,7 @@ extern PyMethodDef pysdl_sensor_methods[];          // pysdl_Sensor.c
 extern PyMethodDef pysdl_video_methods[];           // pysdl_Video.c   (display / messagebox / hints / vulkan / metal)
 extern PyMethodDef pysdl_audio_methods[];           // pysdl_Audio.c   (drivers / LoadWAV / mixing)
 extern PyMethodDef pysdl_rect_methods[];            // pysdl_Rect.c    (rect / point math)
+extern PyMethodDef pysdl_image_methods[];           // pysdl_Image.c   (SDL_image loaders / format checks)
 
 //=========================================================
 // Helpers (pysdl_util.c)
@@ -168,5 +169,17 @@ PyObject * PointToPy(const SDL_Point *point);   // -> (x, y)
 
 // Wrap a window SDL still owns as a non-freeing SDL2.Window, or None for NULL.
 PyObject * PySDL_WrapWindow(SDL_Window *window);
+
+// A readable SDL_RWops over `src`: a str / os.PathLike is opened as a file,
+// anything else must support the buffer protocol and is read in place. `view`
+// pins that buffer; call PyBuffer_Release(view) once the RWops is closed (a
+// no-op release for the file case, where view->obj stays NULL). Returns NULL
+// with an exception set on failure.
+SDL_RWops * PySDL_RWFromObject(PyObject *src, Py_buffer *view);
+
+// A growable in-memory RWops for SDL to write into, and its contents as bytes.
+// PySDL_RWBufferBytes closes the RWops (also on failure).
+SDL_RWops * PySDL_RWBuffer(void);
+PyObject  * PySDL_RWBufferBytes(SDL_RWops *rw);
 
 #endif // __PYSDL_H__

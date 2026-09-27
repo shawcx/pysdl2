@@ -190,3 +190,135 @@ PyObject * PySDL_WrapWindow(SDL_Window *window) {
     wrapper->shouldFree = 0;
     return (PyObject *)wrapper;
 }
+
+//=========================================================
+// RWops helpers
+//=========================================================
+
+SDL_RWops * PySDL_RWFromObject(PyObject *src, Py_buffer *view) {
+    view->obj = NULL;
+
+    if(PyUnicode_Check(src) || PyObject_HasAttrString(src, "__fspath__")) {
+        PyObject *path = PyOS_FSPath(src);
+        if(NULL == path) {
+            return NULL;
+        }
+        if(!PyUnicode_Check(path)) {
+            Py_DECREF(path);
+            PyErr_SetString(PyExc_TypeError, "path must be str (pass bytes for file contents)");
+            return NULL;
+        }
+        const char *text = PyUnicode_AsUTF8(path);
+        SDL_RWops *rw = text ? SDL_RWFromFile(text, "rb") : NULL;
+        Py_DECREF(path);
+        if(NULL == rw && !PyErr_Occurred()) {
+            PyErr_SetString(pysdl_Error, SDL_GetError());
+        }
+        return rw;
+    }
+
+    if(0 > PyObject_GetBuffer(src, view, PyBUF_SIMPLE)) {
+        PyErr_SetString(PyExc_TypeError, "expected a path (str) or the file's bytes");
+        view->obj = NULL;
+        return NULL;
+    }
+    SDL_RWops *rw = SDL_RWFromConstMem(view->buf, (int)view->len);
+    if(NULL == rw) {
+        PyBuffer_Release(view);
+        view->obj = NULL;
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+    }
+    return rw;
+}
+
+typedef struct {
+    Uint8  *data;
+    size_t  len;
+    size_t  cap;
+    size_t  pos;
+} _RWBuffer;
+
+static Sint64 SDLCALL _rwbuf_size(SDL_RWops *rw) {
+    return (Sint64)((_RWBuffer *)rw->hidden.unknown.data1)->len;
+}
+
+static Sint64 SDLCALL _rwbuf_seek(SDL_RWops *rw, Sint64 offset, int whence) {
+    _RWBuffer *b = rw->hidden.unknown.data1;
+    Sint64 base = (RW_SEEK_SET == whence) ? 0 : (RW_SEEK_CUR == whence) ? (Sint64)b->pos : (Sint64)b->len;
+    if(base + offset < 0) {
+        return SDL_SetError("seek before start of buffer");
+    }
+    b->pos = (size_t)(base + offset);
+    return (Sint64)b->pos;
+}
+
+static size_t SDLCALL _rwbuf_read(SDL_RWops *rw, void *ptr, size_t size, size_t num) {
+    _RWBuffer *b = rw->hidden.unknown.data1;
+    if(0 == size || b->pos >= b->len) {
+        return 0;
+    }
+    size_t count = SDL_min(num, (b->len - b->pos) / size);
+    SDL_memcpy(ptr, b->data + b->pos, count * size);
+    b->pos += count * size;
+    return count;
+}
+
+static size_t SDLCALL _rwbuf_write(SDL_RWops *rw, const void *ptr, size_t size, size_t num) {
+    _RWBuffer *b = rw->hidden.unknown.data1;
+    size_t bytes = size * num;
+    if(b->pos + bytes > b->cap) {
+        size_t cap = b->cap ? b->cap : 4096;
+        while(cap < b->pos + bytes) {
+            cap *= 2;
+        }
+        Uint8 *grown = SDL_realloc(b->data, cap);
+        if(NULL == grown) {
+            SDL_OutOfMemory();
+            return 0;
+        }
+        b->data = grown;
+        b->cap = cap;
+    }
+    if(b->pos > b->len) {
+        SDL_memset(b->data + b->len, 0, b->pos - b->len);  // gap from a seek past the end
+    }
+    SDL_memcpy(b->data + b->pos, ptr, bytes);
+    b->pos += bytes;
+    if(b->pos > b->len) {
+        b->len = b->pos;
+    }
+    return num;
+}
+
+static int SDLCALL _rwbuf_close(SDL_RWops *rw) {
+    _RWBuffer *b = rw->hidden.unknown.data1;
+    SDL_free(b->data);
+    SDL_free(b);
+    SDL_FreeRW(rw);
+    return 0;
+}
+
+SDL_RWops * PySDL_RWBuffer(void) {
+    _RWBuffer *b = SDL_calloc(1, sizeof(*b));
+    SDL_RWops *rw = b ? SDL_AllocRW() : NULL;
+    if(NULL == rw) {
+        SDL_free(b);
+        PyErr_NoMemory();
+        return NULL;
+    }
+    rw->type  = SDL_RWOPS_UNKNOWN;
+    rw->size  = _rwbuf_size;
+    rw->seek  = _rwbuf_seek;
+    rw->read  = _rwbuf_read;
+    rw->write = _rwbuf_write;
+    rw->close = _rwbuf_close;
+    rw->hidden.unknown.data1 = b;
+    return rw;
+}
+
+PyObject * PySDL_RWBufferBytes(SDL_RWops *rw) {
+    _RWBuffer *b = rw->hidden.unknown.data1;
+    PyObject *result = PyBytes_FromStringAndSize((const char *)b->data, (Py_ssize_t)b->len);
+    SDL_RWclose(rw);
+    return result;
+}
