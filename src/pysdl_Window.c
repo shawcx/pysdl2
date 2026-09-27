@@ -238,6 +238,7 @@ void PySDL_WindowSurfaceForget(PySDL_Surface *surface) {
 // and window surface. Null the Windows (their methods then raise "Invalid
 // window" and dealloc does nothing) and empty the Surfaces.
 void PySDL_InvalidateWindows(void) {
+    PySDL_InvalidateCursors();  // the mouse (and every cursor) goes with video
     for(Py_ssize_t idx = 0; idx < _windows.len; ++idx) {
         PySDL_Window *window = (PySDL_Window *)_windows.items[idx];
         window->window = NULL;

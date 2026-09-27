@@ -228,21 +228,20 @@ static PyObject * PySDL_GameController_Mapping(PySDL_GameController *self, PyObj
     return _take_mapping(SDL_GameControllerMapping(gc));
 }
 
+// The controller's joystick as an owned Joystick: re-opening it by device index
+// bumps SDL's refcount, so it stays valid after the controller is closed (a
+// borrowed pointer would dangle). None if the device is no longer attached.
 static PyObject * PySDL_GameController_GetJoystick(PySDL_GameController *self, PyObject *ign) {
     SDL_GameController *gc = _gc(self);
     if(NULL == gc) return NULL;
 
     SDL_Joystick *joystick = SDL_GameControllerGetJoystick(gc);
-    if(NULL == joystick) {
+    int index = joystick ? PySDL_JoystickIndexForInstance(SDL_JoystickInstanceID(joystick)) : -1;
+    if(0 > index) {
+        SDL_ClearError();
         Py_RETURN_NONE;
     }
-    PySDL_Joystick *wrapper = (PySDL_Joystick *)PySDL_New(&PySDL_Joystick_Type);
-    if(NULL == wrapper) {
-        return NULL;
-    }
-    wrapper->joystick = joystick;  // owned by the controller
-    wrapper->shouldFree = 0;
-    return (PyObject *)wrapper;
+    return PyObject_CallFunction((PyObject *)&PySDL_Joystick_Type, "i", index);
 }
 
 // -> None (unbound), (BINDTYPE_BUTTON, button), (BINDTYPE_AXIS, axis) or

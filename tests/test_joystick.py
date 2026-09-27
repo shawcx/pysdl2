@@ -90,11 +90,24 @@ def test_controller_basics(sdl, controller):
     assert isinstance(controller.Mapping(), str)
 
 
-def test_controller_get_joystick_is_borrowed(sdl, controller, joystick_index):
+def test_controller_get_joystick_is_owned(sdl, controller, joystick_index):
     js = controller.GetJoystick()
     assert type(js).__name__ == 'Joystick'
-    del js  # borrowed: must not close the controller's joystick
+    assert js.InstanceID() == sdl.JoystickGetDeviceInstanceID(joystick_index)
+    js.Close()  # an owned reference: must not close the controller's joystick
     assert controller.GetButton(sdl.CONTROLLER_BUTTON_B) is False
+    assert controller.Attached() is True
+
+
+def test_controller_joystick_outlives_controller(sdl, joystick_index):
+    if not sdl.IsGameController(joystick_index):
+        pytest.skip('virtual joystick has no game-controller mapping here')
+    gc = sdl.GameController(joystick_index)
+    js = gc.GetJoystick()
+    gc.Close()  # used to free the joystick behind the borrowed wrapper
+    assert js.Attached() is True
+    assert js.NumButtons() == 6
+    js.Close()
 
 
 def test_controller_add_mapping(sdl):

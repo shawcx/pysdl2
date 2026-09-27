@@ -127,7 +127,6 @@ static int PySDL_Joystick_Type_init(PySDL_Joystick *self, PyObject *args, PyObje
     }
 
     self->joystick = NULL;
-    self->shouldFree = 1;
 
     if(index >= 0) {
         self->joystick = SDL_JoystickOpen(index);
@@ -140,7 +139,7 @@ static int PySDL_Joystick_Type_init(PySDL_Joystick *self, PyObject *args, PyObje
 }
 
 static void PySDL_Joystick_Type_dealloc(PySDL_Joystick *self) {
-    if(NULL != self->joystick && self->shouldFree) {
+    if(NULL != self->joystick) {
         SDL_JoystickClose(self->joystick);
     }
     self->joystick = NULL;
@@ -425,7 +424,7 @@ static PyObject * PySDL_Joystick_Path(PySDL_Joystick *self, PyObject *ign) {
 #endif
 
 static PyObject * PySDL_Joystick_Close(PySDL_Joystick *self, PyObject *ign) {
-    if(NULL != self->joystick && self->shouldFree) {
+    if(NULL != self->joystick) {
         SDL_JoystickClose(self->joystick);
     }
     self->joystick = NULL;

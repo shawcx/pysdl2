@@ -529,6 +529,22 @@ run in a subprocess).
   is emptied) and its borrowed wrappers (`Window.GetRenderer()`) before
   destroying. `SetRenderTarget` / `RenderGeometry` / `RenderGeometryRaw` raise
   on an invalidated texture rather than treating it as "no texture".
+- **Cursors.** `SDL_FreeCursor` and video shutdown free cursors (shutdown frees
+  *every* cursor, including ones we own). Cursor wrappers are now registered:
+  an owner's dealloc invalidates borrowed wrappers of its cursor, video
+  teardown invalidates all of them (owned ones are then not freed twice), and
+  `GetCursor()` returns the owning `Cursor` object for our own cursors.
+  `SetCursor` / `Cursor.Set` raise on an invalid cursor instead of passing NULL
+  (which SDL reads as "redraw").
+- **`GameController.GetJoystick()`** now returns an owned `Joystick` (re-opened
+  by index, refcounted) instead of a borrowed pointer that dangled once the
+  controller was closed; `None` if the device is gone. Nothing borrows a
+  joystick any more, so `Joystick.shouldFree` was removed.
+
+Every borrowed pointer the binding hands out is now either owned (joysticks,
+controllers, sensors via re-open), tracked and invalidated (windows, window
+surfaces, renderers, textures, locked texture surfaces, cursors), or SDL's own
+never-freed object (the default cursor).
 
 ## Explicitly out of scope
 

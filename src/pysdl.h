@@ -96,8 +96,7 @@ extern PyTypeObject PySDL_Cursor_Type;
 
 typedef struct {
     PyObject_HEAD
-    SDL_Joystick *joystick;
-    int shouldFree;  // 0 when borrowed (GameController.GetJoystick)
+    SDL_Joystick *joystick;  // always owned: lookups re-open by index (refcounted)
 } PySDL_Joystick;
 extern PyTypeObject PySDL_Joystick_Type;
 
@@ -219,8 +218,11 @@ void PySDL_SurfaceDetach(PySDL_Surface *surface);
 // on the next SDL_GetWindowSurface after a resize, on SDL_DestroyWindowSurface
 // and with the window; it frees every window when video shuts down.
 void PySDL_WindowSurfaceForget(PySDL_Surface *surface);  // from Surface tp_dealloc
-void PySDL_InvalidateWindows(void);   // video is gone: null every Window, empty every window surface
+void PySDL_InvalidateWindows(void);   // video is gone: null every Window and Cursor, empty every window surface
 void PySDL_CheckVideoGone(void);      // PySDL_InvalidateWindows() if video is no longer running
+
+// Cursor tracking (pysdl_Cursor.c): SDL frees every cursor when video shuts down.
+void PySDL_InvalidateCursors(void);
 
 // Texture / renderer tracking (pysdl_Renderer.c). SDL_DestroyRenderer frees
 // every texture of that renderer, so each Texture wrapper records its renderer

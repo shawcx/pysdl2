@@ -127,16 +127,16 @@ helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
 ### Object model
 
 Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus
-tracking fields where needed: `Surface`/`Window`/`Renderer`/`Cursor`/`Joystick`.`shouldFree`,
+tracking fields where needed: `Surface`/`Window`/`Renderer`/`Cursor`.`shouldFree`,
 `Renderer.target`, `Texture.locked`, `Texture.renderer`, `Audio.pycallback`,
 `Surface.pixels`, `Surface.window_id`). The SDL pointer is
 filled in either by `tp_init` (public construction) or afterwards by the C code
 that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `tp_dealloc` unless `shouldFree` is 0 (a *borrowed* pointer SDL still owns —
 `Window.GetWindowSurface()`, `GetKeyboardFocus()`/`GetMouseFocus()` via
-`PySDL_WrapWindow()`, `GetCursor()`/`GetDefaultCursor()`,
-`GameController.GetJoystick()`, `Window.GetRenderer()`,
-`Texture.LockToSurface()`). A borrowed pointer SDL frees while Python may still
+`PySDL_WrapWindow()`, `GetDefaultCursor()`, `Window.GetRenderer()`,
+`Texture.LockToSurface()`). `GetCursor()` returns the owning `Cursor` object when
+the current cursor is one of ours, so only SDL's default cursor is ever borrowed. A borrowed pointer SDL frees while Python may still
 hold it gets swapped out rather than left dangling: `PySDL_SurfaceDetach()`
 points a Surface at a fresh empty 0x0 surface (without freeing the old one),
 since Surface methods dereference `->surface` without checks. `Texture.Unlock`
@@ -159,6 +159,13 @@ to and removes in `tp_dealloc`):
   (methods then raise "Invalid window" / "Video subsystem has not been
   initialized") and every window Surface is emptied. Nothing here touches an
   `SDL_Window` that may already be freed.
+- Cursors: every `Cursor` wrapper registers in `tp_init` (`pysdl_Cursor.c`).
+  An owning Cursor's dealloc nulls any other wrapper of the same cursor before
+  `SDL_FreeCursor`, and `PySDL_InvalidateWindows()` also calls
+  `PySDL_InvalidateCursors()`, because video shutdown frees every cursor —
+  including ones we own, which must then not be freed again. A NULL cursor
+  raises in `Cursor.Set` / `SetCursor` (for SDL, `SDL_SetCursor(NULL)` means
+  "redraw").
 - Renderers and textures are **not** freed by video shutdown (SDL keeps them
   until `SDL_DestroyRenderer`), so they need no invalidation for `Quit`.
 
@@ -173,7 +180,8 @@ its borrowed wrappers before `SDL_DestroyRenderer`. SDL calls that read a NULL
 texture as "none" (`SetRenderTarget`, `RenderGeometry`, `RenderGeometryRaw`)
 take Texture args through `_texture_arg()`, which raises instead.
 Joystick/controller lookups
-(`JoystickFromInstanceID`, `GameControllerFromPlayerIndex`, …) avoid borrowing:
+(`JoystickFromInstanceID`, `GameControllerFromPlayerIndex`,
+`GameController.GetJoystick()`, …) avoid borrowing:
 they re-open the device by index (`PySDL_JoystickIndexForInstance`), which bumps
 SDL's refcount and yields an owned wrapper.
 

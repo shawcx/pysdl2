@@ -22,6 +22,32 @@ PyTypeObject PySDL_Cursor_Type = {
     .tp_new       = PyType_GenericNew
 };
 
+//=========================================================
+// cursor tracking
+//=========================================================
+
+// Every live Cursor wrapper (owned or borrowed). SDL_FreeCursor and video
+// shutdown free cursors behind other wrappers' backs, so those are nulled
+// first; a NULL cursor then raises instead of reaching SDL.
+static PySDL_Registry _cursors;
+
+// The owning wrapper of `cursor`, if one is alive.
+static PySDL_Cursor * _owner_of(SDL_Cursor *cursor) {
+    for(Py_ssize_t idx = 0; idx < _cursors.len; ++idx) {
+        PySDL_Cursor *wrapper = (PySDL_Cursor *)_cursors.items[idx];
+        if(wrapper->cursor == cursor && wrapper->shouldFree) {
+            return wrapper;
+        }
+    }
+    return NULL;
+}
+
+void PySDL_InvalidateCursors(void) {
+    for(Py_ssize_t idx = 0; idx < _cursors.len; ++idx) {
+        ((PySDL_Cursor *)_cursors.items[idx])->cursor = NULL;
+    }
+}
+
 static int PySDL_Cursor_Type_init(PySDL_Cursor *self, PyObject *args, PyObject *kwds) {
     int system_id = -1;  // SDL_SYSTEM_CURSOR_ARROW is 0, so -1 means "not given"
     if(!PyArg_ParseTuple(args, "|i", &system_id)) {
@@ -30,6 +56,9 @@ static int PySDL_Cursor_Type_init(PySDL_Cursor *self, PyObject *args, PyObject *
 
     self->cursor = NULL;
     self->shouldFree = 1;
+    if(0 > PySDL_RegistryAdd(&_cursors, (PyObject *)self)) {
+        return -1;
+    }
 
     if(system_id >= 0) {
         self->cursor = SDL_CreateSystemCursor((SDL_SystemCursor)system_id);
@@ -42,7 +71,15 @@ static int PySDL_Cursor_Type_init(PySDL_Cursor *self, PyObject *args, PyObject *
 }
 
 static void PySDL_Cursor_Type_dealloc(PySDL_Cursor *self) {
+    PySDL_RegistryRemove(&_cursors, (PyObject *)self);
     if(NULL != self->cursor && self->shouldFree) {
+        // Borrowed wrappers of this cursor (GetCursor) must not outlive it.
+        for(Py_ssize_t idx = 0; idx < _cursors.len; ++idx) {
+            PySDL_Cursor *other = (PySDL_Cursor *)_cursors.items[idx];
+            if(other->cursor == self->cursor) {
+                other->cursor = NULL;
+            }
+        }
         SDL_FreeCursor(self->cursor);
     }
     self->cursor = NULL;
@@ -51,7 +88,7 @@ static void PySDL_Cursor_Type_dealloc(PySDL_Cursor *self) {
 
 static PyObject * PySDL_Cursor_Set(PySDL_Cursor *self, PyObject *ign) {
     if(NULL == self->cursor) {
-        PyErr_SetString(pysdl_Error, "Cursor is not initialized");
+        PyErr_SetString(pysdl_Error, "Cursor is not valid (uninitialised, freed, or video was shut down)");
         return NULL;
     }
     SDL_SetCursor(self->cursor);
@@ -119,8 +156,15 @@ static PyObject * PySDL_CreateCursor(PyObject *self, PyObject *args) {
     return _wrap(cursor, 0);
 }
 
+// The current cursor: the very Cursor object that owns it when it is one of
+// ours, else a borrowed wrapper of SDL's own (default) cursor.
 static PyObject * PySDL_GetCursor(PyObject *self, PyObject *ign) {
-    return _wrap(SDL_GetCursor(), 1);
+    SDL_Cursor *cursor = SDL_GetCursor();
+    PySDL_Cursor *owner = cursor ? _owner_of(cursor) : NULL;
+    if(NULL != owner) {
+        return Py_NewRef((PyObject *)owner);
+    }
+    return _wrap(cursor, 1);
 }
 
 static PyObject * PySDL_GetDefaultCursor(PyObject *self, PyObject *ign) {
@@ -135,6 +179,10 @@ static PyObject * PySDL_SetCursor(PyObject *self, PyObject *arg) {
             return NULL;
         }
         cursor = ((PySDL_Cursor *)arg)->cursor;
+        if(NULL == cursor) {  // SDL_SetCursor(NULL) would mean "redraw", not an error
+            PyErr_SetString(pysdl_Error, "Cursor is not valid (uninitialised, freed, or video was shut down)");
+            return NULL;
+        }
     }
     SDL_SetCursor(cursor);
     Py_RETURN_NONE;
