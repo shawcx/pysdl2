@@ -387,8 +387,7 @@ static PyObject * PySDL_Init(PyObject *self, PyObject *args) {
 
 static PyObject * PySDL_WasInit(PyObject *self, PyObject *args) {
     int flags = SDL_INIT_EVERYTHING;
-    int ok = PyArg_ParseTuple(args, "|i", &flags);
-    if(0 > ok) {
+    if(!PyArg_ParseTuple(args, "|i", &flags)) {
         return NULL;
     }
     uint32_t subsystems = SDL_WasInit(flags);
@@ -413,11 +412,13 @@ static PyObject * PySDL_QuitSubSystem(PyObject *self, PyObject *arg) {
         return NULL;
     }
     SDL_QuitSubSystem((Uint32)flags);
+    PySDL_CheckVideoGone();  // subsystems are refcounted: only if video really stopped
     Py_RETURN_NONE;
 }
 
 static PyObject * PySDL_Quit(PyObject *self, PyObject *ign) {
     SDL_Quit();
+    PySDL_InvalidateWindows();  // SDL_Quit destroyed every window
     Py_RETURN_NONE;
 }
 

@@ -188,6 +188,74 @@ PyTypeObject PySDL_Window_Type = {
     .tp_new       = PyType_GenericNew,
 };
 
+//=========================================================
+// window / window-surface tracking
+//=========================================================
+
+// Every live Window wrapper (owned or borrowed) and every Surface handed out by
+// GetWindowSurface. Surfaces are matched by window id rather than pointer, so
+// all wrappers of one window share its Surface and nothing here ever touches
+// an SDL_Window that may already be gone.
+static PySDL_Registry _windows;
+static PySDL_Registry _window_surfaces;
+
+static PySDL_Surface * _find_surface(Uint32 id) {
+    for(Py_ssize_t idx = 0; idx < _window_surfaces.len; ++idx) {
+        PySDL_Surface *surface = (PySDL_Surface *)_window_surfaces.items[idx];
+        if(surface->window_id == id) {
+            return surface;
+        }
+    }
+    return NULL;
+}
+
+// SDL has freed, or is about to free, window `id`'s surface: empty ours.
+static void _drop_surface(Uint32 id) {
+    PySDL_Surface *surface = id ? _find_surface(id) : NULL;
+    if(NULL != surface) {
+        PySDL_RegistryRemove(&_window_surfaces, (PyObject *)surface);
+        PySDL_SurfaceDetach(surface);
+    }
+}
+
+// Null every other wrapper of `window` (borrowed ones from GetWindowFromID,
+// GetKeyboardFocus, ...) before the owner destroys it.
+static void _forget_window(SDL_Window *window, PySDL_Window *owner) {
+    for(Py_ssize_t idx = 0; idx < _windows.len; ++idx) {
+        PySDL_Window *other = (PySDL_Window *)_windows.items[idx];
+        if(other != owner && other->window == window) {
+            other->window = NULL;
+        }
+    }
+}
+
+void PySDL_WindowSurfaceForget(PySDL_Surface *surface) {
+    PySDL_RegistryRemove(&_window_surfaces, (PyObject *)surface);
+    surface->window_id = 0;
+}
+
+// Video shut down (SDL_Quit, SDL_VideoQuit, ...): SDL destroyed every window
+// and window surface. Null the Windows (their methods then raise "Invalid
+// window" and dealloc does nothing) and empty the Surfaces.
+void PySDL_InvalidateWindows(void) {
+    for(Py_ssize_t idx = 0; idx < _windows.len; ++idx) {
+        PySDL_Window *window = (PySDL_Window *)_windows.items[idx];
+        window->window = NULL;
+        window->glContext = NULL;  // died with the video subsystem
+    }
+    while(_window_surfaces.len > 0) {
+        PySDL_Surface *surface = (PySDL_Surface *)_window_surfaces.items[_window_surfaces.len - 1];
+        _window_surfaces.len--;
+        PySDL_SurfaceDetach(surface);
+    }
+}
+
+void PySDL_CheckVideoGone(void) {
+    if(NULL == SDL_GetCurrentVideoDriver()) {
+        PySDL_InvalidateWindows();
+    }
+}
+
 static int PySDL_Window_Type_init(PySDL_Window *self, PyObject *args, PyObject *kwds) {
     char *title = NULL;
     int w = 0;
@@ -206,6 +274,9 @@ static int PySDL_Window_Type_init(PySDL_Window *self, PyObject *args, PyObject *
     self->window = NULL;
     self->glContext = NULL;
     self->shouldFree = 1;
+    if(0 > PySDL_RegistryAdd(&_windows, (PyObject *)self)) {
+        return -1;
+    }
 
     // No title: internal allocation (borrowed-window wrappers fill ->window in).
     if(NULL != title) {
@@ -220,12 +291,15 @@ static int PySDL_Window_Type_init(PySDL_Window *self, PyObject *args, PyObject *
 }
 
 static void PySDL_Window_Type_dealloc(PySDL_Window *self) {
+    PySDL_RegistryRemove(&_windows, (PyObject *)self);
     if(NULL != self->glContext) {
         SDL_GL_DeleteContext(self->glContext);
         self->glContext = NULL;
     }
     if(NULL != self->window) {
         if(self->shouldFree) {
+            _drop_surface(SDL_GetWindowID(self->window));  // SDL frees it with the window
+            _forget_window(self->window, self);            // borrowed wrappers of it
             SDL_DestroyWindow(self->window);
         }
         self->window = NULL;
@@ -258,31 +332,45 @@ static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *ign) 
     return Py_BuildValue("(ii)", w, h);
 }
 
+// The window's surface. While SDL keeps the same surface this returns the same
+// Surface object; when SDL replaces it (after a resize) the previous Surface
+// is emptied (0x0) instead of left pointing at freed memory.
 static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *ign) {
-    PySDL_Surface *pysdl_Surface;
+    Uint32 id = self->window ? SDL_GetWindowID(self->window) : 0;
+    SDL_Surface *surface = SDL_GetWindowSurface(self->window);
 
-    pysdl_Surface = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
-    if(NULL == pysdl_Surface) {
-        return NULL;
+    PySDL_Surface *cached = id ? _find_surface(id) : NULL;
+    if(NULL != cached && NULL != surface && cached->surface == surface) {
+        return Py_NewRef((PyObject *)cached);
     }
-
-    pysdl_Surface->shouldFree = 0;
-
-    pysdl_Surface->surface = SDL_GetWindowSurface(self->window);
-    if(NULL == pysdl_Surface->surface) {
-        Py_DECREF(pysdl_Surface);
+    _drop_surface(id);  // replaced, or freed before SDL failed to make a new one
+    if(NULL == surface) {
         PyErr_SetString(pysdl_Error, SDL_GetError());
         return NULL;
     }
 
-    return (PyObject *)pysdl_Surface;
+    PySDL_Surface *wrapper = (PySDL_Surface *)PySDL_New(&PySDL_Surface_Type);
+    if(NULL == wrapper) {
+        return NULL;
+    }
+    wrapper->surface = surface;
+    wrapper->shouldFree = 0;
+    wrapper->window_id = id;
+    if(0 > PySDL_RegistryAdd(&_window_surfaces, (PyObject *)wrapper)) {
+        wrapper->window_id = 0;  // untracked: don't let dealloc look for it
+        Py_DECREF(wrapper);
+        return NULL;
+    }
+    return (PyObject *)wrapper;
 }
 
 static PyObject * PySDL_Window_SetWindowFullscreen(PySDL_Window *self, PyObject *args) {
     int flags = 0;
     int ok;
 
-    ok = PyArg_ParseTuple(args, "|i", &flags);
+    if(!PyArg_ParseTuple(args, "|i", &flags)) {
+        return NULL;
+    }
 
     ok = SDL_SetWindowFullscreen(self->window, flags);
     if(0 > ok) {
@@ -306,11 +394,7 @@ static PyObject * PySDL_Window_SetWindowTitle(PySDL_Window *self, PyObject *args
 
 static PyObject * PySDL_Window_SetWindowPosition(PySDL_Window *self, PyObject *args) {
     int x, y;
-    int ok;
-
-    ok = PyArg_ParseTuple(args, "(ii)", &x, &y);
-    if(0 > ok) {
-        PyErr_SetString(pysdl_Error, SDL_GetError());
+    if(!PyArg_ParseTuple(args, "(ii)", &x, &y)) {
         return NULL;
     }
 
@@ -321,11 +405,7 @@ static PyObject * PySDL_Window_SetWindowPosition(PySDL_Window *self, PyObject *a
 
 static PyObject * PySDL_Window_SetWindowSize(PySDL_Window *self, PyObject *args) {
     int w, h;
-    int ok;
-
-    ok = PyArg_ParseTuple(args, "(ii)", &w, &h);
-    if(0 > ok) {
-        PyErr_SetString(pysdl_Error, SDL_GetError());
+    if(!PyArg_ParseTuple(args, "(ii)", &w, &h)) {
         return NULL;
     }
 
@@ -841,9 +921,11 @@ static PyObject * PySDL_Window_HasWindowSurface(PySDL_Window *self, PyObject *ig
     return PyBool_FromLong(SDL_HasWindowSurface(self->window));
 }
 
-// Frees the window surface: Surface objects from GetWindowSurface() must not
-// be used afterwards.
+// Frees the window surface; a Surface from GetWindowSurface() becomes empty.
 static PyObject * PySDL_Window_DestroyWindowSurface(PySDL_Window *self, PyObject *ign) {
+    if(NULL != self->window) {
+        _drop_surface(SDL_GetWindowID(self->window));
+    }
     if(0 > SDL_DestroyWindowSurface(self->window)) {
         return _wraise();
     }

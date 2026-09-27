@@ -498,6 +498,34 @@ With this phase every in-scope SDL2 header is covered; what remains unwrapped is
 listed in the phase notes above ("skipped on purpose" / "not wrapped,
 deliberately") or below.
 
+## Phase 15 - Wrapper invalidation  — DONE
+
+Tests: teardown / tracking section of `tests/test_video.py` (the `Quit` cases
+run in a subprocess).
+
+- **Window surfaces no longer dangle.** `GetWindowSurface()` returns the same
+  Surface object while SDL keeps the same surface (across all wrappers of that
+  window); when SDL replaces it after a resize, destroys it
+  (`DestroyWindowSurface`) or destroys the window, the old Surface is emptied to
+  0x0 instead of pointing at freed memory.
+- **Teardown invalidation.** `Quit`, `VideoQuit`, `VideoInit` and a
+  `QuitSubSystem` that really stops video null every `Window` wrapper and empty
+  every window Surface, so wrappers kept past a shutdown raise instead of
+  touching freed windows — also after re-initialising, when window ids are
+  reused. Freeing the owning `Window` likewise invalidates borrowed wrappers of
+  it (`GetWindowFromID`, `GetKeyboardFocus`, …).
+- Shared pieces: `PySDL_Registry` (`pysdl_util.c`), `PySDL_SurfaceDetach`
+  (`pysdl_Surface.c`, now also used by `Texture.Unlock`), `Surface.window_id`.
+- **Bug fix**: `WasInit`, `Window.SetWindowFullscreen`, `SetWindowPosition` and
+  `SetWindowSize` tested `PyArg_ParseTuple`'s result as `0 > ok` (it returns 0
+  on failure), so bad arguments ran SDL on uninitialised values and surfaced as
+  `SystemError`; they now raise `TypeError`.
+- **Known remaining**: `SDL_DestroyRenderer` frees every texture of that
+  renderer, so a `Texture` object that outlives its `Renderer` object (e.g.
+  `del renderer`, or module teardown order at exit) still dangles. The same
+  registry pattern (textures keyed by renderer, invalidated in the renderer's
+  dealloc) would fix it.
+
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),

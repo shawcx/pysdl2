@@ -559,7 +559,9 @@ static PyObject * PySDL_VideoInit(PyObject *self, PyObject *args) {
     if(!PyArg_ParseTuple(args, "|z", &driver)) {
         return NULL;
     }
-    if(0 > SDL_VideoInit(driver)) {
+    int rc = SDL_VideoInit(driver);
+    PySDL_InvalidateWindows();  // SDL_VideoInit first shuts down any running video
+    if(0 > rc) {
         return _raise();
     }
     Py_RETURN_NONE;
@@ -567,6 +569,7 @@ static PyObject * PySDL_VideoInit(PyObject *self, PyObject *args) {
 
 static PyObject * PySDL_VideoQuit(PyObject *self, PyObject *ign) {
     SDL_VideoQuit();
+    PySDL_InvalidateWindows();
     Py_RETURN_NONE;
 }
 

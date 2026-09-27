@@ -104,9 +104,7 @@ static void _detach_locked(PySDL_Texture *self) {
     if(NULL == self->locked) {
         return;
     }
-    PySDL_Surface *surface = (PySDL_Surface *)self->locked;
-    surface->surface = SDL_CreateRGBSurfaceWithFormat(0, 0, 0, 32, SDL_PIXELFORMAT_RGBA32);
-    surface->shouldFree = 1;
+    PySDL_SurfaceDetach((PySDL_Surface *)self->locked);
     Py_CLEAR(self->locked);
 }
 

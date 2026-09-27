@@ -128,7 +128,8 @@ helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
 
 Each wrapper struct is `PyObject_HEAD` plus one raw SDL pointer/handle (plus
 tracking fields where needed: `Surface`/`Window`/`Renderer`/`Cursor`/`Joystick`.`shouldFree`,
-`Renderer.target`, `Texture.locked`, `Audio.pycallback`, `Surface.pixels`). The SDL pointer is
+`Renderer.target`, `Texture.locked`, `Audio.pycallback`, `Surface.pixels`,
+`Surface.window_id`). The SDL pointer is
 filled in either by `tp_init` (public construction) or afterwards by the C code
 that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `tp_dealloc` unless `shouldFree` is 0 (a *borrowed* pointer SDL still owns —
@@ -136,9 +137,30 @@ that allocated the wrapper with `PySDL_New(&PySDL_X_Type)`; it is released in
 `PySDL_WrapWindow()`, `GetCursor()`/`GetDefaultCursor()`,
 `GameController.GetJoystick()`, `Window.GetRenderer()`,
 `Texture.LockToSurface()`). A borrowed pointer SDL frees while Python may still
-hold it gets swapped out rather than left dangling: `Texture.Unlock` (and the
-texture's dealloc) points the `LockToSurface` Surface at a fresh empty 0x0
-surface, since Surface methods dereference `->surface` without checks.
+hold it gets swapped out rather than left dangling: `PySDL_SurfaceDetach()`
+points a Surface at a fresh empty 0x0 surface (without freeing the old one),
+since Surface methods dereference `->surface` without checks. `Texture.Unlock`
+(and the texture's dealloc) does this for the `LockToSurface` Surface.
+
+**Window invalidation** (`pysdl_Window.c`, built on `PySDL_Registry` in
+`pysdl_util.c` — a list of *borrowed* wrapper pointers each wrapper adds itself
+to and removes in `tp_dealloc`):
+- Every `Window` wrapper, owned or borrowed, is registered in `tp_init`.
+- `GetWindowSurface()` registers the Surface it returns, keyed by window id
+  (`Surface.window_id`), so every wrapper of a window shares one Surface object.
+  SDL frees a window surface on the next `SDL_GetWindowSurface` after a resize,
+  on `SDL_DestroyWindowSurface` and with the window; each of those paths empties
+  the registered Surface first (`_drop_surface`).
+- The owning `Window`'s dealloc nulls every other wrapper of that window
+  (`_forget_window`) before `SDL_DestroyWindow`.
+- `Quit`, `VideoQuit`, `VideoInit` (which restarts video) and `QuitSubSystem`
+  (only when video actually stopped — subsystems are refcounted) call
+  `PySDL_InvalidateWindows()`: every Window's pointer and GL context are nulled
+  (methods then raise "Invalid window" / "Video subsystem has not been
+  initialized") and every window Surface is emptied. Nothing here touches an
+  `SDL_Window` that may already be freed.
+- Renderers and textures are **not** freed by video shutdown (SDL keeps them
+  until `SDL_DestroyRenderer`), so they need no invalidation for `Quit`.
 Joystick/controller lookups
 (`JoystickFromInstanceID`, `GameControllerFromPlayerIndex`, …) avoid borrowing:
 they re-open the device by index (`PySDL_JoystickIndexForInstance`), which bumps
@@ -176,7 +198,7 @@ dropped around `SDL_RemoveTimer`, which joins the callback thread).
 
 `PySDL_Surface` carries a `shouldFree` flag: surfaces it owns (loaded images,
 `CreateRGBSurface`) are `SDL_FreeSurface`d on dealloc; a borrowed surface like
-`Window.GetWindowSurface()` sets `shouldFree = 0`. It also holds a `Py_buffer
+`Window.GetWindowSurface()` sets `shouldFree = 0` (and is tracked, see above). It also holds a `Py_buffer
 pixels` (`pixels.obj == NULL` unless it is a `…SurfaceFrom` surface) that keeps
 the caller's buffer alive for the surface's lifetime — SDL does not copy it.
 
