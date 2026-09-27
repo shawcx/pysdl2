@@ -2,7 +2,8 @@
 SDL2
 ====
 
-Python3 bindings for libSDL2 (plus SDL2_image), exposed as a single C extension
+Python3 bindings for libSDL2 (plus SDL2_image and, optionally, SDL2_ttf),
+exposed as a single C extension
 module named ``SDL2``. Wrapped functions drop the ``SDL_`` prefix:
 ``SDL_GetPlatform`` is ``SDL2.GetPlatform``, ``SDL_RenderPresent`` is
 ``Renderer.Present``.
@@ -12,9 +13,14 @@ Dependencies
 
 Debian / Ubuntu
 	* apt install libsdl2-dev libsdl2-image-dev
+	* optional text rendering: apt install libsdl2-ttf-dev
 
 macOS
 	* brew install sdl2 sdl2_image
+	* optional text rendering: brew install sdl2_ttf
+
+SDL2_ttf is picked up automatically when installed and provides ``SDL2.Font``;
+set ``PYSDL_TTF=0`` when building to leave it out.
 
 Building
 --------

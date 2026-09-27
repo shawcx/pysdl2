@@ -1039,4 +1039,32 @@ void _constants(PyObject *module) {
 #ifdef IMG_INIT_AVIF
     PyModule_AddIntConstant( module, "IMG_INIT_AVIF", IMG_INIT_AVIF );
 #endif
+
+#ifdef PYSDL_HAVE_TTF
+    PyModule_AddIntConstant( module, "TTF_STYLE_NORMAL",        TTF_STYLE_NORMAL        );
+    PyModule_AddIntConstant( module, "TTF_STYLE_BOLD",          TTF_STYLE_BOLD          );
+    PyModule_AddIntConstant( module, "TTF_STYLE_ITALIC",        TTF_STYLE_ITALIC        );
+    PyModule_AddIntConstant( module, "TTF_STYLE_UNDERLINE",     TTF_STYLE_UNDERLINE     );
+    PyModule_AddIntConstant( module, "TTF_STYLE_STRIKETHROUGH", TTF_STYLE_STRIKETHROUGH );
+
+    PyModule_AddIntConstant( module, "TTF_HINTING_NORMAL",         TTF_HINTING_NORMAL         );
+    PyModule_AddIntConstant( module, "TTF_HINTING_LIGHT",          TTF_HINTING_LIGHT          );
+    PyModule_AddIntConstant( module, "TTF_HINTING_MONO",           TTF_HINTING_MONO           );
+    PyModule_AddIntConstant( module, "TTF_HINTING_NONE",           TTF_HINTING_NONE           );
+#ifdef TTF_HINTING_LIGHT_SUBPIXEL
+    PyModule_AddIntConstant( module, "TTF_HINTING_LIGHT_SUBPIXEL", TTF_HINTING_LIGHT_SUBPIXEL );
+#endif
+
+#ifdef TTF_WRAPPED_ALIGN_LEFT
+    PyModule_AddIntConstant( module, "TTF_WRAPPED_ALIGN_LEFT",   TTF_WRAPPED_ALIGN_LEFT   );
+    PyModule_AddIntConstant( module, "TTF_WRAPPED_ALIGN_CENTER", TTF_WRAPPED_ALIGN_CENTER );
+    PyModule_AddIntConstant( module, "TTF_WRAPPED_ALIGN_RIGHT",  TTF_WRAPPED_ALIGN_RIGHT  );
+#endif
+#if SDL_TTF_VERSION_ATLEAST(2,20,0)
+    PyModule_AddIntConstant( module, "TTF_DIRECTION_LTR", TTF_DIRECTION_LTR );
+    PyModule_AddIntConstant( module, "TTF_DIRECTION_RTL", TTF_DIRECTION_RTL );
+    PyModule_AddIntConstant( module, "TTF_DIRECTION_TTB", TTF_DIRECTION_TTB );
+    PyModule_AddIntConstant( module, "TTF_DIRECTION_BTT", TTF_DIRECTION_BTT );
+#endif
+#endif
 }

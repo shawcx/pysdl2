@@ -451,13 +451,54 @@ cross-thread no-deadlock test), `test_video.py` (hint callbacks),
   always 0), `SDL_SIMDAlloc` / `SIMDRealloc` / `SIMDFree` (raw C allocation),
   `SDL_Error` (internal).
 
+## Phase 14 - SDL2_ttf (optional)  — DONE
+
+Tests: `tests/test_ttf.py` (skips without SDL2_ttf or a system font); example:
+`example/text.py`.
+
+- **Optional dependency**: `setup.py` probes `pkg-config SDL2_ttf` (then the
+  header); when found it links `SDL2_ttf` and defines `PYSDL_HAVE_TTF`.
+  `PYSDL_TTF=0` builds without it. Without it `SDL2.Font` / `TTF_*` are simply
+  absent. Added `SDL_TTF_VERSION_ATLEAST` / `SDL_IMAGE_VERSION_ATLEAST`
+  fallbacks in `pysdl.h` for releases that predate those macros.
+- New `src/pysdl_Font.c`. Module (keeps the `TTF_` prefix like `IMG_`):
+  `TTF_Init`, `TTF_Quit`, `TTF_WasInit`, `TTF_Linked_Version`,
+  `TTF_GetFreeTypeVersion` / `TTF_GetHarfBuzzVersion` (≥2.0.18).
+- **`SDL2.Font(src, ptsize=12, index=0, *, hdpi=0, vdpi=0)`**: `src` is a path,
+  os.PathLike or the font file's bytes (pinned for the font's lifetime). Methods
+  drop `TTF_` and `Font`: `Close`, `Get/SetStyle`, `Get/SetOutline`,
+  `Get/SetHinting`, `Get/SetKerning`, `Height`, `Ascent`, `Descent`,
+  `LineSkip`, `Faces`, `FaceIsFixedWidth`, `FaceFamilyName`, `FaceStyleName`,
+  `GlyphIsProvided(ch)`, `GlyphMetrics(ch)` -> `(minx, maxx, miny, maxy,
+  advance)`, `Size(text)` -> `(w, h)`, `GetKerningSize(a, b)` (≥2.0.14);
+  ≥2.0.18: `SetSize`, `SetSizeDPI`, `Get/SetSDF`, `Measure(text, width)` ->
+  `(extent, count)`; ≥2.20: `Get/SetWrappedAlign`, `SetDirection`,
+  `SetScriptName`.
+- Rendering -> owned `Surface`: `RenderSolid(text, fg, wrap_length=None)`,
+  `RenderShaded(text, fg, bg, wrap_length=None)`, `RenderBlended(text, fg,
+  wrap_length=None)`, `RenderLCD(text, fg, bg, wrap_length=None)` (≥2.20); a
+  `wrap_length` selects the `*_Wrapped` variant (≥2.0.18; 0 = newlines only).
+  `RenderGlyph{Solid,Shaded,Blended,LCD}(ch, fg[, bg])`. `ch` is a 1-char str or
+  an int codepoint (32-bit functions from 2.0.18).
+- Text is a Python `str` passed as UTF-8, so the Latin-1 (`TTF_*Text*`) and
+  UCS-2 (`TTF_*UNICODE*`, `TTF_ByteSwappedUNICODE`) variants and the 16-bit
+  glyph functions are not exposed; nor are the deprecated global
+  `TTF_SetDirection` / `TTF_SetScript` (use the per-font setters).
+- **Lifetime**: a font used after the final `TTF_Quit` raises instead of
+  touching freed FreeType state, and is never passed to `TTF_CloseFont` (see
+  the session counter in `pysdl_Font.c`). The GIL stays held: a `TTF_Font` is
+  not thread-safe.
+- Constants: `TTF_STYLE_*`, `TTF_HINTING_*`, `TTF_WRAPPED_ALIGN_*`,
+  `TTF_DIRECTION_*`.
+
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),
 `SDL_Log*`, assertions, `SDL_main` / main callbacks, platform-specific APIs
-(Android / iOS / WinRT), `GetWindowWMInfo`, stdinc shims. Satellite libraries
-(`SDL2_ttf`, `SDL2_mixer`, `SDL2_net`, `SDL2_gfx`) are a separate effort - each
-its own linked lib + `pysdl_ttf.c` etc., or separate packages.
+(Android / iOS / WinRT), `GetWindowWMInfo`, stdinc shims. The other satellite
+libraries (`SDL2_mixer`, `SDL2_net`, `SDL2_gfx`) remain a separate effort; if
+added, follow the Phase 14 pattern (optional, probed by `setup.py`, one
+`#ifdef PYSDL_HAVE_<LIB>` file).
 
 ## Per-phase checklist
 

@@ -36,6 +36,27 @@ def _probe_sdl():
 
 include_dirs, library_dirs = _probe_sdl()
 
+
+def _have_ttf():
+    '''SDL2_ttf is optional: build SDL2.Font only when its header is found.
+    Set PYSDL_TTF=0 to leave it out even when installed.'''
+    import os
+    if os.environ.get('PYSDL_TTF') == '0':
+        return False
+    try:
+        subprocess.check_call(['pkg-config', '--exists', 'SDL2_ttf'])
+        return True
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    candidates = include_dirs + ['/usr/include', '/usr/local/include', '/opt/homebrew/include']
+    return any(os.path.exists(os.path.join(d, 'SDL2', 'SDL_ttf.h')) or
+               os.path.exists(os.path.join(d, 'SDL_ttf.h')) for d in candidates)
+
+
+if _have_ttf():
+    libs.append('SDL2_ttf')
+    defines.append(('PYSDL_HAVE_TTF', '1'))
+
 setuptools.setup(
     name             = 'SDL2',
     version          = '0.2.1',

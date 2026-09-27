@@ -333,6 +333,17 @@ PyMODINIT_FUNC PyInit_SDL2(void) {
     Py_INCREF(&PySDL_Sensor_Type);
     PyModule_AddObject(module, "Sensor", (PyObject *)&PySDL_Sensor_Type);
 
+#ifdef PYSDL_HAVE_TTF
+    if(0 > PyType_Ready(&PySDL_Font_Type)) {
+        return NULL;
+    }
+    Py_INCREF(&PySDL_Font_Type);
+    PyModule_AddObject(module, "Font", (PyObject *)&PySDL_Font_Type);
+    if(0 > PyModule_AddFunctions(module, pysdl_ttf_methods)) {
+        return NULL;
+    }
+#endif
+
     if(0 > PyModule_AddFunctions(module, pysdl_events_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_input_methods)
         || 0 > PyModule_AddFunctions(module, pysdl_cursor_methods)

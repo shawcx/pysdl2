@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A CPython C extension that exposes SDL2 (plus SDL2_image) to Python 3 as a single
-module named `SDL2`. It is a thin, hand-written binding: only the subset of SDL
+A CPython C extension that exposes SDL2 (plus SDL2_image, and SDL2_ttf when
+available) to Python 3 as a single module named `SDL2`. It is a thin, hand-written binding: only the subset of SDL
 the author needed is wrapped, and wrapped functions/methods drop the `SDL_`
 prefix (`SDL_GetPlatform` → `SDL2.GetPlatform`, `SDL_RenderPresent` →
 `Renderer.Present`).
@@ -16,8 +16,13 @@ API in this same style — consult it before adding a new subsystem.
 ## Build & install
 
 System dependencies must be present first:
-- macOS: `brew install sdl2 sdl2_image`
-- Debian/Ubuntu: `apt install libsdl2-dev libsdl2-image-dev`
+- macOS: `brew install sdl2 sdl2_image` (+ `sdl2_ttf` for text)
+- Debian/Ubuntu: `apt install libsdl2-dev libsdl2-image-dev` (+ `libsdl2-ttf-dev`)
+
+SDL2_ttf is **optional**: `setup.py` probes for it (`pkg-config SDL2_ttf`, else
+the header) and, when found, links it and defines `PYSDL_HAVE_TTF`, which
+compiles in `SDL2.Font` / `TTF_*`. `PYSDL_TTF=0 python3 setup.py build` forces a
+build without it. Everything TTF-related is inside `#ifdef PYSDL_HAVE_TTF`.
 
 Then:
 - `pip install .` — build and install the extension
@@ -42,7 +47,9 @@ pytest`). `tests/conftest.py` forces the `dummy` video/audio drivers, runs
 `setup.py build` (a no-op when nothing changed) and puts the `build/lib*` dir for
 the running interpreter on `sys.path`; the `sdl` fixture
 does one `Init`/`Quit` per session. Run one file with `python3 -m pytest
-tests/test_audio.py`.
+tests/test_audio.py`. `tests/test_ttf.py` skips itself when the build has no
+SDL2_ttf or no TrueType font can be found (it tries DejaVu, Arial, then
+`fc-match`); its `ttf` fixture does `TTF_Init` / `TTF_Quit` per test.
 
 `example/` holds runnable example programs, most of which open a window and need
 a display:
@@ -57,6 +64,7 @@ a display:
 - `python3 example/wav.py [file.wav]` — LoadWAV + AudioStream resample + queue playback
 - `python3 example/rects.py` — live rect intersection / union / enclose / line-clip
 - `python3 example/image.py [file]` — SDL_image: format probes, animations, SVG / XPM, encode to bytes; no window
+- `python3 example/text.py [--font PATH] [--frames N]` — SDL2_ttf render modes, styles, wrapped text, metrics
 - `python3 example/logical.py [--frames N]` — logical-size canvas: mouse picking, RenderGeometryRaw, LockToSurface, vsync toggle
 - `python3 example/simple.py <image>` — load an image, show it, event loop
 - `python3 example/audio.py` — audio callback + OpenGL visualizer (also needs a `pygl` module)
@@ -81,8 +89,10 @@ helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
 - `src/pysdl_Window.c`, `pysdl_Renderer.c`, `pysdl_Surface.c`, `pysdl_Texture.c`,
   `pysdl_Audio.c`, `pysdl_AudioStream.c`, `pysdl_PixelFormat.c`, `pysdl_Palette.c`,
   `pysdl_Cursor.c`, `pysdl_Joystick.c`, `pysdl_GameController.c`, `pysdl_Timer.c`,
-  `pysdl_Haptic.c`, `pysdl_Sensor.c` — one wrapped SDL object per file, each a
-  full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
+  `pysdl_Haptic.c`, `pysdl_Sensor.c`, `pysdl_Font.c` — one wrapped SDL object per
+  file, each a full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
+  `pysdl_Font.c` (SDL2_ttf) also holds the `TTF_*` module functions
+  (`pysdl_ttf_methods`, registered only under `PYSDL_HAVE_TTF`).
 - `src/pysdl_Input.c` — module-level keyboard / mouse / touch / text-input
   functions. Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into
   the module in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_Events.c`,
@@ -140,12 +150,20 @@ size=…, …)`, `SDL2.Renderer(window, …)`, `SDL2.Texture(renderer, …)`,
 `SDL2.Cursor(system_cursor_id)`, `SDL2.Joystick(device_index)`,
 `SDL2.GameController(device_index)`, `SDL2.Timer(interval_ms, callback)`,
 `SDL2.Haptic(device_index)`, `SDL2.Sensor(device_index)`,
-`SDL2.AudioStream(src_format, src_channels, src_rate, dst_…)`. Every `tp_init` takes
+`SDL2.AudioStream(src_format, src_channels, src_rate, dst_…)`, and with SDL2_ttf
+`SDL2.Font(path_or_bytes, ptsize, index=0, *, hdpi, vdpi)`. Every `tp_init` takes
 its primary arg as *optional* — with none given it just nulls the pointer, the
 path `PySDL_New` and the C-side factory functions use. `Window`/`Renderer`/
 `Texture` lean on SDL's NULL-pointer tolerance; the rest go through a
-`_fmt()`/`_pal()`/`_js()`/`_gc()`/`_h()`/`_s()` guard that raises on an
-uninitialised instance. `Surface` is still constructed only via
+`_fmt()`/`_pal()`/`_js()`/`_gc()`/`_h()`/`_s()`/`_font()` guard that raises on an
+uninitialised instance.
+
+`Font` keeps two extra fields: `data`, a `Py_buffer` pinning the font file's
+bytes (SDL_ttf reads the RWops lazily for the font's whole life, so the buffer is
+released only after `TTF_CloseFont`), and `session`. `TTF_CloseFont` after the
+last `TTF_Quit` touches freed FreeType state, so the `TTF_Quit` wrapper advances
+a module-level session counter when SDL_ttf actually shuts down; a font from an
+older session raises on use and is dropped without being closed. `Surface` is still constructed only via
 module/Window/Renderer functions.
 
 `SDL2.Timer(interval, callback)` registers `SDL_AddTimer`; the callback runs on

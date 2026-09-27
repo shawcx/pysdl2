@@ -9,6 +9,19 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_vulkan.h>
+#ifdef PYSDL_HAVE_TTF
+    #include <SDL2/SDL_ttf.h>  // optional: setup.py defines PYSDL_HAVE_TTF when found
+#endif
+
+// Older SDL_image / SDL_ttf releases lack their *_VERSION_ATLEAST macros.
+#ifndef SDL_IMAGE_VERSION_ATLEAST
+    #define SDL_IMAGE_VERSION_ATLEAST(X, Y, Z) \
+        (SDL_VERSIONNUM(SDL_IMAGE_MAJOR_VERSION, SDL_IMAGE_MINOR_VERSION, SDL_IMAGE_PATCHLEVEL) >= SDL_VERSIONNUM(X, Y, Z))
+#endif
+#if defined(PYSDL_HAVE_TTF) && !defined(SDL_TTF_VERSION_ATLEAST)
+    #define SDL_TTF_VERSION_ATLEAST(X, Y, Z) \
+        (SDL_VERSIONNUM(SDL_TTF_MAJOR_VERSION, SDL_TTF_MINOR_VERSION, SDL_TTF_PATCHLEVEL) >= SDL_VERSIONNUM(X, Y, Z))
+#endif
 
 #define  DOC_MOD  "Python wrapper for SDL."
 
@@ -118,6 +131,16 @@ typedef struct {
 } PySDL_Sensor;
 extern PyTypeObject PySDL_Sensor_Type;
 
+#ifdef PYSDL_HAVE_TTF
+typedef struct {
+    PyObject_HEAD
+    TTF_Font *font;
+    Py_buffer data;    // pins the font file's bytes (SDL_ttf reads them lazily); data.obj == NULL for a path
+    unsigned session;  // TTF init session the font was opened in (see pysdl_Font.c)
+} PySDL_Font;
+extern PyTypeObject PySDL_Font_Type;
+#endif
+
 typedef struct {
     PyObject_HEAD
     SDL_AudioStream *stream;
@@ -139,6 +162,9 @@ extern PyMethodDef pysdl_video_methods[];           // pysdl_Video.c   (display 
 extern PyMethodDef pysdl_audio_methods[];           // pysdl_Audio.c   (drivers / LoadWAV / mixing)
 extern PyMethodDef pysdl_rect_methods[];            // pysdl_Rect.c    (rect / point math)
 extern PyMethodDef pysdl_image_methods[];           // pysdl_Image.c   (SDL_image loaders / format checks)
+#ifdef PYSDL_HAVE_TTF
+extern PyMethodDef pysdl_ttf_methods[];             // pysdl_Font.c    (SDL_ttf init / versions)
+#endif
 
 //=========================================================
 // Helpers (pysdl_util.c)
