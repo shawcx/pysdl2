@@ -176,10 +176,29 @@ through `PySDL_ThreadEnter` (which bails if `Py_IsFinalizing()`), call the Pytho
 callable, and report any exception with `PyErr_Print()`. A playback callback
 returning a non-`bytes` or short buffer yields silence, not a crash.
 
+The same holds for SDL's **event-watcher lock**: the event filter and event
+watchers run under it, on whichever thread pushed the event, and then take the
+GIL. So any call that pushes or pumps events or (un)registers a filter / watch
+(`PollEvent`, `PumpEvents`, `PushEvent`, `QuitRequested`, `ResetKeyboard`,
+`SetEventFilter`, `Add/DelEventWatch`) drops the GIL around the SDL call;
+otherwise a watcher fired from an SDL thread (audio, hotplug, timer) deadlocks
+against a Python thread waiting on that lock. SDL functions that push events
+only as a side effect (most window calls) still hold the GIL; that residual
+risk needs a filter/watch installed *and* a concurrent push from another thread.
+
 New off-main-thread callbacks (timers, event filters) must follow the same
-`PySDL_ThreadEnter` / `PySDL_ThreadLeave` pattern. `JoystickAttachVirtualEx`
-callbacks do too; their tuple of callables lives in a module dict keyed by
-instance id until `JoystickDetachVirtual` drops it.
+`PySDL_ThreadEnter` / `PySDL_ThreadLeave` pattern, and the trampoline takes its
+own reference to the callable for the duration of the call, since a callback
+may unregister itself. Registries keep what SDL's `void *userdata` points at
+alive:
+- event filter: `_py_event_filter`, passed as the SDL userdata, released only
+  after `SDL_SetEventFilter` (which waits out an in-flight call) returns;
+- event watches: `_py_event_watches` list (`pysdl_Events.c`);
+- hint callbacks: `_hint_callbacks` list of `(name, callable)` tuples
+  (`pysdl_Video.c`), emptied by `ClearHints` because `SDL_ClearHints` frees
+  every SDL-side callback;
+- `JoystickAttachVirtualEx`: a module dict keyed by instance id until
+  `JoystickDetachVirtual`.
 
 ### Conventions
 

@@ -200,6 +200,75 @@ static PyObject * PySDL_FRectEquals(PyObject *self, PyObject *args) {
     }
     return PyBool_FromLong(SDL_FRectEquals(&a, &b));
 }
+
+// EncloseFPoints(points, clip=None) -> smallest float rect holding the points
+// (only those inside clip, if given), or None if none qualify.
+static PyObject * PySDL_EncloseFPoints(PyObject *self, PyObject *args) {
+    PyObject *points_py;
+    PyObject *clip_py = Py_None;
+    if(!PyArg_ParseTuple(args, "O|O", &points_py, &clip_py)) {
+        return NULL;
+    }
+
+    SDL_FRect clip;
+    SDL_FRect *clipp = NULL;
+    if(clip_py != Py_None) {
+        if(!PyToFRect(clip_py, &clip)) {
+            return NULL;
+        }
+        clipp = &clip;
+    }
+
+    PyObject *fast = PySequence_Fast(points_py, "expected a list of (x, y) points");
+    if(NULL == fast) {
+        return NULL;
+    }
+    Py_ssize_t n = PySequence_Fast_GET_SIZE(fast);
+    SDL_FPoint *points = PyMem_New(SDL_FPoint, n > 0 ? n : 1);
+    if(NULL == points) {
+        Py_DECREF(fast);
+        return PyErr_NoMemory();
+    }
+    for(Py_ssize_t idx = 0; idx < n; ++idx) {
+        if(!PyToFPoint(PySequence_Fast_GET_ITEM(fast, idx), &points[idx])) {
+            PyMem_Free(points);
+            Py_DECREF(fast);
+            return NULL;
+        }
+    }
+    Py_DECREF(fast);
+
+    SDL_FRect result;
+    SDL_bool ok = SDL_EncloseFPoints(points, (int)n, clipp, &result);
+    PyMem_Free(points);
+    if(SDL_FALSE == ok) {
+        Py_RETURN_NONE;
+    }
+    return _frect_to_py(&result);
+}
+
+// IntersectFRectAndLine(frect, (x1, y1, x2, y2)) -> clipped line or None
+static PyObject * PySDL_IntersectFRectAndLine(PyObject *self, PyObject *args) {
+    PyObject *rect_py, *line_py;
+    SDL_FRect rect;
+    float x1, y1, x2, y2;
+    if(!PyArg_ParseTuple(args, "OO", &rect_py, &line_py) || !PyToFRect(rect_py, &rect)) {
+        return NULL;
+    }
+    PyObject *line = PySequence_Tuple(line_py);
+    if(NULL == line) {
+        return NULL;
+    }
+    int ok = PyArg_ParseTuple(line, "ffff", &x1, &y1, &x2, &y2);
+    Py_DECREF(line);
+    if(!ok) {
+        return NULL;
+    }
+    if(SDL_FALSE == SDL_IntersectFRectAndLine(&rect, &x1, &y1, &x2, &y2)) {
+        Py_RETURN_NONE;
+    }
+    return Py_BuildValue("(ffff)", x1, y1, x2, y2);
+}
 #endif
 
 PyMethodDef pysdl_rect_methods[] = {
@@ -218,6 +287,8 @@ PyMethodDef pysdl_rect_methods[] = {
     { "PointInFRect",         PySDL_PointInFRect,         METH_VARARGS },
     { "FRectEmpty",           PySDL_FRectEmpty,           METH_O       },
     { "FRectEquals",          PySDL_FRectEquals,          METH_VARARGS },
+    { "EncloseFPoints",       PySDL_EncloseFPoints,       METH_VARARGS },
+    { "IntersectFRectAndLine", PySDL_IntersectFRectAndLine, METH_VARARGS },
 #endif
     { NULL }
 };

@@ -247,3 +247,76 @@ def test_video_init_quit_in_subprocess(sdl):
     env = dict(os.environ, PYTHONPATH=os.path.dirname(sdl.__file__))
     out = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True, text=True)
     assert out.stdout.strip() == 'ok', out.stderr
+
+
+# --- phase 13: hint callbacks ----------------------------------------------
+
+HINT = 'SDL_RENDER_SCALE_QUALITY'
+
+
+@pytest.fixture
+def clean_hint(sdl):
+    yield HINT
+    sdl.SetHint(HINT, '')
+
+
+def test_hint_callback_lifecycle(sdl, clean_hint):
+    sdl.SetHint(HINT, 'nearest')
+    calls = []
+    cb = lambda *args: calls.append(args)  # noqa: E731
+    sdl.AddHintCallback(HINT, cb)
+    assert calls == [(HINT, 'nearest', 'nearest')]  # called once right away
+
+    sdl.SetHint(HINT, 'linear')
+    assert calls[-1] == (HINT, 'nearest', 'linear')
+
+    sdl.AddHintCallback(HINT, cb)  # re-adding replaces, it doesn't duplicate
+    before = len(calls)
+    sdl.SetHint(HINT, 'best')
+    assert len(calls) - before == 1
+
+    sdl.DelHintCallback(HINT, cb)
+    before = len(calls)
+    sdl.SetHint(HINT, 'nearest')
+    assert len(calls) == before
+    with pytest.raises(ValueError):
+        sdl.DelHintCallback(HINT, cb)
+
+
+def test_hint_callback_can_remove_itself(sdl, clean_hint):
+    calls = []
+
+    def once(name, old, new):
+        calls.append(new)
+        if new == 'linear':
+            sdl.DelHintCallback(name, once)
+
+    sdl.AddHintCallback(HINT, once)
+    sdl.SetHint(HINT, 'linear')
+    sdl.SetHint(HINT, 'nearest')
+    assert calls[-1] == 'linear'
+
+
+def test_clear_hints_drops_callbacks(sdl, clean_hint):
+    cb = lambda *args: None  # noqa: E731
+    sdl.AddHintCallback(HINT, cb)
+    sdl.ClearHints()
+    with pytest.raises(ValueError):
+        sdl.DelHintCallback(HINT, cb)
+
+
+def test_reset_hints(sdl, clean_hint):
+    if not hasattr(sdl, 'ResetHints'):
+        pytest.skip('needs SDL >= 2.26')
+    sdl.SetHint(HINT, 'linear')
+    calls = []
+    sdl.AddHintCallback(HINT, lambda *args: calls.append(args))
+    sdl.ResetHints()
+    assert calls[-1] == (HINT, 'linear', None)
+    assert sdl.GetHint(HINT) is None
+    sdl.ClearHints()
+
+
+def test_hint_callback_errors(sdl):
+    with pytest.raises(TypeError):
+        sdl.AddHintCallback(HINT, 'not callable')

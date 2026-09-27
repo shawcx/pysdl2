@@ -271,10 +271,114 @@ static PyObject * PySDL_ResetHint(PyObject *self, PyObject *arg) {
 }
 #endif
 
-static PyObject * PySDL_ClearHints(PyObject *self, PyObject *ign) {
-    SDL_ClearHints();
+//---------------------------------------------------------
+// hint callbacks
+//---------------------------------------------------------
+
+// Each registration is a (name, callable) tuple, used as the SDL userdata and
+// kept alive in this list until DelHintCallback / ClearHints.
+static PyObject *_hint_callbacks = NULL;
+
+static void SDLCALL _c_hint_callback(void *userdata, const char *name, const char *old, const char *new_) {
+    PyGILState_STATE gil;
+    if(!PySDL_ThreadEnter(&gil)) {
+        return;
+    }
+    // Hold the registration: the callback may DelHintCallback itself.
+    PyObject *entry = Py_NewRef((PyObject *)userdata);
+    PyObject *result = PyObject_CallFunction(PyTuple_GET_ITEM(entry, 1), "szz", name, old, new_);
+    if(NULL == result) {
+        PyErr_Print();
+    }
+    Py_XDECREF(result);
+    Py_DECREF(entry);
+    PySDL_ThreadLeave(gil);
+}
+
+// Index of the (name, callable) registration, matched by name and identity.
+static Py_ssize_t _hint_index(const char *name, PyObject *callable) {
+    Py_ssize_t count = _hint_callbacks ? PyList_GET_SIZE(_hint_callbacks) : 0;
+    for(Py_ssize_t idx = 0; idx < count; ++idx) {
+        PyObject *entry = PyList_GET_ITEM(_hint_callbacks, idx);
+        const char *entry_name = PyUnicode_AsUTF8(PyTuple_GET_ITEM(entry, 0));
+        if(PyTuple_GET_ITEM(entry, 1) == callable && entry_name && 0 == SDL_strcmp(entry_name, name)) {
+            return idx;
+        }
+    }
+    return -1;
+}
+
+static void _hint_remove(const char *name, Py_ssize_t idx) {
+    PyObject *entry = PyList_GET_ITEM(_hint_callbacks, idx);
+    SDL_DelHintCallback(name, _c_hint_callback, entry);
+    PySequence_DelItem(_hint_callbacks, idx);
+}
+
+// AddHintCallback(name, callback): callback(name, old, new) runs now with the
+// current value, then on every change of that hint (None when unset).
+// Re-adding the same callback for the same hint replaces it, as in SDL.
+static PyObject * PySDL_AddHintCallback(PyObject *self, PyObject *args) {
+    const char *name;
+    PyObject *callable;
+    if(!PyArg_ParseTuple(args, "sO", &name, &callable)) {
+        return NULL;
+    }
+    if(!PyCallable_Check(callable)) {
+        PyErr_SetString(PyExc_TypeError, "callback must be callable");
+        return NULL;
+    }
+    if(NULL == _hint_callbacks && NULL == (_hint_callbacks = PyList_New(0))) {
+        return NULL;
+    }
+    Py_ssize_t idx = _hint_index(name, callable);
+    if(idx >= 0) {
+        _hint_remove(name, idx);
+    }
+
+    PyObject *entry = Py_BuildValue("(sO)", name, callable);
+    if(NULL == entry) {
+        return NULL;
+    }
+    int rc = PyList_Append(_hint_callbacks, entry);
+    Py_DECREF(entry);  // the list holds it
+    if(0 > rc) {
+        return NULL;
+    }
+    SDL_AddHintCallback(name, _c_hint_callback, entry);  // calls it once right away
     Py_RETURN_NONE;
 }
+
+static PyObject * PySDL_DelHintCallback(PyObject *self, PyObject *args) {
+    const char *name;
+    PyObject *callable;
+    if(!PyArg_ParseTuple(args, "sO", &name, &callable)) {
+        return NULL;
+    }
+    Py_ssize_t idx = _hint_index(name, callable);
+    if(0 > idx) {
+        PyErr_Format(PyExc_ValueError, "callback is not registered for hint %s", name);
+        return NULL;
+    }
+    _hint_remove(name, idx);
+    Py_RETURN_NONE;
+}
+
+// SDL_ClearHints also frees every hint callback: drop our registrations too.
+static PyObject * PySDL_ClearHints(PyObject *self, PyObject *ign) {
+    SDL_ClearHints();
+    if(NULL != _hint_callbacks && 0 > PyList_SetSlice(_hint_callbacks, 0, PY_SSIZE_T_MAX, NULL)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+#if SDL_VERSION_ATLEAST(2,26,0)
+// Reset every hint to its default (environment) value; callbacks stay and fire.
+static PyObject * PySDL_ResetHints(PyObject *self, PyObject *ign) {
+    SDL_ResetHints();
+    Py_RETURN_NONE;
+}
+#endif
 
 //=========================================================
 // misc
@@ -569,6 +673,11 @@ PyMethodDef pysdl_video_methods[] = {
     { "GetHint",                  PySDL_GetHint,                  METH_O       },
     { "GetHintBoolean",           PySDL_GetHintBoolean,           METH_VARARGS },
     { "ClearHints",               PySDL_ClearHints,               METH_NOARGS  },
+    { "AddHintCallback",          PySDL_AddHintCallback,          METH_VARARGS },
+    { "DelHintCallback",          PySDL_DelHintCallback,          METH_VARARGS },
+#if SDL_VERSION_ATLEAST(2,26,0)
+    { "ResetHints",               PySDL_ResetHints,               METH_NOARGS  },
+#endif
 #if SDL_VERSION_ATLEAST(2,0,11)
     { "Metal_GetLayer",           PySDL_Metal_GetLayer,           METH_O       },
     { "Metal_DestroyView",        PySDL_Metal_DestroyView,        METH_O       },

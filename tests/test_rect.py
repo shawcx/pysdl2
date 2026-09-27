@@ -57,3 +57,25 @@ def test_float_rect_helpers(sdl):
     assert sdl.PointInFRect((5.5, 5.5), (0, 0, 10, 10)) is True
     assert sdl.FRectEmpty((0, 0, 0, 5)) is True
     assert sdl.FRectEquals((1, 2, 3, 4), (1, 2, 3, 4)) is True
+
+
+# --- phase 13: float enclose / line clip ----------------------------------
+
+def test_enclose_fpoints(sdl):
+    if not hasattr(sdl, 'EncloseFPoints'):
+        pytest.skip('needs SDL >= 2.0.22')
+    # SDL 2 keeps the integer version's edges for floats: the result is one
+    # unit wider/taller than the span, and a clip's far edge is x + w - 1.
+    assert sdl.EncloseFPoints([(0.5, 1.5), (3.25, 2.0)]) == (0.5, 1.5, 3.75, 1.5)
+    assert sdl.EncloseFPoints([(9, 9)], (0, 0, 5, 5)) is None
+    assert sdl.EncloseFPoints([(0.25, 0.25), (9, 9)], (0, 0, 5, 5)) == (0.25, 0.25, 1.0, 1.0)
+    assert sdl.EncloseFPoints([]) is None
+
+
+def test_intersect_frect_and_line(sdl):
+    if not hasattr(sdl, 'IntersectFRectAndLine'):
+        pytest.skip('needs SDL >= 2.0.22')
+    assert sdl.IntersectFRectAndLine((0, 0, 10, 10), (-5, 5, 15, 5)) == (0.0, 5.0, 9.0, 5.0)
+    assert sdl.IntersectFRectAndLine((0, 0, 1, 1), [5, 5, 6, 6]) is None  # lists work too
+    with pytest.raises(TypeError):
+        sdl.IntersectFRectAndLine((0, 0, 1, 1), (1, 2, 3))

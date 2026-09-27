@@ -115,6 +115,29 @@ static PyObject * PySDL_IsTextInputActive(PyObject *self, PyObject *ign) {
     return PyBool_FromLong(SDL_IsTextInputActive());
 }
 
+#if SDL_VERSION_ATLEAST(2,0,22)
+// Drop any in-progress IME composition.
+static PyObject * PySDL_ClearComposition(PyObject *self, PyObject *ign) {
+    SDL_ClearComposition();
+    Py_RETURN_NONE;
+}
+
+// Whether an IME candidate / composition UI is on screen.
+static PyObject * PySDL_IsTextInputShown(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_IsTextInputShown());
+}
+#endif
+
+#if SDL_VERSION_ATLEAST(2,24,0)
+// Release every pressed key (sending KEYUP events) and clear modifier state.
+static PyObject * PySDL_ResetKeyboard(PyObject *self, PyObject *ign) {
+    Py_BEGIN_ALLOW_THREADS  // pushes events: see the GIL rule in pysdl_Events.c
+        SDL_ResetKeyboard();
+    Py_END_ALLOW_THREADS
+    Py_RETURN_NONE;
+}
+#endif
+
 static PyObject * PySDL_SetTextInputRect(PyObject *self, PyObject *arg) {
     SDL_Rect rect;
     SDL_Rect *rp = NULL;
@@ -353,6 +376,13 @@ PyMethodDef pysdl_input_methods[] = {
     { "StartTextInput",           PySDL_StartTextInput,          METH_NOARGS },
     { "StopTextInput",            PySDL_StopTextInput,           METH_NOARGS },
     { "IsTextInputActive",        PySDL_IsTextInputActive,       METH_NOARGS },
+#if SDL_VERSION_ATLEAST(2,0,22)
+    { "ClearComposition",         PySDL_ClearComposition,        METH_NOARGS },
+    { "IsTextInputShown",         PySDL_IsTextInputShown,        METH_NOARGS },
+#endif
+#if SDL_VERSION_ATLEAST(2,24,0)
+    { "ResetKeyboard",            PySDL_ResetKeyboard,           METH_NOARGS },
+#endif
     { "SetTextInputRect",         PySDL_SetTextInputRect,        METH_O      },
 
     { "GetMouseState",            PySDL_GetMouseState,           METH_NOARGS },

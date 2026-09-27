@@ -82,3 +82,41 @@ def test_uninitialised_sensor_is_guarded(sdl):
 def test_sensor_open_bad_index_raises(sdl):
     with pytest.raises(sdl.error):
         sdl.Sensor(99)
+
+
+# --- phase 13: primary selection, sensors/haptics lookups, misc ------------
+
+def test_primary_selection(sdl):
+    if not hasattr(sdl, 'SetPrimarySelectionText'):
+        pytest.skip('needs SDL >= 2.26')
+    try:
+        sdl.SetPrimarySelectionText('pysdl2 primary')
+    except sdl.error:
+        pytest.skip('no primary selection under this video driver')
+    assert sdl.HasPrimarySelectionText() is True
+    assert sdl.GetPrimarySelectionText() == 'pysdl2 primary'
+
+
+def test_sensor_lookups_without_devices(sdl):
+    sdl.InitSubSystem(sdl.INIT_SENSOR)
+    if sdl.NumSensors():
+        pytest.skip('real sensors present')
+    assert sdl.SensorFromInstanceID(0) is None
+    assert sdl.SensorGetDeviceNonPortableType(0) == -1
+    sdl.LockSensors()
+    sdl.UnlockSensors()
+
+
+def test_haptic_opened(sdl):
+    sdl.InitSubSystem(sdl.INIT_HAPTIC)
+    for index in range(sdl.NumHaptics()):
+        assert isinstance(sdl.HapticOpened(index), bool)
+    assert sdl.HapticOpened(999) is False
+
+
+def test_rdtsc_and_error_msg(sdl):
+    assert isinstance(sdl.HasRDTSC(), bool)
+    if hasattr(sdl, 'GetErrorMsg'):
+        sdl.SetError('pysdl2 test error')
+        assert sdl.GetErrorMsg() == sdl.GetError() == 'pysdl2 test error'
+        sdl.ClearError()

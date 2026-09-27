@@ -60,6 +60,10 @@ static PyObject * PySDL_HasARMSIMD            (PyObject*, PyObject*);
 static PyObject * PySDL_HasLSX                (PyObject*, PyObject*);
 static PyObject * PySDL_HasLASX               (PyObject*, PyObject*);
 #endif
+static PyObject * PySDL_HasRDTSC              (PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,0,14)
+static PyObject * PySDL_GetErrorMsg           (PyObject*, PyObject*);
+#endif
 static PyObject * PySDL_GetSystemRAM          (PyObject*, PyObject*);
 #if SDL_VERSION_ATLEAST(2,0,10)
 static PyObject * PySDL_SIMDGetAlignment      (PyObject*, PyObject*);
@@ -104,6 +108,11 @@ static PyObject * PySDL_IsScreenSaverEnabled     (PyObject*, PyObject*);
 static PyObject * PySDL_GetClipboardText         (PyObject*, PyObject*);
 static PyObject * PySDL_SetClipboardText         (PyObject*, PyObject*);
 static PyObject * PySDL_HasClipboardText         (PyObject*, PyObject*);
+#if SDL_VERSION_ATLEAST(2,26,0)
+static PyObject * PySDL_GetPrimarySelectionText  (PyObject*, PyObject*);
+static PyObject * PySDL_SetPrimarySelectionText  (PyObject*, PyObject*);
+static PyObject * PySDL_HasPrimarySelectionText  (PyObject*, PyObject*);
+#endif
 
 static PyMethodDef pysdl_PyMethodDefs[] = {
     { "Init",                  PySDL_Init,                  METH_VARARGS },
@@ -164,6 +173,10 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "HasLSX",                PySDL_HasLSX,                METH_NOARGS  },
     { "HasLASX",               PySDL_HasLASX,               METH_NOARGS  },
 #endif
+    { "HasRDTSC",              PySDL_HasRDTSC,              METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,0,14)
+    { "GetErrorMsg",           PySDL_GetErrorMsg,           METH_NOARGS  },
+#endif
     { "GetSystemRAM",          PySDL_GetSystemRAM,          METH_NOARGS  },
 #if SDL_VERSION_ATLEAST(2,0,10)
     { "SIMDGetAlignment",      PySDL_SIMDGetAlignment,      METH_NOARGS  },
@@ -208,6 +221,11 @@ static PyMethodDef pysdl_PyMethodDefs[] = {
     { "GetClipboardText",         PySDL_GetClipboardText,         METH_NOARGS  },
     { "SetClipboardText",         PySDL_SetClipboardText,         METH_O       },
     { "HasClipboardText",         PySDL_HasClipboardText,         METH_NOARGS  },
+#if SDL_VERSION_ATLEAST(2,26,0)
+    { "GetPrimarySelectionText",  PySDL_GetPrimarySelectionText,  METH_NOARGS  },
+    { "SetPrimarySelectionText",  PySDL_SetPrimarySelectionText,  METH_O       },
+    { "HasPrimarySelectionText",  PySDL_HasPrimarySelectionText,  METH_NOARGS  },
+#endif
 
     { NULL }
 };
@@ -896,6 +914,19 @@ static PyObject * PySDL_HasLASX(PyObject *self, PyObject *ign) {
 }
 #endif
 
+static PyObject * PySDL_HasRDTSC(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasRDTSC());
+}
+
+#if SDL_VERSION_ATLEAST(2,0,14)
+// Same message as GetError, copied into a caller buffer (thread-safe in C;
+// kept for completeness).
+static PyObject * PySDL_GetErrorMsg(PyObject *self, PyObject *ign) {
+    char buffer[1024];
+    return PyUnicode_FromString(SDL_GetErrorMsg(buffer, sizeof(buffer)));
+}
+#endif
+
 static PyObject * PySDL_GetSystemRAM(PyObject *self, PyObject *ign) {
     return PyLong_FromLong(SDL_GetSystemRAM());
 }
@@ -1206,3 +1237,29 @@ static PyObject * PySDL_SetClipboardText(PyObject *self, PyObject *arg) {
 static PyObject * PySDL_HasClipboardText(PyObject *self, PyObject *ign) {
     return PyBool_FromLong(SDL_HasClipboardText());
 }
+
+#if SDL_VERSION_ATLEAST(2,26,0)
+// The X11 / Wayland primary selection (middle-click paste); "" where unsupported.
+static PyObject * PySDL_GetPrimarySelectionText(PyObject *self, PyObject *ign) {
+    char *text = SDL_GetPrimarySelectionText();
+    PyObject *result = PyUnicode_FromString(text ? text : "");
+    SDL_free(text);
+    return result;
+}
+
+static PyObject * PySDL_SetPrimarySelectionText(PyObject *self, PyObject *arg) {
+    const char *text = PyUnicode_AsUTF8(arg);
+    if(NULL == text) {
+        return NULL;
+    }
+    if(0 != SDL_SetPrimarySelectionText(text)) {
+        PyErr_SetString(pysdl_Error, SDL_GetError());
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject * PySDL_HasPrimarySelectionText(PyObject *self, PyObject *ign) {
+    return PyBool_FromLong(SDL_HasPrimarySelectionText());
+}
+#endif

@@ -2,8 +2,9 @@
 
 # Dumps every event with a readable name. A custom event is registered and
 # pushed once a second from a background thread to show cross-thread PushEvent
-# and RegisterEvents. An event filter throws away mouse-motion spam.
-# Esc or close to quit.
+# and RegisterEvents. An event filter throws away mouse-motion spam, and an
+# event watcher counts what gets through. A hint callback reports changes to
+# SDL_RENDER_SCALE_QUALITY (press H to cycle it). Esc or close to quit.
 
 import threading
 import time
@@ -31,6 +32,26 @@ def drop_mouse_motion(event):
 
 SDL2.SetEventFilter(drop_mouse_motion)
 
+# Watchers see every event the filter keeps, as it is pushed (possibly from
+# another thread), without consuming it.
+counts = {}
+
+
+def count_events(event):
+    if event[0] != getattr(SDL2, 'POLLSENTINEL', None):  # SDL's per-poll marker
+        counts[event[0]] = counts.get(event[0], 0) + 1
+
+
+SDL2.AddEventWatch(count_events)
+
+
+def hint_changed(name, old, new):
+    print(f'  hint {name}: {old!r} -> {new!r}')
+
+
+SDL2.AddHintCallback('SDL_RENDER_SCALE_QUALITY', hint_changed)  # fires once now
+QUALITIES = ['nearest', 'linear', 'best']
+
 stop = threading.Event()
 
 
@@ -56,7 +77,14 @@ while running:
         running = False
     elif kind == SDL2.KEYDOWN and data[2] == SDL2.K_ESCAPE:
         running = False
+    elif kind == SDL2.KEYDOWN and data[2] == SDL2.K_h:
+        QUALITIES.append(QUALITIES.pop(0))
+        SDL2.SetHint('SDL_RENDER_SCALE_QUALITY', QUALITIES[0])
 
 stop.set()
+SDL2.DelHintCallback('SDL_RENDER_SCALE_QUALITY', hint_changed)
+SDL2.DelEventWatch(count_events)
 SDL2.SetEventFilter(None)
+print('events seen by the watcher:',
+      ', '.join(f'{NAMES.get(k, k)} x{n}' for k, n in sorted(counts.items(), key=lambda kv: -kv[1])))
 SDL2.Quit()

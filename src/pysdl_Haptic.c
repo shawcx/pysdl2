@@ -364,6 +364,15 @@ static PyObject * PySDL_HapticName(PyObject *self, PyObject *arg) {
     return PyUnicode_FromString(name ? name : "");
 }
 
+// HapticOpened(device_index) -> whether that device is currently open.
+static PyObject * PySDL_HapticOpened(PyObject *self, PyObject *arg) {
+    long index = PyLong_AsLong(arg);
+    if(-1 == index && PyErr_Occurred()) {
+        return NULL;
+    }
+    return PyBool_FromLong(1 == SDL_HapticOpened((int)index));
+}
+
 static PyObject * PySDL_MouseIsHaptic(PyObject *self, PyObject *ign) {
     return PyBool_FromLong(SDL_MouseIsHaptic() == SDL_TRUE);
 }
@@ -405,6 +414,7 @@ static PyObject * PySDL_HapticOpenFromJoystick(PyObject *self, PyObject *arg) {
 PyMethodDef pysdl_haptic_methods[] = {
     { "NumHaptics",              PySDL_NumHaptics,              METH_NOARGS },
     { "HapticName",              PySDL_HapticName,              METH_O      },
+    { "HapticOpened",            PySDL_HapticOpened,            METH_O      },
     { "MouseIsHaptic",           PySDL_MouseIsHaptic,           METH_NOARGS },
     { "HapticOpenFromMouse",     PySDL_HapticOpenFromMouse,     METH_NOARGS },
     { "JoystickIsHaptic",        PySDL_JoystickIsHaptic,        METH_O      },

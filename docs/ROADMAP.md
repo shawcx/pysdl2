@@ -415,6 +415,42 @@ Tests: phase-12 sections in `tests/test_renderer.py`, `test_texture.py`,
   `SDL_LowerBlit` / `SDL_LowerBlitScaled` (unclipped fast paths that write out of
   bounds on bad rects; `Blit` / `BlitScaled` cover them safely).
 
+## Phase 13 - Loose ends II  — DONE
+
+Tests: phase-13 sections in `tests/test_events.py` (watchers, incl. a
+cross-thread no-deadlock test), `test_video.py` (hint callbacks),
+`test_rect.py`, `test_input.py`, `test_system.py`; example: `example/events.py`
+(watcher + hint callback).
+
+- **Event watchers**: `AddEventWatch(callback)` / `DelEventWatch(callback)`
+  (by identity). Watchers run after the filter, only for events it keeps, on
+  the pushing thread; return value ignored. A watcher may remove itself.
+- **GIL rule for the event queue**: `PollEvent`, `PumpEvents`, `PushEvent`,
+  `QuitRequested`, `SetEventFilter`, `Add/DelEventWatch` (and `ResetKeyboard`)
+  now drop the GIL, since SDL calls filters/watchers under its watcher lock.
+  `SetEventFilter` passes the callable as SDL userdata, which also fixes a race
+  where a replaced filter could be freed while a call on another thread was
+  about to use it.
+- **Hint callbacks**: `AddHintCallback(name, callback)` -> `callback(name, old,
+  new)` (called once immediately; re-adding replaces), `DelHintCallback(name,
+  callback)`, `ResetHints` (≥2.26). `ClearHints` also drops the registrations.
+- Clipboard: `Get/Set/HasPrimarySelectionText` (≥2.26).
+- Keyboard: `ClearComposition`, `IsTextInputShown` (≥2.0.22), `ResetKeyboard`
+  (≥2.24).
+- Rect: `EncloseFPoints(points, clip=None)`, `IntersectFRectAndLine(frect, line)`
+  (≥2.0.22). SDL 2 keeps integer edge semantics here (result is +1 wide/tall,
+  a clip's far edge is `x + w - 1`).
+- Sensors: `SensorFromInstanceID` (owned re-open, like the joystick lookups),
+  `SensorGetDeviceNonPortableType` (≥2.0.9), `Lock/UnlockSensors` (≥2.0.14),
+  `Sensor.GetDataWithTimestamp(count=6)` (≥2.26). Haptic: `HapticOpened`.
+- Misc: `HasRDTSC`, `GetErrorMsg` (≥2.0.14).
+- **Not wrapped, deliberately**: the legacy single-device audio API
+  (`SDL_OpenAudio`, `SDL_PauseAudio`, `SDL_LockAudio`, `SDL_MixAudio`,
+  `SDL_BuildAudioCVT` / `SDL_ConvertAudio`, …: superseded by `SDL2.Audio`,
+  `MixAudioFormat` and `AudioStream`), `SDL_GetRevisionNumber` (deprecated,
+  always 0), `SDL_SIMDAlloc` / `SIMDRealloc` / `SIMDFree` (raw C allocation),
+  `SDL_Error` (internal).
+
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),

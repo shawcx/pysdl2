@@ -118,3 +118,113 @@ def test_filter_events_over_queue(sdl, drained):
 def test_set_event_filter_rejects_non_callable(sdl):
     with pytest.raises(TypeError):
         sdl.SetEventFilter(42)
+
+
+# --- phase 13: event watchers ----------------------------------------------
+
+def test_event_watch_sees_pushed_events(sdl, drained):
+    seen = []
+
+    def watch(event):
+        if event[0] == drained:  # PollEvent also pumps SDL's own events
+            seen.append(event)
+
+    sdl.AddEventWatch(watch)
+    try:
+        sdl.PushEvent(drained, 7)
+        assert seen == [(drained, (7, 0))]
+        assert sdl.PollEvent() == (drained, (7, 0))  # still queued; watching is passive
+    finally:
+        sdl.DelEventWatch(watch)
+    sdl.PushEvent(drained, 8)
+    assert len(seen) == 1
+    sdl.FlushEvent(drained)
+
+
+def test_event_watch_runs_after_filter(sdl, drained):
+    seen = []
+
+    def watch(event):
+        if event[0] == drained:
+            seen.append(event[1][0])
+
+    sdl.AddEventWatch(watch)
+    sdl.SetEventFilter(lambda event: event[1][0] != 2)
+    try:
+        sdl.PushEvent(drained, 1)
+        sdl.PushEvent(drained, 2)  # dropped by the filter: watchers never see it
+    finally:
+        sdl.SetEventFilter(None)
+        sdl.DelEventWatch(watch)
+    assert seen == [1]
+    sdl.FlushEvent(drained)
+
+
+def test_event_watch_registration_errors(sdl):
+    with pytest.raises(TypeError):
+        sdl.AddEventWatch(42)
+    with pytest.raises(ValueError):
+        sdl.DelEventWatch(lambda event: None)
+
+
+def test_event_watch_can_remove_itself(sdl, drained):
+    calls = []
+
+    def once(event):
+        if event[0] == drained:
+            calls.append(event[1][0])
+            sdl.DelEventWatch(once)
+
+    sdl.AddEventWatch(once)
+    sdl.PushEvent(drained, 1)
+    sdl.PushEvent(drained, 2)
+    assert calls == [1]
+    sdl.FlushEvent(drained)
+
+
+def test_event_watch_releases_callable(sdl):
+    import gc
+    import weakref
+
+    class Watch:
+        def __call__(self, event):
+            pass
+
+    watch = Watch()
+    ref = weakref.ref(watch)
+    sdl.AddEventWatch(watch)
+    del watch
+    gc.collect()
+    assert ref() is not None
+    sdl.DelEventWatch(ref())
+    gc.collect()
+    assert ref() is None
+
+
+def test_event_watch_cross_thread_no_deadlock(sdl, drained):
+    # An SDL timer thread pushes events (firing the watcher, which needs the
+    # GIL) while this thread polls; before the GIL rule this could deadlock.
+    import threading
+    import time
+
+    threads = set()
+
+    def watch(event):
+        if event[0] == drained:
+            threads.add(threading.get_ident())
+
+    def tick(interval):
+        sdl.PushEvent(drained, 1)
+        return interval
+
+    sdl.AddEventWatch(watch)
+    timer = sdl.Timer(1, tick)
+    try:
+        deadline = time.monotonic() + 0.5
+        while time.monotonic() < deadline:
+            sdl.PollEvent()
+    finally:
+        timer.Remove()
+        sdl.DelEventWatch(watch)
+    sdl.FlushEvent(drained)
+    assert threads - {threading.get_ident()}  # the watcher ran on the timer thread
