@@ -1067,4 +1067,42 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "TTF_DIRECTION_BTT", TTF_DIRECTION_BTT );
 #endif
 #endif
+
+#ifdef PYSDL_HAVE_MIXER
+    PyModule_AddIntConstant( module, "MIX_INIT_FLAC",    MIX_INIT_FLAC    );
+    PyModule_AddIntConstant( module, "MIX_INIT_MOD",     MIX_INIT_MOD     );
+    PyModule_AddIntConstant( module, "MIX_INIT_MP3",     MIX_INIT_MP3     );
+    PyModule_AddIntConstant( module, "MIX_INIT_OGG",     MIX_INIT_OGG     );
+    PyModule_AddIntConstant( module, "MIX_INIT_MID",     MIX_INIT_MID     );
+    PyModule_AddIntConstant( module, "MIX_INIT_OPUS",    MIX_INIT_OPUS    );
+#if SDL_MIXER_VERSION_ATLEAST(2,8,0)
+    PyModule_AddIntConstant( module, "MIX_INIT_WAVPACK", MIX_INIT_WAVPACK );
+#endif
+
+    PyModule_AddIntConstant( module, "MIX_CHANNELS",          MIX_CHANNELS          );
+    PyModule_AddIntConstant( module, "MIX_DEFAULT_FREQUENCY", MIX_DEFAULT_FREQUENCY );
+    PyModule_AddIntConstant( module, "MIX_DEFAULT_FORMAT",    MIX_DEFAULT_FORMAT    );
+    PyModule_AddIntConstant( module, "MIX_DEFAULT_CHANNELS",  MIX_DEFAULT_CHANNELS  );
+    PyModule_AddIntConstant( module, "MIX_MAX_VOLUME",        MIX_MAX_VOLUME        );
+    PyModule_AddIntConstant( module, "MIX_CHANNEL_POST",      MIX_CHANNEL_POST      );
+    PyModule_AddStringConstant( module, "MIX_EFFECTSMAXSPEED", MIX_EFFECTSMAXSPEED  );
+
+    PyModule_AddIntConstant( module, "MIX_NO_FADING",  MIX_NO_FADING  );
+    PyModule_AddIntConstant( module, "MIX_FADING_OUT", MIX_FADING_OUT );
+    PyModule_AddIntConstant( module, "MIX_FADING_IN",  MIX_FADING_IN  );
+
+    PyModule_AddIntConstant( module, "MUS_NONE",  MUS_NONE  );
+    PyModule_AddIntConstant( module, "MUS_CMD",   MUS_CMD   );
+    PyModule_AddIntConstant( module, "MUS_WAV",   MUS_WAV   );
+    PyModule_AddIntConstant( module, "MUS_MOD",   MUS_MOD   );
+    PyModule_AddIntConstant( module, "MUS_MID",   MUS_MID   );
+    PyModule_AddIntConstant( module, "MUS_OGG",   MUS_OGG   );
+    PyModule_AddIntConstant( module, "MUS_MP3",   MUS_MP3   );
+    PyModule_AddIntConstant( module, "MUS_FLAC",  MUS_FLAC  );
+    PyModule_AddIntConstant( module, "MUS_OPUS",  MUS_OPUS  );
+#if SDL_MIXER_VERSION_ATLEAST(2,8,0)
+    PyModule_AddIntConstant( module, "MUS_WAVPACK", MUS_WAVPACK );
+    PyModule_AddIntConstant( module, "MUS_GME",     MUS_GME     );
+#endif
+#endif
 }

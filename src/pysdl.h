@@ -10,7 +10,10 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_vulkan.h>
 #ifdef PYSDL_HAVE_TTF
-    #include <SDL2/SDL_ttf.h>  // optional: setup.py defines PYSDL_HAVE_TTF when found
+    #include <SDL2/SDL_ttf.h>    // optional: setup.py defines PYSDL_HAVE_TTF when found
+#endif
+#ifdef PYSDL_HAVE_MIXER
+    #include <SDL2/SDL_mixer.h>  // optional: setup.py defines PYSDL_HAVE_MIXER when found
 #endif
 
 // Older SDL_image / SDL_ttf releases lack their *_VERSION_ATLEAST macros.
@@ -21,6 +24,10 @@
 #if defined(PYSDL_HAVE_TTF) && !defined(SDL_TTF_VERSION_ATLEAST)
     #define SDL_TTF_VERSION_ATLEAST(X, Y, Z) \
         (SDL_VERSIONNUM(SDL_TTF_MAJOR_VERSION, SDL_TTF_MINOR_VERSION, SDL_TTF_PATCHLEVEL) >= SDL_VERSIONNUM(X, Y, Z))
+#endif
+#if defined(PYSDL_HAVE_MIXER) && !defined(SDL_MIXER_VERSION_ATLEAST)
+    #define SDL_MIXER_VERSION_ATLEAST(X, Y, Z) \
+        (SDL_VERSIONNUM(SDL_MIXER_MAJOR_VERSION, SDL_MIXER_MINOR_VERSION, SDL_MIXER_PATCHLEVEL) >= SDL_VERSIONNUM(X, Y, Z))
 #endif
 
 #define  DOC_MOD  "Python wrapper for SDL."
@@ -142,6 +149,23 @@ typedef struct {
 extern PyTypeObject PySDL_Font_Type;
 #endif
 
+#ifdef PYSDL_HAVE_MIXER
+typedef struct {
+    PyObject_HEAD
+    Mix_Chunk *chunk;
+    Py_buffer data;    // pins the caller's samples for Mix_QuickLoad_RAW; data.obj == NULL otherwise
+} PySDL_Chunk;
+extern PyTypeObject PySDL_Chunk_Type;
+
+typedef struct {
+    PyObject_HEAD
+    Mix_Music *music;
+    Py_buffer data;    // pins the file's bytes (music streams from them lazily); data.obj == NULL for a path
+    unsigned session;  // Mix_Init session the music was loaded in (see pysdl_Mixer.c)
+} PySDL_Music;
+extern PyTypeObject PySDL_Music_Type;
+#endif
+
 typedef struct {
     PyObject_HEAD
     SDL_AudioStream *stream;
@@ -165,6 +189,9 @@ extern PyMethodDef pysdl_rect_methods[];            // pysdl_Rect.c    (rect / p
 extern PyMethodDef pysdl_image_methods[];           // pysdl_Image.c   (SDL_image loaders / format checks)
 #ifdef PYSDL_HAVE_TTF
 extern PyMethodDef pysdl_ttf_methods[];             // pysdl_Font.c    (SDL_ttf init / versions)
+#endif
+#ifdef PYSDL_HAVE_MIXER
+extern PyMethodDef pysdl_mixer_methods[];           // pysdl_Mixer.c   (SDL_mixer Mix_* functions)
 #endif
 
 //=========================================================

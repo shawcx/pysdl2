@@ -546,6 +546,57 @@ controllers, sensors via re-open), tracked and invalidated (windows, window
 surfaces, renderers, textures, locked texture surfaces, cursors), or SDL's own
 never-freed object (the default cursor).
 
+## Phase 16 - SDL2_mixer (optional)  — DONE
+
+Tests: `tests/test_mixer.py` (dummy audio driver; skips without SDL2_mixer);
+example: `example/mixer.py`.
+
+- `setup.py`'s optional-library probe is now a table (`OPTIONAL`): SDL2_mixer
+  joins SDL2_ttf (`PYSDL_HAVE_MIXER`, opt out with `PYSDL_MIXER=0`).
+- New `src/pysdl_Mixer.c`: **`SDL2.Chunk(src)`** (path or bytes, decoded to the
+  device format; `Volume(volume=-1)`, `Free`) and **`SDL2.Music(src,
+  type=MUS_NONE)`** (path or pinned bytes; `Play(loops=0)`, `FadeIn(ms, loops=0,
+  position=0.0)`, `GetType`, `Free`; ≥2.6: `GetTitle`, `GetTitleTag`,
+  `GetArtistTag`, `GetAlbumTag`, `GetCopyrightTag`, `Duration`, `GetPosition`,
+  `GetLoopStartTime` / `EndTime` / `LengthTime`, `GetVolume`; ≥2.8:
+  `StartTrack`, `GetNumTracks`).
+- `Mix_*` module functions (prefix kept, like `IMG_` / `TTF_`): `Init`, `Quit`,
+  `Linked_Version`, `OpenAudio(frequency, format, channels, chunksize, device,
+  allowed_changes)` (`Mix_OpenAudioDevice`), `CloseAudio`, `QuerySpec`,
+  `PauseAudio` (≥2.8), `AllocateChannels`, `ReserveChannels`,
+  `QuickLoad_RAW(data)` (pinned); decoders (`GetNum/Get/HasChunkDecoder`,
+  `…MusicDecoder`); channels (`PlayChannel(channel, chunk, loops=0,
+  ticks=-1)`, `FadeInChannel`, `GetChunk`, `Volume`, `HaltChannel`,
+  `ExpireChannel`, `FadeOutChannel`, `FadingChannel`, `Pause`, `Resume`,
+  `Paused`, `Playing`); groups (`GroupChannel(s)`, `GroupAvailable`,
+  `GroupCount`, `GroupOldest`, `GroupNewer`, `HaltGroup`, `FadeOutGroup`);
+  positional effects (`SetPanning`, `SetPosition`, `SetDistance`,
+  `SetReverseStereo`); custom effects (`RegisterEffect(channel, effect,
+  done=None)`, `UnregisterEffect`, `UnregisterAllEffects`); music
+  (`VolumeMusic`, `MasterVolume` (≥2.6), `HaltMusic`, `FadeOutMusic`,
+  `FadingMusic`, `Pause/Resume/Rewind/PausedMusic`, `PlayingMusic`,
+  `SetMusicPosition`, `ModMusicJumpToOrder` (≥2.6), `SetMusicCMD`,
+  `Set/GetSynchroValue`); MIDI (`Set/GetSoundFonts`, `EachSoundFont`,
+  `Set/GetTimidityCfg` (≥2.6)); callbacks (`ChannelFinished`,
+  `HookMusicFinished`, `SetPostMix`, `HookMusic`, `GetMusicHookData`).
+- **Threading**: every call that can lock the audio device releases the GIL;
+  callbacks run through `PySDL_ThreadEnter`, hold their own reference to the
+  callable, and exchange audio as `bytes`. Verified by a subprocess stress test
+  (3000 rapid calls against re-entrant callbacks, under a timeout).
+- **Lifetimes**: playing chunks / music are kept alive by the binding until
+  their channel is reused or audio closes; bytes-backed music and
+  `QuickLoad_RAW` chunks pin their buffers; `Mix_Quit` invalidates older `Music`
+  (session counter, as for fonts).
+- **Not wrapped, deliberately**: `Mix_QuickLoad_WAV` (no length parameter: a
+  short buffer is read out of bounds; `SDL2.Chunk(bytes)` is the safe
+  equivalent); `Mix_LoadWAV` / `Mix_LoadMUS_RW` / `Mix_LoadMUSType_RW` /
+  `Mix_FadeInMusic` / `Mix_PlayChannel` / `Mix_FadeInChannel` macro and
+  non-`Timed` / non-`Pos` variants (covered by the path-or-bytes constructors
+  and the optional `ticks` / `position` arguments).
+- Constants: `MIX_INIT_*`, `MIX_CHANNELS`, `MIX_DEFAULT_*`, `MIX_MAX_VOLUME`,
+  `MIX_CHANNEL_POST`, `MIX_EFFECTSMAXSPEED` (a hint name), `MIX_NO_FADING` /
+  `MIX_FADING_OUT` / `MIX_FADING_IN`, `MUS_*`.
+
 ## Explicitly out of scope
 
 Threads / mutexes / semaphores / condition vars / atomics (use Python's),
@@ -553,8 +604,8 @@ Threads / mutexes / semaphores / condition vars / atomics (use Python's),
 (Android / iOS / WinRT), `GetWindowWMInfo`, stdinc shims, `SDL_hid_*` (HIDAPI:
 use a Python `hid` package), `SDL_LoadObject` / `SDL_LoadFunction` /
 `SDL_UnloadObject` (use `ctypes`). The other satellite
-libraries (`SDL2_mixer`, `SDL2_net`, `SDL2_gfx`) remain a separate effort; if
-added, follow the Phase 14 pattern (optional, probed by `setup.py`, one
+libraries (`SDL2_net`, `SDL2_gfx`) remain a separate effort; if added, follow
+the Phase 14 / 16 pattern (optional, probed by `setup.py`, one
 `#ifdef PYSDL_HAVE_<LIB>` file).
 
 ## Per-phase checklist

@@ -37,25 +37,32 @@ def _probe_sdl():
 include_dirs, library_dirs = _probe_sdl()
 
 
-def _have_ttf():
-    '''SDL2_ttf is optional: build SDL2.Font only when its header is found.
-    Set PYSDL_TTF=0 to leave it out even when installed.'''
+def _have(pkg, header, env):
+    '''Optional satellite libraries are built in only when found (pkg-config,
+    else the header). Set the env var (e.g. PYSDL_TTF=0) to leave one out.'''
     import os
-    if os.environ.get('PYSDL_TTF') == '0':
+    if os.environ.get(env) == '0':
         return False
     try:
-        subprocess.check_call(['pkg-config', '--exists', 'SDL2_ttf'])
+        subprocess.check_call(['pkg-config', '--exists', pkg])
         return True
     except (OSError, subprocess.CalledProcessError):
         pass
     candidates = include_dirs + ['/usr/include', '/usr/local/include', '/opt/homebrew/include']
-    return any(os.path.exists(os.path.join(d, 'SDL2', 'SDL_ttf.h')) or
-               os.path.exists(os.path.join(d, 'SDL_ttf.h')) for d in candidates)
+    return any(os.path.exists(os.path.join(d, 'SDL2', header)) or
+               os.path.exists(os.path.join(d, header)) for d in candidates)
 
 
-if _have_ttf():
-    libs.append('SDL2_ttf')
-    defines.append(('PYSDL_HAVE_TTF', '1'))
+OPTIONAL = [
+    # pkg-config name, header, library, define, opt-out env var
+    ('SDL2_ttf',   'SDL_ttf.h',   'SDL2_ttf',   'PYSDL_HAVE_TTF',   'PYSDL_TTF'),
+    ('SDL2_mixer', 'SDL_mixer.h', 'SDL2_mixer', 'PYSDL_HAVE_MIXER', 'PYSDL_MIXER'),
+]
+for pkg, header, lib, define, env in OPTIONAL:
+    if _have(pkg, header, env):
+        libs.append(lib)
+        defines.append((define, '1'))
+
 
 setuptools.setup(
     name             = 'SDL2',

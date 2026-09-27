@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A CPython C extension that exposes SDL2 (plus SDL2_image, and SDL2_ttf when
-available) to Python 3 as a single module named `SDL2`. It is a thin,
+A CPython C extension that exposes SDL2 (plus SDL2_image, and SDL2_ttf /
+SDL2_mixer when available) to Python 3 as a single module named `SDL2`. It is a thin,
 hand-written binding that covers essentially the whole SDL2 API (deliberate
 omissions are listed in `docs/ROADMAP.md`); wrapped functions/methods drop the
 `SDL_` prefix (`SDL_GetPlatform` → `SDL2.GetPlatform`, `SDL_RenderPresent` →
@@ -18,13 +18,16 @@ consult it before adding a new subsystem.
 ## Build & install
 
 System dependencies must be present first:
-- macOS: `brew install sdl2 sdl2_image` (+ `sdl2_ttf` for text)
-- Debian/Ubuntu: `apt install libsdl2-dev libsdl2-image-dev` (+ `libsdl2-ttf-dev`)
+- macOS: `brew install sdl2 sdl2_image` (+ `sdl2_ttf`, `sdl2_mixer`)
+- Debian/Ubuntu: `apt install libsdl2-dev libsdl2-image-dev` (+ `libsdl2-ttf-dev`,
+  `libsdl2-mixer-dev`)
 
-SDL2_ttf is **optional**: `setup.py` probes for it (`pkg-config SDL2_ttf`, else
-the header) and, when found, links it and defines `PYSDL_HAVE_TTF`, which
-compiles in `SDL2.Font` / `TTF_*`. `PYSDL_TTF=0 python3 setup.py build` forces a
-build without it. Everything TTF-related is inside `#ifdef PYSDL_HAVE_TTF`.
+SDL2_ttf and SDL2_mixer are **optional**: `setup.py`'s `OPTIONAL` table probes
+each (`pkg-config`, else the header) and, when found, links it and defines
+`PYSDL_HAVE_TTF` / `PYSDL_HAVE_MIXER`, which compile in `SDL2.Font` / `TTF_*`
+and `SDL2.Chunk` / `SDL2.Music` / `Mix_*`. `PYSDL_TTF=0` / `PYSDL_MIXER=0`
+force a build without one. Everything for a satellite library is inside its
+`#ifdef`; add another by extending `OPTIONAL`.
 
 Then:
 - `pip install .` — build and install the extension
@@ -49,7 +52,9 @@ pytest`). `tests/conftest.py` forces the `dummy` video/audio drivers, runs
 `setup.py build` (a no-op when nothing changed) and puts the `build/lib*` dir for
 the running interpreter on `sys.path`; the `sdl` fixture
 does one `Init`/`Quit` per session. Run one file with `python3 -m pytest
-tests/test_audio.py`. `tests/test_ttf.py` skips itself when the build has no
+tests/test_audio.py`. `tests/test_mixer.py` skips without SDL2_mixer; it runs on
+the dummy audio driver (a real audio thread) and polls with deadlines instead of
+fixed sleeps. `tests/test_ttf.py` skips itself when the build has no
 SDL2_ttf or no TrueType font can be found (it tries DejaVu, Arial, then
 `fc-match`); its `ttf` fixture does `TTF_Init` / `TTF_Quit` per test.
 
@@ -66,6 +71,7 @@ a display:
 - `python3 example/wav.py [file.wav]` — LoadWAV + AudioStream resample + queue playback
 - `python3 example/rects.py` — live rect intersection / union / enclose / line-clip
 - `python3 example/image.py [file]` — SDL_image: format probes, animations, SVG / XPM, encode to bytes; no window
+- `python3 example/mixer.py [--seconds N] [music-file]` — SDL2_mixer: synthesised chunks, panning, music, custom effect, level meter; no window
 - `python3 example/text.py [--font PATH] [--frames N]` — SDL2_ttf render modes, styles, wrapped text, metrics
 - `python3 example/logical.py [--frames N]` — logical-size canvas: mouse picking, RenderGeometryRaw, LockToSurface, vsync toggle
 - `python3 example/simple.py <image>` — load an image, show it, event loop
@@ -95,6 +101,11 @@ helpers (mostly in `pysdl_util.c`). Every `.c` file includes only this.
   file, each a full `PyTypeObject` with `PySDL_<Type>_<Method>` functions.
   `pysdl_Font.c` (SDL2_ttf) also holds the `TTF_*` module functions
   (`pysdl_ttf_methods`, registered only under `PYSDL_HAVE_TTF`).
+- `src/pysdl_Mixer.c` (SDL2_mixer, under `PYSDL_HAVE_MIXER`) — one file for the
+  whole library: the `Chunk` and `Music` types and the `Mix_*` module functions
+  (`pysdl_mixer_methods`). SDL functions whose first argument is a chunk / music
+  are methods (`Mix_VolumeChunk` → `Chunk.Volume`, `Mix_PlayMusic` →
+  `Music.Play`, `Mix_GetMusicTitle` → `Music.GetTitle`); the rest keep `Mix_`.
 - `src/pysdl_Input.c` — module-level keyboard / mouse / touch / text-input
   functions. Its own `PyMethodDef` array (`pysdl_input_methods`) is merged into
   the module in `PyInit_SDL2` with `PyModule_AddFunctions`; `pysdl_Events.c`,
@@ -201,6 +212,16 @@ path `PySDL_New` and the C-side factory functions use. `Window`/`Renderer`/
 `_fmt()`/`_pal()`/`_js()`/`_gc()`/`_h()`/`_s()`/`_font()` guard that raises on an
 uninitialised instance.
 
+`Chunk` / `Music` (SDL2_mixer): a playing chunk or music is kept alive by the
+binding (`_channel_chunks`, one strong reference per channel, replaced when the
+channel is reused; `_playing_music`), both released when audio is fully closed —
+so `Mix_PlayChannel(-1, Chunk(...))` with a temporary doesn't cut out.
+bytes-backed `Music` and `Mix_QuickLoad_RAW` chunks pin their buffer (music
+streams from it). `Mix_Quit` can unload decoder libraries, so `Music` carries a
+`session` like `Font`: after `Mix_Quit` it raises and is leaked, not freed.
+`Mix_QuickLoad_WAV` is deliberately absent — it takes no length and trusts the
+WAV header.
+
 `Font` keeps two extra fields: `data`, a `Py_buffer` pinning the font file's
 bytes (SDL_ttf reads the RWops lazily for the font's whole life, so the buffer is
 released only after `TTF_CloseFont`), and `session`. `TTF_CloseFont` after the
@@ -246,6 +267,19 @@ otherwise a watcher fired from an SDL thread (audio, hotplug, timer) deadlocks
 against a Python thread waiting on that lock. SDL functions that push events
 only as a side effect (most window calls) still hold the GIL; that residual
 risk needs a filter/watch installed *and* a concurrent push from another thread.
+
+**SDL_mixer** is the extreme case of the audio rule: its channel-finished,
+music-finished, post-mix, music-hook and effect callbacks all run on the audio
+thread with the device locked, and almost every `Mix_*` call takes that lock.
+`pysdl_Mixer.c` wraps each such call in `UNLOCKED(...)` (GIL released; touch no
+Python object inside). Callbacks get audio as `bytes` and may return
+replacement `bytes` of the same length. Custom effects: SDL_mixer can only
+unregister an effect by its C function pointer, so each channel with Python
+effects has *one* trampoline registration that runs that channel's list
+(`_effects`: channel → `[(effect, done), …]`); SDL_mixer drops a channel's
+effects when it stops, and the done trampoline empties the list.
+`tests/test_mixer.py` has a subprocess stress test (re-entrant callbacks while
+the main thread hammers `Mix_*`) whose timeout catches a regression.
 
 New off-main-thread callbacks (timers, event filters) must follow the same
 `PySDL_ThreadEnter` / `PySDL_ThreadLeave` pattern, and the trampoline takes its
