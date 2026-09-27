@@ -482,7 +482,7 @@ static PyObject * PySDL_Vulkan_GetVkGetInstanceProcAddr(PyObject *self, PyObject
     return PyLong_FromVoidPtr(fn);
 }
 
-#if SDL_VERSION_ATLEAST(2,0,11)
+#if SDL_VERSION_ATLEAST(2,0,14)
 static PyObject * PySDL_Metal_GetLayer(PyObject *self, PyObject *arg) {
     void *view = PyLong_AsVoidPtr(arg);
     if(NULL == view && PyErr_Occurred()) {
@@ -681,7 +681,7 @@ PyMethodDef pysdl_video_methods[] = {
 #if SDL_VERSION_ATLEAST(2,26,0)
     { "ResetHints",               PySDL_ResetHints,               METH_NOARGS  },
 #endif
-#if SDL_VERSION_ATLEAST(2,0,11)
+#if SDL_VERSION_ATLEAST(2,0,14)
     { "Metal_GetLayer",           PySDL_Metal_GetLayer,           METH_O       },
     { "Metal_DestroyView",        PySDL_Metal_DestroyView,        METH_O       },
 #endif

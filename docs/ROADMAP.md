@@ -284,7 +284,9 @@ Tests: `tests/test_rect.py`; example: `example/rects.py`.
   `HasIntersectionF` / `IntersectFRect` / `UnionFRect` / `PointInFRect` /
   `FRectEmpty` / `FRectEquals` (≥2.0.22). (No `SDL2/__init__` shim — the binding
   is a single extension module; the helpers are in C over the same tuple rects.)
-- **Metal** (rounding out the GL / Vulkan / Metal trio, ≥2.0.11): window
+- **Metal** (rounding out the GL / Vulkan / Metal trio, ≥2.0.14 — originally
+  guarded at 2.0.11, corrected in 0.3.0: `SDL_Metal_GetLayer` /
+  `GetDrawableSize` and `SDL_WINDOW_METAL` arrived in 2.0.14): window
   `Metal_CreateView()` -> view int, `Metal_GetDrawableSize()`; module
   `Metal_GetLayer(view)` -> `CAMetalLayer` pointer int, `Metal_DestroyView(view)`.
 - **Bug fix**: ~14 constants (`WINDOW_ALWAYS_ON_TOP`, `WINDOW_VULKAN`,
@@ -507,7 +509,8 @@ run in a subprocess).
   Surface object while SDL keeps the same surface (across all wrappers of that
   window); when SDL replaces it after a resize, destroys it
   (`DestroyWindowSurface`) or destroys the window, the old Surface is emptied to
-  0x0 instead of pointing at freed memory.
+  0x0 instead of pointing at freed memory (unless SDL gave the new surface the
+  same address, in which case the object is simply valid again).
 - **Teardown invalidation.** `Quit`, `VideoQuit`, `VideoInit` and a
   `QuitSubSystem` that really stops video null every `Window` wrapper and empty
   every window Surface, so wrappers kept past a shutdown raise instead of

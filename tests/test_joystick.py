@@ -352,8 +352,11 @@ def test_controller_sensors_and_touchpads(sdl, vcontroller):
             vcontroller.GetSensorDataWithTimestamp(sdl.SENSOR_ACCEL)
 
     assert vcontroller.GetNumTouchpads() == 0
-    with pytest.raises(sdl.error):
-        vcontroller.GetNumTouchpadFingers(0)
+    try:
+        # SDL 2.30 rejects the nonexistent touchpad; 2.26 reports 0 fingers.
+        assert vcontroller.GetNumTouchpadFingers(0) == 0
+    except sdl.error:
+        pass
     with pytest.raises(sdl.error):
         vcontroller.GetTouchpadFinger(0, 0)
 

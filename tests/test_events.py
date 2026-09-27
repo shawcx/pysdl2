@@ -84,7 +84,7 @@ def test_event_filter_drops_and_keeps(sdl, drained):
     seen = []
 
     def keep_only_a(event):
-        # SDL >= 2.26 also filters its own POLLSENTINEL marker; ignore it.
+        # SDL >= 2.0.18 also filters its own POLLSENTINEL marker; ignore it.
         if event[0] == getattr(sdl, 'POLLSENTINEL', None):
             return True
         seen.append(event[0])

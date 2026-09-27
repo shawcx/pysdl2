@@ -133,7 +133,7 @@ void _constants(PyObject *module) {
 #if SDL_VERSION_ATLEAST(2,0,6)
     PyModule_AddIntConstant( module, "WINDOW_VULKAN",             SDL_WINDOW_VULKAN            );
 #endif
-#if SDL_VERSION_ATLEAST(2,0,11)
+#if SDL_VERSION_ATLEAST(2,0,14)
     PyModule_AddIntConstant( module, "WINDOW_METAL",              SDL_WINDOW_METAL            );
 #endif
 #if SDL_VERSION_ATLEAST(2,0,16)
@@ -259,7 +259,7 @@ void _constants(PyObject *module) {
 #endif
     PyModule_AddIntConstant( module, "RENDER_TARGETS_RESET", SDL_RENDER_TARGETS_RESET );
     PyModule_AddIntConstant( module, "RENDER_DEVICE_RESET",  SDL_RENDER_DEVICE_RESET  );
-#if SDL_VERSION_ATLEAST(2,26,0)
+#if SDL_VERSION_ATLEAST(2,0,18)
     PyModule_AddIntConstant( module, "POLLSENTINEL",         SDL_POLLSENTINEL         );
 #endif
 
@@ -345,6 +345,8 @@ void _constants(PyObject *module) {
 #if SDL_VERSION_ATLEAST(2,0,14)
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_PS5",                 SDL_CONTROLLER_TYPE_PS5                 );
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_VIRTUAL",             SDL_CONTROLLER_TYPE_VIRTUAL             );
+#endif
+#if SDL_VERSION_ATLEAST(2,0,16)
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_AMAZON_LUNA",         SDL_CONTROLLER_TYPE_AMAZON_LUNA         );
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_GOOGLE_STADIA",       SDL_CONTROLLER_TYPE_GOOGLE_STADIA       );
 #endif
@@ -353,6 +355,8 @@ void _constants(PyObject *module) {
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT",  SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT  );
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT", SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT );
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR",  SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR  );
+#endif
+#if SDL_VERSION_ATLEAST(2,30,0)
     PyModule_AddIntConstant( module, "CONTROLLER_TYPE_MAX",                 SDL_CONTROLLER_TYPE_MAX                 );
 #endif
 

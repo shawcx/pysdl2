@@ -82,7 +82,7 @@ static PyObject * PySDL_Window_GetWindowSizeInPixels (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_HasWindowSurface     (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_DestroyWindowSurface (PySDL_Window*, PyObject*);
 #endif
-#if SDL_VERSION_ATLEAST(2,0,11)
+#if SDL_VERSION_ATLEAST(2,0,14)
 static PyObject * PySDL_Window_Metal_CreateView      (PySDL_Window*, PyObject*);
 static PyObject * PySDL_Window_Metal_GetDrawableSize (PySDL_Window*, PyObject*);
 #endif
@@ -169,7 +169,7 @@ static PyMethodDef PySDL_Window_methods[] = {
 
     { "Vulkan_GetDrawableSize", (PyCFunction)PySDL_Window_Vulkan_GetDrawableSize, METH_NOARGS },
     { "Vulkan_CreateSurface",   (PyCFunction)PySDL_Window_Vulkan_CreateSurface,   METH_O      },
-#if SDL_VERSION_ATLEAST(2,0,11)
+#if SDL_VERSION_ATLEAST(2,0,14)
     { "Metal_CreateView",       (PyCFunction)PySDL_Window_Metal_CreateView,       METH_NOARGS },
     { "Metal_GetDrawableSize",  (PyCFunction)PySDL_Window_Metal_GetDrawableSize,  METH_NOARGS },
 #endif
@@ -335,7 +335,9 @@ static PyObject * PySDL_Window_GetWindowSize(PySDL_Window *self, PyObject *ign) 
 
 // The window's surface. While SDL keeps the same surface this returns the same
 // Surface object; when SDL replaces it (after a resize) the previous Surface
-// is emptied (0x0) instead of left pointing at freed memory.
+// is emptied (0x0) instead of left pointing at freed memory. If the allocator
+// hands the new surface the old one's address, the pointer is simply valid
+// again and the existing object now describes the new surface.
 static PyObject * PySDL_Window_GetWindowSurface(PySDL_Window *self, PyObject *ign) {
     Uint32 id = self->window ? SDL_GetWindowID(self->window) : 0;
     SDL_Surface *surface = SDL_GetWindowSurface(self->window);
@@ -850,7 +852,7 @@ static PyObject * PySDL_Window_Vulkan_CreateSurface(PySDL_Window *self, PyObject
     return PyLong_FromUnsignedLongLong((unsigned long long)(uintptr_t)surface);
 }
 
-#if SDL_VERSION_ATLEAST(2,0,11)
+#if SDL_VERSION_ATLEAST(2,0,14)
 static PyObject * PySDL_Window_Metal_CreateView(PySDL_Window *self, PyObject *ign) {
     // The window must have been created with SDL_WINDOW_METAL. Returns the
     // SDL_MetalView handle as an int; pass it to SDL2.Metal_GetLayer /
