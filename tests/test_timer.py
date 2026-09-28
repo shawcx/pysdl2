@@ -6,6 +6,17 @@ import time
 import pytest
 
 
+def _wait(condition, timeout=3.0):
+    '''Poll instead of sleeping a fixed time: CI machines (macOS especially,
+    which coalesces timers) can run a 10 ms timer far slower than asked.'''
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if condition():
+            return True
+        time.sleep(0.01)
+    return condition()
+
+
 def test_timer_fires_and_stops_on_zero(sdl):
     hits = []
 
@@ -15,7 +26,8 @@ def test_timer_fires_and_stops_on_zero(sdl):
 
     timer = sdl.Timer(20, callback)
     assert timer.id != 0
-    time.sleep(0.25)
+    assert _wait(lambda: len(hits) >= 3)
+    time.sleep(0.1)  # it returned 0 on the third call: no fourth may follow
 
     assert len(hits) == 3
     assert hits[0] == 20
@@ -30,11 +42,10 @@ def test_timer_none_return_repeats_until_removed(sdl):
         return None
 
     timer = sdl.Timer(10, callback)
-    time.sleep(0.1)
-    fired = count[0]
-    assert fired > 3
+    assert _wait(lambda: count[0] > 3)  # None keeps it repeating
 
     timer.Remove()
+    fired = count[0]
     assert timer.id == 0
     time.sleep(0.05)
     assert count[0] == fired  # no more callbacks after Remove
@@ -61,9 +72,9 @@ def test_timer_callback_runs_on_another_thread(sdl):
         return 0
 
     timer = sdl.Timer(10, callback)
-    time.sleep(0.1)
+    assert _wait(lambda: thread_ids)
     assert timer.id is not None  # keep the timer alive until it fires
-    assert thread_ids and thread_ids[0] != main
+    assert thread_ids[0] != main
 
 
 def test_empty_timer_has_no_id(sdl):
@@ -75,8 +86,7 @@ def test_dropping_timer_object_removes_it(sdl):
 
     count = [0]
     timer = sdl.Timer(10, lambda i: count.__setitem__(0, count[0] + 1) or None)
-    time.sleep(0.05)
-    assert count[0] > 0
+    assert _wait(lambda: count[0] > 0)
 
     del timer
     gc.collect()
@@ -121,6 +131,7 @@ def test_timer_can_remove_itself(sdl):
         return interval
 
     holder['timer'] = sdl.Timer(5, once)
-    time.sleep(0.1)
+    assert _wait(lambda: fired)
+    time.sleep(0.05)  # removed itself: no second call may follow
     assert len(fired) == 1
     assert holder['timer'].id == 0
