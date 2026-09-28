@@ -3,6 +3,32 @@
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def background_events(sdl):
+    '''SDL ignores joystick input while windows exist but none has keyboard
+    focus - and SDL 2.0.20's dummy driver never gives a window focus, so a
+    window another test left alive would zero every virtual axis here.'''
+    name = 'SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS'
+    previous = sdl.GetHint(name)
+    sdl.SetHint(name, '1')
+    yield
+    sdl.SetHint(name, previous if previous is not None else '0')
+
+
+def _is_sdl2_compat(sdl):
+    '''sdl2-compat (the SDL2 API on SDL3, e.g. Homebrew's `sdl2`) numbers its
+    releases 2.32.50 and up.'''
+    return tuple(sdl.GetVersion()) >= (2, 32, 50)
+
+
+def _reports(sdl, ok):
+    '''What Rumble / SetLED / SendEffect on a virtual joystick return when its
+    callback reports `ok`. sdl2-compat inverts it: its wrappers pass the SDL2
+    int (0 = success) back as SDL3's bool (upstream bug, sdl2-compat <= 2.32.72
+    at least).'''
+    return ok != _is_sdl2_compat(sdl)
+
+
 @pytest.fixture
 def joystick_index(sdl):
     if not hasattr(sdl, 'JoystickAttachVirtual'):
@@ -208,15 +234,17 @@ def test_virtual_callbacks(sdl, vpad, calls):
     try:
         assert js.HasRumble() is True
         assert js.HasRumbleTriggers() is False  # no rumble_triggers callback
-        assert js.Rumble(100, 200, 10) is True
-        assert js.SetLED(1, 2, 3) is True
-        assert js.SendEffect(b'\x01\x02') is True
-        assert js.RumbleTriggers(1, 1, 10) is False
+        assert js.Rumble(100, 200, 10) is _reports(sdl, True)
+        assert js.SetLED(1, 2, 3) is _reports(sdl, True)
+        assert js.SendEffect(b'\x01\x02') is _reports(sdl, True)
+        assert js.RumbleTriggers(1, 1, 10) is False  # no callback: unsupported everywhere
     finally:
         js.Close()
-    # Closing a rumbling joystick sends a final rumble(0, 0) to stop it.
-    assert calls[-4:] == [('rumble', 100, 200), ('led', 1, 2, 3), ('effect', b'\x01\x02'),
-                          ('rumble', 0, 0)]
+    # SDL2 then stops a rumbling joystick on close with rumble(0, 0); SDL3
+    # (under sdl2-compat) doesn't.
+    if calls[-1] == ('rumble', 0, 0):
+        calls.pop()
+    assert calls[-3:] == [('rumble', 100, 200), ('led', 1, 2, 3), ('effect', b'\x01\x02')]
 
 
 def test_virtual_callback_failure_and_exception(sdl, need_ex, capfd):
@@ -226,9 +254,9 @@ def test_virtual_callback_failure_and_exception(sdl, need_ex, capfd):
     index = sdl.JoystickAttachVirtualEx(rumble=boom, set_led=lambda r, g, b: False)
     js = sdl.Joystick(index)
     try:
-        assert js.Rumble(1, 1, 10) is False
+        assert js.Rumble(1, 1, 10) is _reports(sdl, False)
         assert 'rumble exploded' in capfd.readouterr().err
-        assert js.SetLED(0, 0, 0) is False
+        assert js.SetLED(0, 0, 0) is _reports(sdl, False)
     finally:
         js.Close()
         sdl.JoystickDetachVirtual(index)
@@ -332,8 +360,8 @@ def test_controller_info(sdl, vcontroller, calls):
 
     vcontroller.SetPlayerIndex(2)
     assert vcontroller.GetPlayerIndex() == 2
-    assert vcontroller.Rumble(7, 8, 10) is True
-    assert vcontroller.SendEffect(b'z') is True
+    assert vcontroller.Rumble(7, 8, 10) is _reports(sdl, True)
+    assert vcontroller.SendEffect(b'z') is _reports(sdl, True)
     assert ('rumble', 7, 8) in calls and ('effect', b'z') in calls
 
 
@@ -401,7 +429,9 @@ def test_controller_string_names(sdl):
 
 def test_add_mappings_from_bytes(sdl):
     sdl.InitSubSystem(sdl.INIT_GAMECONTROLLER)
-    data = b'03000000ab0000000000000000000000,pysdl2 bytes pad,a:b0,b:b1,platform:Linux,\n'
+    # File mappings only apply when their platform matches the running OS.
+    data = ('03000000ab0000000000000000000000,pysdl2 bytes pad,a:b0,b:b1,'
+            'platform:%s,\n' % sdl.GetPlatform()).encode()
     assert sdl.GameControllerAddMappingsFromFile(data) in (0, 1)
     assert sdl.GameControllerMappingForGUID('03000000ab0000000000000000000000') is not None
 

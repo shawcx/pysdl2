@@ -80,12 +80,24 @@ Fixed
   could call a freed object and crash (``SDL_RemoveTimer`` does not wait for an
   in-flight callback).
 
+Known issues
+^^^^^^^^^^^^
+
+* Under **sdl2-compat** (the SDL2 API implemented on SDL3, which is what
+  Homebrew's ``sdl2`` now installs), ``Rumble`` / ``RumbleTriggers`` /
+  ``SetLED`` / ``SendEffect`` on a *virtual* joystick report the opposite of
+  what its Python callback returned: sdl2-compat (2.32.72 and earlier) passes
+  SDL2's ``int`` result (0 = success) back as SDL3's ``bool``. This is an
+  upstream bug; real devices are unaffected.
+
 Tested with
 ^^^^^^^^^^^
 
 SDL 2.0.20 / SDL_image 2.0.5 / SDL_ttf 2.0.18 / SDL_mixer 2.0.4 (Ubuntu 22.04,
-Python 3.10), SDL 2.26 / 2.6 / 2.20 / 2.6 (Debian 12, Python 3.13) and SDL 2.30
-/ 2.8 / 2.22 / 2.8 (Ubuntu 24.04, Python 3.12).
+Python 3.10), SDL 2.26 / 2.6 / 2.20 / 2.6 (Debian 12, Python 3.13), SDL 2.30
+/ 2.8 / 2.22 / 2.8 (Ubuntu 24.04, Python 3.12), SDL 2.32.4 (Debian 13), and
+sdl2-compat 2.32.72 on SDL3 3.4.16 (Homebrew on macOS; also built from source on
+Linux).
 
 0.2.1 (2020-05-11)
 ------------------

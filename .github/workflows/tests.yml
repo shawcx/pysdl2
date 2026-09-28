@@ -93,8 +93,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip python3-all-dev python3-setuptools dh-python \
-            debhelper pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev
+          sudo apt-get install -y build-essential python3-pip python3-all-dev python3-setuptools \
+            dh-python debhelper pkg-config libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev
           # Ubuntu 24.04's python3-stdeb breaks on Python 3.12 (SafeConfigParser); 0.11 fixes it.
           sudo pip install --break-system-packages 'stdeb>=0.11'
       - run: make

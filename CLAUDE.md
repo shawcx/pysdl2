@@ -62,7 +62,18 @@ SDL 2.0.20, SDL_image 2.0.5, SDL_ttf 2.0.18, SDL_mixer 2.0.4, Python 3.10),
 Ubuntu 24.04 (Python 3.12 / 3.13), without the optional libraries, and on macOS
 (Homebrew), plus the version-guard check and a `.deb` build. Tests that depend on
 behaviour that changed between SDL releases must accept both (see the touchpad,
-window-grab and `Measure` tests). `tests/conftest.py` forces the `dummy` video/audio drivers, runs
+window-grab and `Measure` tests).
+
+**sdl2-compat**: Homebrew's `sdl2` (and newer distros) is now sdl2-compat, the
+SDL2 API on SDL3; it reports version 2.32.50+ (`_is_sdl2_compat` in
+`tests/test_joystick.py`). Known differences the tests allow for: virtual-joystick
+callback results come back inverted (an sdl2-compat bug — its wrappers return the
+SDL2 `int` as SDL3's `bool`), and closing a rumbling joystick sends no final
+`rumble(0, 0)`. To reproduce on Linux, build SDL3 3.4 (`-DSDL_UNIX_CONSOLE_BUILD=ON`
+for a headless build) and sdl2-compat from source and put its `lib/` on
+`LD_LIBRARY_PATH`. The joystick tests also set
+`SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS`: SDL drops joystick input while windows
+exist but none has focus, and SDL 2.0.20's dummy driver never gives focus. `tests/conftest.py` forces the `dummy` video/audio drivers, runs
 `setup.py build` (a no-op when nothing changed) and puts the `build/lib*` dir for
 the running interpreter on `sys.path`; the `sdl` fixture
 does one `Init`/`Quit` per session. Run one file with `python3 -m pytest
