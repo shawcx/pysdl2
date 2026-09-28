@@ -76,6 +76,9 @@ Fixed
   headers, in CI.
 * ``Texture.UpdateYUV`` / ``UpdateNV`` check plane buffer sizes instead of
   letting SDL read past a short buffer.
+* Dropping or removing an ``SDL2.Timer`` while its callback was about to run
+  could call a freed object and crash (``SDL_RemoveTimer`` does not wait for an
+  in-flight callback).
 
 Tested with
 ^^^^^^^^^^^

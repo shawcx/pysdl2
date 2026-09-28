@@ -249,8 +249,13 @@ module/Window/Renderer functions.
 `SDL2.Timer(interval, callback)` registers `SDL_AddTimer`; the callback runs on
 SDL's timer thread through the `PySDL_ThreadEnter` trampoline and returns the
 next interval (`None` = same, `0` or falsy = stop). `Timer.Remove()` — and
-dropping the wrapper, which calls it from `tp_dealloc` — cancels the timer (GIL
-dropped around `SDL_RemoveTimer`, which joins the callback thread).
+dropping the wrapper, which calls it from `tp_dealloc` — cancels the timer.
+`SDL_RemoveTimer` does **not** wait for a callback already under way (it only
+marks the timer cancelled), so SDL's `param` is an integer token, never a
+Python object: the callback looks the callable up in `_timers` (token →
+callable) under the GIL, and `Remove()` deletes the entry first. A callback
+still pending then finds nothing and stops. Any future callback whose SDL
+removal doesn't synchronise with in-flight calls needs the same treatment.
 
 `PySDL_Surface` carries a `shouldFree` flag: surfaces it owns (loaded images,
 `CreateRGBSurface`) are `SDL_FreeSurface`d on dealloc; a borrowed surface like

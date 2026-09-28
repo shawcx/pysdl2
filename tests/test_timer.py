@@ -83,3 +83,44 @@ def test_dropping_timer_object_removes_it(sdl):
     fired = count[0]
     time.sleep(0.05)
     assert count[0] == fired  # the timer stopped when its wrapper was collected
+
+
+def test_dropping_timers_mid_callback_is_safe(sdl):
+    # SDL_RemoveTimer doesn't wait for a callback already under way. Timers used
+    # to hand SDL the Python callable itself, so dropping one while its callback
+    # waited for the GIL called a freed object (a segfault in ~40% of runs of
+    # this loop). Run in a subprocess: the failure mode is a crash.
+    import os
+    import subprocess
+    import sys
+    code = (
+        'import gc, SDL2\n'
+        'SDL2.Init(SDL2.INIT_TIMER)\n'
+        'for _ in range(1500):\n'
+        '    hits = []\n'
+        '    timers = [SDL2.Timer(1, lambda i, h=hits: h.append(i) or None) for _ in range(4)]\n'
+        '    for _ in range(2000):\n'
+        '        pass\n'
+        '    del timers\n'
+        '    gc.collect()\n'
+        'print("ok")\n'
+    )
+    env = dict(os.environ, PYTHONPATH=os.path.dirname(sdl.__file__))
+    out = subprocess.run([sys.executable, '-c', code], env=env, capture_output=True,
+                         text=True, timeout=60)
+    assert out.returncode == 0 and out.stdout.strip() == 'ok', (out.returncode, out.stderr)
+
+
+def test_timer_can_remove_itself(sdl):
+    fired = []
+    holder = {}
+
+    def once(interval):
+        fired.append(interval)
+        holder['timer'].Remove()  # from inside its own callback
+        return interval
+
+    holder['timer'] = sdl.Timer(5, once)
+    time.sleep(0.1)
+    assert len(fired) == 1
+    assert holder['timer'].id == 0

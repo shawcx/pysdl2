@@ -191,8 +191,11 @@ Tests: `tests/test_timer.py`, `tests/test_system.py`; example: `example/timer.py
 - New **`SDL2.Timer(interval_ms, callback)`** (`src/pysdl_Timer.c`): `Remove()`,
   `id`. Callback fires on SDL's timer thread via the `PySDL_ThreadEnter`
   trampoline; its return value is the next interval (`None` = same, `0`/falsy =
-  stop). Dropping the wrapper cancels the timer (GIL dropped around
-  `SDL_RemoveTimer`).
+  stop). Dropping the wrapper cancels the timer. (Fixed in 0.3.0: this first
+  passed the callable itself as SDL's `param`, but `SDL_RemoveTimer` doesn't wait
+  for a callback in flight, so a timer dropped while its callback waited for the
+  GIL called a freed object — an intermittent segfault. SDL now gets an integer
+  token looked up under the GIL; `tests/test_timer.py` has a stress test.)
 - New **`SDL2.Haptic(device_index)`** (`src/pysdl_Haptic.c`): `Query`, `NumAxes`,
   `NumEffects` / `NumEffectsPlaying`, `RumbleSupported` / `RumbleInit` /
   `RumblePlay(strength, ms)` / `RumbleStop`, `SetGain` / `SetAutocenter`,
